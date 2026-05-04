@@ -1,0 +1,308 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA00000001 /* CameraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000001; };
+		AA00000002 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000002; };
+		AA00000003 /* CameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000003; };
+		AA00000004 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000004; };
+		AA00000005 /* LanguageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000007; };
+		AA00000006 /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000008; };
+		AA00000007 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000009; };
+		AA00000008 /* MediaLibraryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000A; };
+		AA00000009 /* TelegramService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000B; };
+		AA0000000A /* AutomationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000C; };
+		AA0000000B /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000D; };
+		AA0000000C /* MediaLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000E; };
+		AA0000000D /* MediaDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000F; };
+		AA0000000E /* AutomationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000010; };
+		AA0000000F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000011; };
+		AA00000010 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB00000012; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AB00000001 /* CameraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraApp.swift; sourceTree = "<group>"; };
+		AB00000002 /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
+		AB00000003 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
+		AB00000004 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AB00000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AB00000006 /* CameraApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CameraApp.entitlements; sourceTree = "<group>"; };
+		AB00000007 /* LanguageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageManager.swift; sourceTree = "<group>"; };
+		AB00000008 /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
+		AB00000009 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		AB0000000A /* MediaLibraryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibraryManager.swift; sourceTree = "<group>"; };
+		AB0000000B /* TelegramService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelegramService.swift; sourceTree = "<group>"; };
+		AB0000000C /* AutomationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationScheduler.swift; sourceTree = "<group>"; };
+		AB0000000D /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
+		AB0000000E /* MediaLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibraryView.swift; sourceTree = "<group>"; };
+		AB0000000F /* MediaDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDetailView.swift; sourceTree = "<group>"; };
+		AB00000010 /* AutomationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationView.swift; sourceTree = "<group>"; };
+		AB00000011 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AB00000012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AC00000001 /* CameraApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CameraApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AD00000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B400000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA00000010 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXGroup section */
+		AE00000001 /* Root */ = {
+			isa = PBXGroup;
+			children = (
+				AE00000002 /* CameraApp */,
+				AE00000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AE00000002 /* CameraApp */ = {
+			isa = PBXGroup;
+			children = (
+				AB00000001 /* CameraApp.swift */,
+				AB00000002 /* CameraManager.swift */,
+				AB00000003 /* CameraPreviewView.swift */,
+				AB00000004 /* ContentView.swift */,
+				AB00000007 /* LanguageManager.swift */,
+				AB00000008 /* Strings.swift */,
+				AB00000009 /* SettingsStore.swift */,
+				AB0000000A /* MediaLibraryManager.swift */,
+				AB0000000B /* TelegramService.swift */,
+				AB0000000C /* AutomationScheduler.swift */,
+				AB0000000D /* CameraView.swift */,
+				AB0000000E /* MediaLibraryView.swift */,
+				AB0000000F /* MediaDetailView.swift */,
+				AB00000010 /* AutomationView.swift */,
+				AB00000011 /* SettingsView.swift */,
+				AB00000005 /* Info.plist */,
+				AB00000006 /* CameraApp.entitlements */,
+				AB00000012 /* Assets.xcassets */,
+			);
+			path = CameraApp;
+			sourceTree = "<group>";
+		};
+		AE00000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AC00000001 /* CameraApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AF00000001 /* CameraApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B200000003;
+			buildPhases = (
+				B000000001 /* Sources */,
+				AD00000001 /* Frameworks */,
+				B400000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CameraApp;
+			productName = CameraApp;
+			productReference = AC00000001;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B100000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = B200000001;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AE00000001;
+			productRefGroup = AE00000003;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AF00000001,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA00000001 /* CameraApp.swift in Sources */,
+				AA00000002 /* CameraManager.swift in Sources */,
+				AA00000003 /* CameraPreviewView.swift in Sources */,
+				AA00000004 /* ContentView.swift in Sources */,
+				AA00000005 /* LanguageManager.swift in Sources */,
+				AA00000006 /* Strings.swift in Sources */,
+				AA00000007 /* SettingsStore.swift in Sources */,
+				AA00000008 /* MediaLibraryManager.swift in Sources */,
+				AA00000009 /* TelegramService.swift in Sources */,
+				AA0000000A /* AutomationScheduler.swift in Sources */,
+				AA0000000B /* CameraView.swift in Sources */,
+				AA0000000C /* MediaLibraryView.swift in Sources */,
+				AA0000000D /* MediaDetailView.swift in Sources */,
+				AA0000000E /* AutomationView.swift in Sources */,
+				AA0000000F /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		B300000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B300000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		B300000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CameraApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MacMonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		B300000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CameraApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MacMonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B200000001 /* Build configuration list for PBXProject "CameraApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B300000001 /* Debug */,
+				B300000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B200000003 /* Build configuration list for PBXNativeTarget "CameraApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B300000003 /* Debug */,
+				B300000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = B100000001;
+}

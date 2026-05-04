@@ -1,0 +1,41 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Swift Package Manager
+.build/
+Packages/
+Package.pins
+Package.resolved
+
+# CocoaPods (if ever used)
+Pods/
+
+# Carthage (if ever used)
+Carthage/Build/
+
+# User media and data (not Assets.xcassets icons)
+/*.jpg
+/*.jpeg
+/*.png
+/*.mov
+/*.mp4
+*.zip
+tasks.json
+camera_debug.log
+camera_btn.log
