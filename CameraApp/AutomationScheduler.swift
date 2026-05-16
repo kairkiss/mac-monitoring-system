@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 enum TaskType: String, Codable, CaseIterable {
     case daily
@@ -30,6 +31,7 @@ struct ScheduledTask: Identifiable, Codable {
     var telegramSend: Bool
     let createdAt: Date
     var nextFireTime: Date?
+    var lastRunAt: Date?
 
     init(
         id: UUID = UUID(),
@@ -44,7 +46,8 @@ struct ScheduledTask: Identifiable, Codable {
         durationMinutes: Int = 120,
         telegramSend: Bool = false,
         createdAt: Date = Date(),
-        nextFireTime: Date? = nil
+        nextFireTime: Date? = nil,
+        lastRunAt: Date? = nil
     ) {
         self.id = id
         self.name = name
@@ -59,6 +62,7 @@ struct ScheduledTask: Identifiable, Codable {
         self.telegramSend = telegramSend
         self.createdAt = createdAt
         self.nextFireTime = nextFireTime
+        self.lastRunAt = lastRunAt
     }
 }
 
@@ -78,6 +82,15 @@ final class AutomationScheduler: ObservableObject {
 
     private init() {
         isAutomationEnabled = UserDefaults.standard.bool(forKey: "automationEnabled")
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(systemDidWake),
+            name: NSWorkspace.didWakeNotification, object: nil
+        )
+    }
+
+    @objc private func systemDidWake() {
+        guard isAutomationEnabled else { return }
+        recoverMissedTasks()
     }
 
     // MARK: - CRUD
@@ -143,6 +156,7 @@ final class AutomationScheduler: ObservableObject {
         tasks = loaded
         cancelAllTimers()
         guard isAutomationEnabled else { return }
+        recoverMissedTasks()
         for i in tasks.indices {
             tasks[i].nextFireTime = calculateNextFireTime(for: tasks[i])
             if tasks[i].isEnabled {
@@ -150,6 +164,28 @@ final class AutomationScheduler: ObservableObject {
             }
         }
         persistTasks()
+    }
+
+    func recoverMissedTasks() {
+        let windowMinutes = SettingsStore.shared.recoveryWindowMinutes
+        guard windowMinutes > 0 else { return }
+        let cutoff = Date().addingTimeInterval(-TimeInterval(windowMinutes * 60))
+
+        for i in tasks.indices {
+            guard tasks[i].isEnabled else { continue }
+            guard tasks[i].type == .daily || tasks[i].type == .weekly else { continue }
+
+            let lastRun = tasks[i].lastRunAt ?? tasks[i].createdAt
+            guard lastRun < cutoff else { continue }
+
+            // Check if the task should have fired within the recovery window
+            if let scheduledFire = tasks[i].nextFireTime, scheduledFire <= Date() {
+                let telegramSend = tasks[i].telegramSend
+                ActivityLogManager.shared.info(.automation, "Recovering missed task: \(tasks[i].name)", detail: "Last run: \(lastRun)")
+                onCapture?(telegramSend)
+                tasks[i].lastRunAt = Date()
+            }
+        }
     }
 
     // MARK: - Timer Scheduling
@@ -226,6 +262,7 @@ final class AutomationScheduler: ObservableObject {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
         guard tasks[index].isEnabled else { return }
 
+        tasks[index].lastRunAt = Date()
         let telegramSend = tasks[index].telegramSend
 
         // Check camera availability before capturing

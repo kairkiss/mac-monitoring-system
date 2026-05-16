@@ -16,11 +16,11 @@ final class TelegramService: ObservableObject {
 
     private init() {}
 
-    func sendPhoto(imageData: Data, caption: String = "") {
-        sendPhotoWithRetry(imageData: imageData, caption: caption, attempt: 0)
+    func sendPhoto(imageData: Data, caption: String = "", fileName: String? = nil) {
+        sendPhotoWithRetry(imageData: imageData, caption: caption, attempt: 0, fileName: fileName)
     }
 
-    private func sendPhotoWithRetry(imageData: Data, caption: String, attempt: Int) {
+    private func sendPhotoWithRetry(imageData: Data, caption: String, attempt: Int, fileName: String? = nil) {
         let settings = SettingsStore.shared
         let token = settings.telegramBotToken
         let chatID = settings.telegramChatID
@@ -71,10 +71,11 @@ final class TelegramService: ObservableObject {
             if let error {
                 if attempt < self.maxRetries {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        self.sendPhotoWithRetry(imageData: imageData, caption: caption, attempt: attempt + 1)
+                        self.sendPhotoWithRetry(imageData: imageData, caption: caption, attempt: attempt + 1, fileName: fileName)
                     }
                     return
                 }
+                NotificationCenter.default.post(name: .telegramSendFailed, object: nil)
                 DispatchQueue.main.async {
                     self.isSending = false
                     self.lastSendStatus = .failure(error.localizedDescription)
@@ -84,6 +85,10 @@ final class TelegramService: ObservableObject {
 
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 200 {
+                    if let fileName {
+                        MediaIndexStore.shared.markTelegramSent(fileName)
+                    }
+                    NotificationCenter.default.post(name: .telegramSendSucceeded, object: nil)
                     DispatchQueue.main.async {
                         self.isSending = false
                         self.lastSendStatus = .success
@@ -91,17 +96,19 @@ final class TelegramService: ObservableObject {
                 } else {
                     if attempt < self.maxRetries {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                            self.sendPhotoWithRetry(imageData: imageData, caption: caption, attempt: attempt + 1)
+                            self.sendPhotoWithRetry(imageData: imageData, caption: caption, attempt: attempt + 1, fileName: fileName)
                         }
                         return
                     }
                     let body = data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unknown error"
+                    NotificationCenter.default.post(name: .telegramSendFailed, object: nil)
                     DispatchQueue.main.async {
                         self.isSending = false
                         self.lastSendStatus = .failure("HTTP \(httpResponse.statusCode): \(body)")
                     }
                 }
             } else {
+                NotificationCenter.default.post(name: .telegramSendFailed, object: nil)
                 DispatchQueue.main.async {
                     self.isSending = false
                     self.lastSendStatus = .failure("No response")

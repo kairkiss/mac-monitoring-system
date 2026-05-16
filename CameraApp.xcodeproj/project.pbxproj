@@ -23,6 +23,12 @@
 		AA0000000E /* AutomationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000010; };
 		AA0000000F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000011; };
 		AA00000010 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB00000012; };
+		AA00000011 /* ActivityLogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000013; };
+		AA00000012 /* ActivityLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000014; };
+		AA00000013 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000015; };
+		AA00000014 /* MotionDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000016; };
+		AA00000015 /* MediaIndexStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000017; };
+		AA00000016 /* HealthMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000018; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +50,12 @@
 		AB00000010 /* AutomationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationView.swift; sourceTree = "<group>"; };
 		AB00000011 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AB00000012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AB00000013 /* ActivityLogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityLogManager.swift; sourceTree = "<group>"; };
+		AB00000014 /* ActivityLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityLogView.swift; sourceTree = "<group>"; };
+		AB00000015 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		AB00000016 /* MotionDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionDetector.swift; sourceTree = "<group>"; };
+		AB00000017 /* MediaIndexStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaIndexStore.swift; sourceTree = "<group>"; };
+		AB00000018 /* HealthMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthMonitor.swift; sourceTree = "<group>"; };
 		AC00000001 /* CameraApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CameraApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -95,6 +107,12 @@
 				AB0000000F /* MediaDetailView.swift */,
 				AB00000010 /* AutomationView.swift */,
 				AB00000011 /* SettingsView.swift */,
+				AB00000013 /* ActivityLogManager.swift */,
+				AB00000014 /* ActivityLogView.swift */,
+				AB00000015 /* KeychainService.swift */,
+				AB00000016 /* MotionDetector.swift */,
+				AB00000017 /* MediaIndexStore.swift */,
+				AB00000018 /* HealthMonitor.swift */,
 				AB00000005 /* Info.plist */,
 				AB00000006 /* CameraApp.entitlements */,
 				AB00000012 /* Assets.xcassets */,
@@ -178,6 +196,12 @@
 				AA0000000D /* MediaDetailView.swift in Sources */,
 				AA0000000E /* AutomationView.swift in Sources */,
 				AA0000000F /* SettingsView.swift in Sources */,
+				AA00000011 /* ActivityLogManager.swift in Sources */,
+				AA00000012 /* ActivityLogView.swift in Sources */,
+				AA00000013 /* KeychainService.swift in Sources */,
+				AA00000014 /* MotionDetector.swift in Sources */,
+				AA00000015 /* MediaIndexStore.swift in Sources */,
+				AA00000016 /* HealthMonitor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -243,15 +267,15 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.MacMonitor;
+				MARKETING_VERSION = 1.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -265,15 +289,15 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.MacMonitor;
+				MARKETING_VERSION = 1.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

@@ -1,13 +1,14 @@
 import SwiftUI
 
 enum SidebarItem: String, CaseIterable, Identifiable {
-    case camera, library, automation, settings
+    case camera, library, automation, activityLog, settings
     var id: String { rawValue }
     var icon: String {
         switch self {
         case .camera: return "camera.fill"
         case .library: return "photo.on.rectangle"
         case .automation: return "clock.arrow.circlepath"
+        case .activityLog: return "list.bullet.rectangle"
         case .settings: return "gearshape.fill"
         }
     }
@@ -16,6 +17,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .camera: return Strings.cameraTitle
         case .library: return Strings.libraryTitle
         case .automation: return Strings.automationTitle
+        case .activityLog: return Strings.activityLog
         case .settings: return Strings.settingsTitle
         }
     }
@@ -93,6 +95,8 @@ struct ContentView: View {
                         MediaLibraryView()
                     case .automation:
                         AutomationView()
+                    case .activityLog:
+                        ActivityLogView()
                     case .settings:
                         SettingsView()
                     }

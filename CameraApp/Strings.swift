@@ -81,7 +81,7 @@ struct Strings {
     static var language: String { lang == .chinese ? "语言" : "Language" }
     static var about: String { lang == .chinese ? "关于" : "About" }
     static var storagePath: String { lang == .chinese ? "存储路径" : "Storage Path" }
-    static var tokenNote: String { lang == .chinese ? "Token 保存在本地 UserDefaults 中。生产环境建议迁移到 Keychain。" : "Token stored in local UserDefaults. Consider migrating to Keychain for production." }
+    static var tokenNote: String { lang == .chinese ? "Token 已安全保存在系统 Keychain 中。" : "Token securely stored in system Keychain." }
 
     // MARK: - Telegram Per-Task
     static var sendToTelegram: String { lang == .chinese ? "推送到 Telegram" : "Send to Telegram" }
@@ -137,4 +137,75 @@ struct Strings {
     static var customStoragePath: String { lang == .chinese ? "自定义存储路径" : "Custom Storage Path" }
     static var chooseDirectory: String { lang == .chinese ? "选择目录" : "Choose Directory" }
     static var resetToDefault: String { lang == .chinese ? "恢复默认" : "Reset to Default" }
+
+    // MARK: - Activity Log
+    static var activityLog: String { lang == .chinese ? "活动记录" : "Activity Log" }
+    static var clearLogs: String { lang == .chinese ? "清除日志" : "Clear Logs" }
+    static var exportLogs: String { lang == .chinese ? "导出日志" : "Export Logs" }
+
+    // MARK: - Motion Detection
+    static var motionDetection: String { lang == .chinese ? "画面变化检测" : "Motion Detection" }
+    static var enableMotionDetection: String { lang == .chinese ? "启用画面变化检测" : "Enable Motion Detection" }
+    static var motionSensitivity: String { lang == .chinese ? "灵敏度" : "Sensitivity" }
+    static var motionCooldown: String { lang == .chinese ? "冷却时间" : "Cooldown" }
+    static var captureOnMotion: String { lang == .chinese ? "检测到变化时拍照" : "Capture on Motion" }
+    static var telegramOnMotion: String { lang == .chinese ? "检测到变化时发送 Telegram" : "Send to Telegram on Motion" }
+    static var low: String { lang == .chinese ? "低" : "Low" }
+    static var medium: String { lang == .chinese ? "中" : "Medium" }
+    static var high: String { lang == .chinese ? "高" : "High" }
+    static var seconds: String { lang == .chinese ? "秒" : "seconds" }
+    static var motionDetected: String { lang == .chinese ? "检测到画面变化" : "Motion Detected" }
+
+    // MARK: - Health Monitor
+    static var healthMonitor: String { lang == .chinese ? "健康监控" : "Health Monitor" }
+    static var enableHealthMonitor: String { lang == .chinese ? "启用健康监控" : "Enable Health Monitor" }
+    static var notifyCameraDisconnect: String { lang == .chinese ? "摄像头断开时通知" : "Notify on Camera Disconnect" }
+    static var notifyLowDisk: String { lang == .chinese ? "磁盘空间不足时通知" : "Notify on Low Disk Space" }
+    static var notifyTelegramFailure: String { lang == .chinese ? "Telegram 连续失败时通知" : "Notify on Telegram Failure" }
+    static var lowDiskThreshold: String { lang == .chinese ? "低磁盘空间阈值 (MB)" : "Low Disk Threshold (MB)" }
+
+    // MARK: - Notifications
+    static var notifications: String { lang == .chinese ? "通知" : "Notifications" }
+    static var enableNotifications: String { lang == .chinese ? "启用本地通知" : "Enable Local Notifications" }
+    static var notifyOnErrors: String { lang == .chinese ? "出错时通知" : "Notify on Errors" }
+    static var notifyOnMotion: String { lang == .chinese ? "画面变化时通知" : "Notify on Motion" }
+
+    // MARK: - Keychain
+    static var keychain: String { lang == .chinese ? "Keychain" : "Keychain" }
+    static var tokenInKeychain: String { lang == .chinese ? "Bot Token 已存储在 Keychain 中" : "Bot Token stored in Keychain" }
+    static var clearToken: String { lang == .chinese ? "清除 Token" : "Clear Token" }
+    static var openPrivacyPolicy: String { lang == .chinese ? "查看隐私政策" : "Open Privacy Policy" }
+
+    // MARK: - Automation Recovery
+    static var missedTaskRecovery: String { lang == .chinese ? "错过任务恢复" : "Missed Task Recovery" }
+    static var recoveryWindow: String { lang == .chinese ? "恢复窗口 (分钟)" : "Recovery Window (minutes)" }
+    static var lastRun: String { lang == .chinese ? "上次执行" : "Last Run" }
+
+    // MARK: - Media Index
+    static var favorites: String { lang == .chinese ? "收藏" : "Favorites" }
+    static var addToFavorites: String { lang == .chinese ? "添加收藏" : "Add to Favorites" }
+    static var removeFromFavorites: String { lang == .chinese ? "取消收藏" : "Remove from Favorites" }
+    static var source: String { lang == .chinese ? "来源" : "Source" }
+    static var manual: String { lang == .chinese ? "手动" : "Manual" }
+    static var automation: String { lang == .chinese ? "自动任务" : "Automation" }
+    static var motion: String { lang == .chinese ? "画面变化" : "Motion" }
+    static var imported: String { lang == .chinese ? "导入" : "Imported" }
+    static var telegramStatus: String { lang == .chinese ? "Telegram 状态" : "Telegram Status" }
+    static var searchFiles: String { lang == .chinese ? "搜索文件名..." : "Search files..." }
+
+    // MARK: - Privacy & Security
+    static var privacySecurity: String { lang == .chinese ? "隐私与安全" : "Privacy & Security" }
+
+    // MARK: - Capture Settings
+    static var captureSettings: String { lang == .chinese ? "拍摄设置" : "Capture Settings" }
+    static var automationSettings: String { lang == .chinese ? "自动化设置" : "Automation Settings" }
+    static var storageSettings: String { lang == .chinese ? "存储设置" : "Storage Settings" }
+    static var notificationSettings: String { lang == .chinese ? "通知设置" : "Notification Settings" }
+
+    // MARK: - CaptureError
+    static var noVideoFrame: String { lang == .chinese ? "没有视频帧" : "No video frame available" }
+    static var imageCreationFailed: String { lang == .chinese ? "图片创建失败" : "Failed to create image" }
+    static var jpegEncodingFailed: String { lang == .chinese ? "JPEG 编码失败" : "Failed to encode JPEG" }
+    static var diskSpaceInsufficient: String { lang == .chinese ? "磁盘空间不足" : "Disk space insufficient" }
+    static var captureFailed: String { lang == .chinese ? "拍照失败" : "Capture failed" }
 }

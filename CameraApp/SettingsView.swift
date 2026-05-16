@@ -188,6 +188,169 @@ struct SettingsView: View {
                 Label(Strings.customStoragePath, systemImage: "folder")
             }
 
+            // Motion Detection
+            Section {
+                Toggle(isOn: $settings.enableMotionDetection) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "sensor.tag.radiowaves.forward.fill")
+                            .foregroundStyle(.green)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Strings.enableMotionDetection)
+                        }
+                    }
+                }
+
+                if settings.enableMotionDetection {
+                    Picker(Strings.motionSensitivity, selection: $settings.motionSensitivity) {
+                        Text(Strings.low).tag(1)
+                        Text(Strings.medium).tag(2)
+                        Text(Strings.high).tag(3)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.leading, 32)
+
+                    Stepper("\(Strings.motionCooldown): \(settings.motionCooldownSeconds) \(Strings.seconds)", value: $settings.motionCooldownSeconds, in: 5...120, step: 5)
+                        .padding(.leading, 32)
+
+                    Toggle(isOn: $settings.captureOnMotion) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "camera.fill")
+                                .foregroundStyle(.blue)
+                                .frame(width: 20)
+                            Text(Strings.captureOnMotion)
+                        }
+                    }
+                    .padding(.leading, 32)
+
+                    Toggle(isOn: $settings.telegramOnMotion) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "paperplane.fill")
+                                .foregroundStyle(.blue)
+                                .frame(width: 20)
+                            Text(Strings.telegramOnMotion)
+                        }
+                    }
+                    .padding(.leading, 32)
+                }
+            } header: {
+                Label(Strings.motionDetection, systemImage: "sensor.tag.radiowaves.forward.fill")
+            }
+
+            // Health Monitor
+            Section {
+                Toggle(isOn: $settings.enableHealthMonitor) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "heart.fill")
+                            .foregroundStyle(.red)
+                            .frame(width: 20)
+                        Text(Strings.enableHealthMonitor)
+                    }
+                }
+
+                if settings.enableHealthMonitor {
+                    Toggle(isOn: $settings.notifyCameraDisconnect) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "video.slash.fill")
+                                .foregroundStyle(.orange)
+                                .frame(width: 20)
+                            Text(Strings.notifyCameraDisconnect)
+                        }
+                    }
+                    .padding(.leading, 32)
+
+                    Toggle(isOn: $settings.notifyLowDisk) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "internaldrive.fill")
+                                .foregroundStyle(.orange)
+                                .frame(width: 20)
+                            Text(Strings.notifyLowDisk)
+                        }
+                    }
+                    .padding(.leading, 32)
+
+                    if settings.notifyLowDisk {
+                        Stepper("\(Strings.lowDiskThreshold): \(settings.lowDiskThresholdMB) MB", value: $settings.lowDiskThresholdMB, in: 100...5000, step: 100)
+                            .padding(.leading, 52)
+                    }
+
+                    Toggle(isOn: $settings.notifyTelegramFailure) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "paperplane.slash.fill")
+                                .foregroundStyle(.orange)
+                                .frame(width: 20)
+                            Text(Strings.notifyTelegramFailure)
+                        }
+                    }
+                    .padding(.leading, 32)
+                }
+            } header: {
+                Label(Strings.healthMonitor, systemImage: "heart.fill")
+            }
+
+            // Notifications
+            Section {
+                Toggle(isOn: $settings.enableNotifications) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bell.fill")
+                            .foregroundStyle(.red)
+                            .frame(width: 20)
+                        Text(Strings.enableNotifications)
+                    }
+                }
+
+                if settings.enableNotifications {
+                    Toggle(isOn: $settings.notifyOnErrors) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                                .frame(width: 20)
+                            Text(Strings.notifyOnErrors)
+                        }
+                    }
+                    .padding(.leading, 32)
+
+                    Toggle(isOn: $settings.notifyOnMotion) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "sensor.tag.radiowaves.forward.fill")
+                                .foregroundStyle(.green)
+                                .frame(width: 20)
+                            Text(Strings.notifyOnMotion)
+                        }
+                    }
+                    .padding(.leading, 32)
+                }
+            } header: {
+                Label(Strings.notifications, systemImage: "bell.fill")
+            }
+
+            // Automation Recovery
+            Section {
+                Stepper("\(Strings.recoveryWindow): \(settings.recoveryWindowMinutes) \(Strings.minutes)", value: $settings.recoveryWindowMinutes, in: 0...120, step: 5)
+            } header: {
+                Label(Strings.missedTaskRecovery, systemImage: "arrow.clockwise")
+            }
+
+            // Privacy & Security
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: "lock.shield.fill")
+                        .foregroundStyle(.green)
+                        .frame(width: 20)
+                    Text(Strings.tokenInKeychain)
+                        .font(.callout)
+                }
+
+                Button {
+                    settings.telegramBotToken = ""
+                } label: {
+                    Label(Strings.clearToken, systemImage: "trash")
+                }
+                .disabled(settings.telegramBotToken.isEmpty)
+            } header: {
+                Label(Strings.privacySecurity, systemImage: "lock.shield.fill")
+            }
+
             // Language
             Section {
                 Picker(Strings.language, selection: Binding(
@@ -206,7 +369,8 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", "1.1.1")
+                aboutRow("Version", "1.2.0")
+                aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")
             }

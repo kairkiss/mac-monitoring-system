@@ -9,11 +9,11 @@
 	<key>CFBundleDisplayName</key>
 	<string>Mac监控系统</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.example.MacMonitor</string>
+	<string>com.kairkiss.MacMonitor</string>
 	<key>CFBundleVersion</key>
-	<string>3</string>
+	<string>4</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.1.1</string>
+	<string>1.2.0</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleExecutable</key>

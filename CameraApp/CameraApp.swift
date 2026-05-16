@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 /// Shared controller for menu bar quick capture
 final class CaptureController: ObservableObject {
@@ -113,9 +114,13 @@ struct CameraApp: App {
                 .environmentObject(telegramService)
                 .environmentObject(automationScheduler)
                 .onAppear {
+                    KeychainService.shared.migrateTokenIfNeeded()
                     mediaLibrary.scanLibrary()
                     automationScheduler.restoreAllTasks()
                     setupAutomationCapture()
+                    setupMotionDetection()
+                    requestNotificationPermission()
+                    HealthMonitor.shared.startMonitoring()
                     if settingsStore.autoCleanEnabled && settingsStore.keepLastDays > 0 {
                         _ = mediaLibrary.cleanOldFiles(keepDays: settingsStore.keepLastDays)
                     }
@@ -143,11 +148,39 @@ struct CameraApp: App {
         automationScheduler.onCapture = { [weak camera] telegramSend in
             guard let camera else { return }
             camera.ensureSessionRunning {
-                camera.capturePhoto()
-                if telegramSend, let path = camera.lastSavedPhotoPath,
-                   let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                    TelegramService.shared.sendPhoto(imageData: data)
+                camera.capturePhoto { result in
+                    if case .success(let url) = result {
+                        let fileName = url.lastPathComponent
+                        MediaIndexStore.shared.setSource(.automation, for: fileName)
+                        if telegramSend, let data = try? Data(contentsOf: url) {
+                            TelegramService.shared.sendPhoto(imageData: data, fileName: fileName)
+                        }
+                    }
                 }
+            }
+        }
+    }
+
+    private func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+    }
+
+    private func setupMotionDetection() {
+        MotionDetector.shared.onMotionDetected = { [weak settingsStore] in
+            guard let settingsStore else { return }
+            let camera = CameraManager.shared
+            if settingsStore.captureOnMotion {
+                camera.capturePhoto { result in
+                    if case .success(let url) = result {
+                        let fileName = url.lastPathComponent
+                        MediaIndexStore.shared.setSource(.motion, for: fileName)
+                        if settingsStore.telegramOnMotion, let data = try? Data(contentsOf: url) {
+                            TelegramService.shared.sendPhoto(imageData: data, caption: Strings.motionDetected, fileName: fileName)
+                        }
+                    }
+                }
+            } else if settingsStore.telegramOnMotion {
+                ActivityLogManager.shared.info(.motion, Strings.motionDetected)
             }
         }
     }

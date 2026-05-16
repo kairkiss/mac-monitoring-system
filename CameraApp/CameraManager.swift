@@ -2,6 +2,26 @@ import AVFoundation
 import AppKit
 import SwiftUI
 
+enum CameraCaptureError: LocalizedError {
+    case noVideoFrame
+    case imageCreationFailed
+    case jpegEncodingFailed
+    case diskSpaceInsufficient
+    case saveFailed
+    case cameraNotReady
+
+    var errorDescription: String? {
+        switch self {
+        case .noVideoFrame: return Strings.noVideoFrame
+        case .imageCreationFailed: return Strings.imageCreationFailed
+        case .jpegEncodingFailed: return Strings.jpegEncodingFailed
+        case .diskSpaceInsufficient: return Strings.diskSpaceInsufficient
+        case .saveFailed: return Strings.captureFailed
+        case .cameraNotReady: return Strings.cameraStopped
+        }
+    }
+}
+
 enum CameraStatus: Equatable {
     case checking
     case noCamera
@@ -282,7 +302,7 @@ final class CameraManager: NSObject, ObservableObject {
 
     // MARK: - Photo Capture
 
-    func capturePhoto() {
+    func capturePhoto(completion: ((Result<URL, CameraCaptureError>) -> Void)? = nil) {
         if !isSessionRunning {
             startSession()
             var attempts = 0
@@ -292,43 +312,46 @@ final class CameraManager: NSObject, ObservableObject {
                 attempts += 1
                 if self.isSessionRunning {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        self.doCapturePhoto()
+                        self.doCapturePhoto(completion: completion)
                     }
                 } else if attempts < 30 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { check?() }
                 } else {
-                    self.status = .error("Camera failed to start")
+                    self.status = .error(Strings.cameraStopped)
+                    completion?(.failure(.cameraNotReady))
                 }
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { check() }
             return
         }
-        doCapturePhoto()
+        doCapturePhoto(completion: completion)
     }
 
-    private func doCapturePhoto() {
+    private func doCapturePhoto(completion: ((Result<URL, CameraCaptureError>) -> Void)?) {
         guard let sampleBuffer = latestSampleBuffer,
               let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.doCapturePhotoDirect()
+                self?.doCapturePhotoDirect(completion: completion)
             }
             return
         }
-        savePhoto(from: imageBuffer)
+        savePhoto(from: imageBuffer, completion: completion)
     }
 
-    private func doCapturePhotoDirect() {
+    private func doCapturePhotoDirect(completion: ((Result<URL, CameraCaptureError>) -> Void)?) {
         guard let sampleBuffer = latestSampleBuffer,
               let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
-            status = .error("No video frame available")
+            status = .error(Strings.noVideoFrame)
+            completion?(.failure(.noVideoFrame))
             return
         }
-        savePhoto(from: imageBuffer)
+        savePhoto(from: imageBuffer, completion: completion)
     }
 
-    private func savePhoto(from imageBuffer: CVImageBuffer) {
+    private func savePhoto(from imageBuffer: CVImageBuffer, completion: ((Result<URL, CameraCaptureError>) -> Void)?) {
         guard MediaLibraryManager.shared.hasEnoughDiskSpace() else {
-            status = .error("Disk space insufficient")
+            status = .error(Strings.diskSpaceInsufficient)
+            completion?(.failure(.diskSpaceInsufficient))
             return
         }
 
@@ -339,13 +362,15 @@ final class CameraManager: NSObject, ObservableObject {
         let context = CIContext()
 
         guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
-            status = .error("Failed to create image")
+            status = .error(Strings.imageCreationFailed)
+            completion?(.failure(.imageCreationFailed))
             return
         }
 
         let bitmapRep = NSBitmapImageRep(cgImage: cgImage)
         guard let jpegData = bitmapRep.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else {
-            status = .error("Failed to encode JPEG")
+            status = .error(Strings.jpegEncodingFailed)
+            completion?(.failure(.jpegEncodingFailed))
             return
         }
 
@@ -355,8 +380,10 @@ final class CameraManager: NSObject, ObservableObject {
         let url = lib.photosDirectory.appendingPathComponent(fileName)
         if lib.writeAtomically(jpegData, to: url) {
             lib.registerPhoto(fileName: fileName, fileSize: Int64(jpegData.count))
+            MediaIndexStore.shared.setSource(.manual, for: fileName)
             lastSavedPhotoPath = url.path
             status = .photoSaved(fileName)
+            completion?(.success(url))
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
                 guard let self else { return }
                 if case .photoSaved = self.status {
@@ -364,7 +391,8 @@ final class CameraManager: NSObject, ObservableObject {
                 }
             }
         } else {
-            status = .error("Save failed")
+            status = .error(Strings.captureFailed)
+            completion?(.failure(.saveFailed))
         }
     }
 
@@ -571,6 +599,7 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         from connection: AVCaptureConnection
     ) {
         latestSampleBuffer = sampleBuffer
+        MotionDetector.shared.processFrame(sampleBuffer)
     }
 }
 
