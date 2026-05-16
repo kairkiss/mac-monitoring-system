@@ -106,4 +106,35 @@ struct Strings {
     static var openLibrary: String { lang == .chinese ? "打开相册" : "Open Library" }
     static var quit: String { lang == .chinese ? "退出" : "Quit" }
     static var menuBarTitle: String { lang == .chinese ? "Mac监控系统" : "Mac Monitor" }
+
+    // MARK: - Export
+    static var share: String { lang == .chinese ? "分享" : "Share" }
+    static var copyToClipboard: String { lang == .chinese ? "拷贝到剪贴板" : "Copy to Clipboard" }
+    static var exportToFile: String { lang == .chinese ? "导出" : "Export to File" }
+    static var copied: String { lang == .chinese ? "已拷贝" : "Copied" }
+    static var exportSuccess: String { lang == .chinese ? "导出成功" : "Exported successfully" }
+    static var exportFailed: String { lang == .chinese ? "导出失败" : "Export failed" }
+
+    // MARK: - Multi-Camera
+    static var selectCamera: String { lang == .chinese ? "选择摄像头" : "Select Camera" }
+    static var cameraDisconnected: String { lang == .chinese ? "摄像头已断开" : "Camera Disconnected" }
+    static var reconnecting: String { lang == .chinese ? "重新连接中..." : "Reconnecting..." }
+
+    // MARK: - Watermark
+    static var enableWatermark: String { lang == .chinese ? "启用时间水印" : "Enable Timestamp Watermark" }
+    static var watermarkDesc: String { lang == .chinese ? "拍照时在照片上添加时间戳" : "Add timestamp overlay when taking photos" }
+
+    // MARK: - Storage Management
+    static var storageUsage: String { lang == .chinese ? "存储占用" : "Storage Usage" }
+    static var autoClean: String { lang == .chinese ? "自动清理" : "Auto Clean" }
+    static var keepLastDays: String { lang == .chinese ? "保留最近天数" : "Keep Last N Days" }
+    static var days: String { lang == .chinese ? "天" : "days" }
+    static var cleanNow: String { lang == .chinese ? "立即清理" : "Clean Now" }
+    static var cleanedCount: String { lang == .chinese ? "已清理 %d 个文件" : "Cleaned %d files" }
+    static var noOldFiles: String { lang == .chinese ? "没有需要清理的旧文件" : "No old files to clean" }
+    static var totalPhotos: String { lang == .chinese ? "照片总数" : "Total Photos" }
+    static var totalVideos: String { lang == .chinese ? "视频总数" : "Total Videos" }
+    static var customStoragePath: String { lang == .chinese ? "自定义存储路径" : "Custom Storage Path" }
+    static var chooseDirectory: String { lang == .chinese ? "选择目录" : "Choose Directory" }
+    static var resetToDefault: String { lang == .chinese ? "恢复默认" : "Reset to Default" }
 }

@@ -13,6 +13,7 @@ enum CameraStatus: Equatable {
     case recordingSaved(String)
     case error(String)
     case stopped
+    case reconnecting
 
     var icon: String {
         switch self {
@@ -26,6 +27,7 @@ enum CameraStatus: Equatable {
         case .recordingSaved: return "film.circle.fill"
         case .error: return "exclamationmark.circle"
         case .stopped: return "video.slash"
+        case .reconnecting: return "arrow.triangle.2.circlepath"
         }
     }
 
@@ -38,6 +40,7 @@ enum CameraStatus: Equatable {
         case .photoSaved, .recordingSaved: return .blue
         case .recording: return .red
         case .stopped: return .gray
+        case .reconnecting: return .orange
         }
     }
 }
@@ -48,6 +51,7 @@ final class CameraManager: NSObject, ObservableObject {
     @Published var status: CameraStatus = .checking
     @Published var lastSavedPhotoPath: String?
     @Published var lastSavedVideoPath: String?
+    @Published var availableCameras: [AVCaptureDevice] = []
 
     nonisolated let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "camera.session.queue")
@@ -59,14 +63,26 @@ final class CameraManager: NSObject, ObservableObject {
 
     private var isSessionRunning = false
     private var isInBackground = false
+    private var reconnectAttempts = 0
+    private let maxReconnectAttempts = 5
+    private var reconnectTimer: DispatchWorkItem?
+
+    var selectedDevice: AVCaptureDevice? {
+        let savedID = SettingsStore.shared.selectedCameraID
+        if !savedID.isEmpty, let device = AVCaptureDevice(uniqueID: savedID) {
+            return device
+        }
+        return availableCameras.first ?? AVCaptureDevice.default(for: .video)
+    }
 
     var isCameraBusyByOtherApp: Bool {
-        guard let device = AVCaptureDevice.default(for: .video) else { return true }
+        guard let device = selectedDevice else { return true }
         return device.isConnected == false || device.isInUseByAnotherApplication
     }
 
     override init() {
         super.init()
+        refreshAvailableCameras()
         checkInitialStatus()
         setupNotifications()
     }
@@ -82,10 +98,27 @@ final class CameraManager: NSObject, ObservableObject {
             self, selector: #selector(appDidResignActive),
             name: NSApplication.didResignActiveNotification, object: nil
         )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(cameraWasDisconnected),
+            name: .AVCaptureDeviceWasDisconnected, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(cameraWasConnected),
+            name: .AVCaptureDeviceWasConnected, object: nil
+        )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(systemWillSleep),
+            name: NSWorkspace.willSleepNotification, object: nil
+        )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(systemDidWake),
+            name: NSWorkspace.didWakeNotification, object: nil
+        )
     }
 
     @objc private func appDidBecomeActive() {
         isInBackground = false
+        refreshAvailableCameras()
         if !isSessionRunning {
             startSession()
         }
@@ -93,9 +126,103 @@ final class CameraManager: NSObject, ObservableObject {
 
     @objc private func appDidResignActive() {
         isInBackground = true
-        // Keep session running if automation is enabled (for background capture)
         if !AutomationScheduler.shared.isAutomationEnabled {
             stopSession()
+        }
+    }
+
+    @objc private func cameraWasDisconnected() {
+        refreshAvailableCameras()
+        guard isSessionRunning else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.status = .reconnecting
+        }
+        reconnectAttempts = 0
+        scheduleReconnect()
+    }
+
+    @objc private func cameraWasConnected() {
+        refreshAvailableCameras()
+        if status == .reconnecting || status == .noCamera {
+            reconnectAttempts = 0
+            attemptReconnect()
+        }
+    }
+
+    @objc private func systemWillSleep() {
+        guard isSessionRunning else { return }
+        sessionQueue.async { [weak self] in
+            self?.session.stopRunning()
+            DispatchQueue.main.async {
+                self?.isSessionRunning = false
+            }
+        }
+    }
+
+    @objc private func systemDidWake() {
+        refreshAvailableCameras()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self else { return }
+            if !self.isSessionRunning {
+                self.status = .reconnecting
+                self.reconnectAttempts = 0
+                self.attemptReconnect()
+            }
+        }
+    }
+
+    private func scheduleReconnect() {
+        reconnectTimer?.cancel()
+        let delay = min(pow(2.0, Double(reconnectAttempts)) * 0.5, 16.0)
+        reconnectAttempts += 1
+        guard reconnectAttempts <= maxReconnectAttempts else {
+            DispatchQueue.main.async { [weak self] in
+                self?.status = .error("Camera disconnected")
+            }
+            return
+        }
+        let work = DispatchWorkItem { [weak self] in
+            self?.attemptReconnect()
+        }
+        reconnectTimer = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+
+    private func attemptReconnect() {
+        guard selectedDevice != nil else {
+            scheduleReconnect()
+            return
+        }
+        startSession()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self else { return }
+            if self.isSessionRunning {
+                self.reconnectAttempts = 0
+            } else {
+                self.scheduleReconnect()
+            }
+        }
+    }
+
+    // MARK: - Camera Selection
+
+    func refreshAvailableCameras() {
+        let discovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInWideAngleCamera, .external],
+            mediaType: .video,
+            position: .unspecified
+        )
+        DispatchQueue.main.async { [weak self] in
+            self?.availableCameras = discovery.devices
+        }
+    }
+
+    func switchCamera(to device: AVCaptureDevice) {
+        SettingsStore.shared.selectedCameraID = device.uniqueID
+        guard isSessionRunning else { return }
+        stopSession()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.startSession()
         }
     }
 
@@ -174,7 +301,10 @@ final class CameraManager: NSObject, ObservableObject {
     }
 
     private func savePhoto(from imageBuffer: CVImageBuffer) {
-        let ciImage = CIImage(cvImageBuffer: imageBuffer)
+        var ciImage = CIImage(cvImageBuffer: imageBuffer)
+        if SettingsStore.shared.enableWatermark {
+            ciImage = applyWatermark(to: ciImage)
+        }
         let context = CIContext()
 
         guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
@@ -285,7 +415,7 @@ final class CameraManager: NSObject, ObservableObject {
         for input in session.inputs { session.removeInput(input) }
         for output in session.outputs { session.removeOutput(output) }
 
-        guard let camera = AVCaptureDevice.default(for: .video) else {
+        guard let camera = selectedDevice else {
             session.commitConfiguration()
             DispatchQueue.main.async { [weak self] in
                 self?.status = .noCamera
@@ -358,6 +488,41 @@ final class CameraManager: NSObject, ObservableObject {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmmss"
         return formatter.string(from: Date())
+    }
+
+    private func applyWatermark(to image: CIImage) -> CIImage {
+        let timestamp = Date().formatted(date: .abbreviated, time: .shortened)
+        let textAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedSystemFont(ofSize: 24, weight: .medium),
+            .foregroundColor: NSColor.white
+        ]
+        let textSize = (timestamp as NSString).size(withAttributes: textAttributes)
+        let padding: CGFloat = 12
+        let bgSize = NSSize(width: textSize.width + padding * 2, height: textSize.height + padding * 2)
+
+        let bgImage = NSImage(size: bgSize)
+        bgImage.lockFocus()
+        NSColor.black.withAlphaComponent(0.5).setFill()
+        let bgRect = NSRect(origin: .zero, size: bgSize)
+        let path = NSBezierPath(roundedRect: bgRect, xRadius: 6, yRadius: 6)
+        path.fill()
+        let textPoint = NSPoint(x: padding, y: padding)
+        (timestamp as NSString).draw(at: textPoint, withAttributes: textAttributes)
+        bgImage.unlockFocus()
+
+        guard let bgCGImage = bgImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return image
+        }
+        let watermarkCI = CIImage(cgImage: bgCGImage)
+        let margin: CGFloat = 20
+        let xPos = image.extent.width - bgSize.width - margin
+        let yPos = margin
+        let positioned = watermarkCI.transformed(by: CGAffineTransform(translationX: xPos, y: yPos))
+
+        guard let filter = CIFilter(name: "CISourceOverCompositing") else { return image }
+        filter.setValue(positioned, forKey: kCIInputImageKey)
+        filter.setValue(image, forKey: kCIInputBackgroundImageKey)
+        return filter.outputImage ?? image
     }
 }
 

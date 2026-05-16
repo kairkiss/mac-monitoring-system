@@ -21,16 +21,37 @@ final class MediaLibraryManager: ObservableObject {
     @Published var photos: [MediaItem] = []
     @Published var videos: [MediaItem] = []
 
+    private let thumbnailCache = NSCache<NSString, NSImage>()
+
     var baseDirectory: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let custom = SettingsStore.shared.customStoragePath
+        if !custom.isEmpty {
+            return URL(fileURLWithPath: custom).appendingPathComponent("CameraApp")
+        }
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("CameraApp")
     }
 
     var photosDirectory: URL { baseDirectory.appendingPathComponent("Photos") }
     var videosDirectory: URL { baseDirectory.appendingPathComponent("Videos") }
 
+    var totalPhotoCount: Int { photos.count }
+    var totalVideoCount: Int { videos.count }
+    var totalStorageBytes: Int64 {
+        photos.reduce(0) { $0 + $1.fileSize } + videos.reduce(0) { $0 + $1.fileSize }
+    }
+
     private init() {
+        thumbnailCache.totalCostLimit = 50 * 1024 * 1024 // 50 MB
         ensureDirectoriesExist()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(didReceiveMemoryWarning),
+            name: NSApplication.didResignActiveNotification, object: nil
+        )
+    }
+
+    @objc private func didReceiveMemoryWarning() {
+        thumbnailCache.removeAllObjects()
     }
 
     func ensureDirectoriesExist() {
@@ -110,6 +131,8 @@ final class MediaLibraryManager: ObservableObject {
     func deleteItem(_ item: MediaItem) {
         let url = fileURL(for: item)
         try? FileManager.default.removeItem(at: url)
+        let cacheKey = "\(item.id.uuidString)_thumb" as NSString
+        thumbnailCache.removeObject(forKey: cacheKey)
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             switch item.fileType {
@@ -117,6 +140,32 @@ final class MediaLibraryManager: ObservableObject {
             case .video: self.videos.removeAll { $0.id == item.id }
             }
         }
+    }
+
+    func cleanOldFiles(keepDays: Int) -> Int {
+        guard keepDays > 0 else { return 0 }
+        let cutoff = Date().addingTimeInterval(TimeInterval(-keepDays * 86400))
+        var count = 0
+
+        let oldPhotos = photos.filter { $0.createdAt < cutoff }
+        for item in oldPhotos {
+            let url = fileURL(for: item)
+            try? FileManager.default.removeItem(at: url)
+            let cacheKey = "\(item.id.uuidString)_thumb" as NSString
+            thumbnailCache.removeObject(forKey: cacheKey)
+            count += 1
+        }
+        photos.removeAll { $0.createdAt < cutoff }
+
+        let oldVideos = videos.filter { $0.createdAt < cutoff }
+        for item in oldVideos {
+            let url = fileURL(for: item)
+            try? FileManager.default.removeItem(at: url)
+            count += 1
+        }
+        videos.removeAll { $0.createdAt < cutoff }
+
+        return count
     }
 
     func fileURL(for item: MediaItem) -> URL {
@@ -130,14 +179,26 @@ final class MediaLibraryManager: ObservableObject {
     }
 
     func thumbnail(for item: MediaItem, maxSize: CGSize) -> NSImage? {
+        let cacheKey = "\(item.id.uuidString)_\(Int(maxSize.width))x\(Int(maxSize.height))" as NSString
+        if let cached = thumbnailCache.object(forKey: cacheKey) {
+            return cached
+        }
+
         let url = fileURL(for: item)
+        let image: NSImage?
         switch item.fileType {
         case .photo:
-            guard let image = NSImage(contentsOf: url) else { return nil }
-            return resizeImage(image, to: maxSize)
+            guard let img = NSImage(contentsOf: url) else { return nil }
+            image = resizeImage(img, to: maxSize)
         case .video:
-            return videoThumbnail(for: url, maxSize: maxSize)
+            image = videoThumbnail(for: url, maxSize: maxSize)
         }
+
+        if let result = image {
+            let cost = Int(result.size.width * result.size.height * 4)
+            thumbnailCache.setObject(result, forKey: cacheKey, cost: cost)
+        }
+        return image
     }
 
     // MARK: - Private

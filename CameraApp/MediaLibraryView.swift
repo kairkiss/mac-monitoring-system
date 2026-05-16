@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct MediaLibraryView: View {
     @EnvironmentObject var mediaLibrary: MediaLibraryManager
@@ -116,7 +117,27 @@ struct MediaLibraryView: View {
                                         detailItem = item
                                     }
                                 }
+                                .onDrag {
+                                    let url = mediaLibrary.fileURL(for: item)
+                                    return NSItemProvider(contentsOf: url) ?? NSItemProvider()
+                                }
                                 .contextMenu {
+                                    Button {
+                                        shareMediaItem(item)
+                                    } label: {
+                                        Label(Strings.share, systemImage: "square.and.arrow.up")
+                                    }
+                                    Button {
+                                        copyMediaToClipboard(item)
+                                    } label: {
+                                        Label(Strings.copyToClipboard, systemImage: "doc.on.doc")
+                                    }
+                                    Button {
+                                        exportMediaToFile(item)
+                                    } label: {
+                                        Label(Strings.exportToFile, systemImage: "square.and.arrow.down")
+                                    }
+                                    Divider()
                                     Button { mediaLibrary.revealInFinder(item) } label: {
                                         Label(Strings.revealInFinder, systemImage: "folder")
                                     }
@@ -208,7 +229,17 @@ struct MediaLibraryView: View {
                                         detailItem = item
                                     }
                                 }
+                                .onDrag {
+                                    let url = mediaLibrary.fileURL(for: item)
+                                    return NSItemProvider(contentsOf: url) ?? NSItemProvider()
+                                }
                                 .contextMenu {
+                                    Button {
+                                        exportMediaToFile(item)
+                                    } label: {
+                                        Label(Strings.exportToFile, systemImage: "square.and.arrow.down")
+                                    }
+                                    Divider()
                                     Button { mediaLibrary.revealInFinder(item) } label: {
                                         Label(Strings.revealInFinder, systemImage: "folder")
                                     }
@@ -297,6 +328,34 @@ struct MediaLibraryView: View {
             } else {
                 selection.insert(id)
             }
+        }
+    }
+
+    private func shareMediaItem(_ item: MediaItem) {
+        let url = mediaLibrary.fileURL(for: item)
+        guard let image = NSImage(contentsOf: url) else { return }
+        let picker = NSSharingServicePicker(items: [image])
+        if let view = NSApp.keyWindow?.contentView {
+            picker.show(relativeTo: .zero, of: view, preferredEdge: .minY)
+        }
+    }
+
+    private func copyMediaToClipboard(_ item: MediaItem) {
+        let url = mediaLibrary.fileURL(for: item)
+        guard let image = NSImage(contentsOf: url) else { return }
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.writeObjects([image])
+    }
+
+    private func exportMediaToFile(_ item: MediaItem) {
+        let url = mediaLibrary.fileURL(for: item)
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = item.fileName
+        panel.allowedContentTypes = item.fileType == .photo ? [.jpeg] : [.quickTimeMovie]
+        panel.begin { response in
+            guard response == .OK, let destURL = panel.url else { return }
+            try? FileManager.default.copyItem(at: url, to: destURL)
         }
     }
 

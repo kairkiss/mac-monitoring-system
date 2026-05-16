@@ -4,6 +4,8 @@ struct SettingsView: View {
     @EnvironmentObject var settings: SettingsStore
     @EnvironmentObject var telegram: TelegramService
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var mediaLibrary: MediaLibraryManager
+    @State private var cleanResult: Int?
 
     var body: some View {
         Form {
@@ -57,12 +59,158 @@ struct SettingsView: View {
                         }
                     }
                 }
+                .onChange(of: telegram.lastSendStatus) { _, _ in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        telegram.lastSendStatus = nil
+                    }
+                }
 
                 Text(Strings.tokenNote)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } header: {
                 Label(Strings.telegramSettings, systemImage: "paperplane.fill")
+            }
+
+            // Watermark
+            Section {
+                Toggle(isOn: $settings.enableWatermark) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "textformat.size")
+                            .foregroundStyle(.purple)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Strings.enableWatermark)
+                            Text(Strings.watermarkDesc)
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+            } header: {
+                Label(Strings.enableWatermark, systemImage: "textformat.size")
+            }
+
+            // Storage Management
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: "photo.stack")
+                        .foregroundStyle(.blue)
+                        .frame(width: 20)
+                    Text(Strings.totalPhotos)
+                    Spacer()
+                    Text("\(mediaLibrary.totalPhotoCount)")
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 12) {
+                    Image(systemName: "film.stack")
+                        .foregroundStyle(.purple)
+                        .frame(width: 20)
+                    Text(Strings.totalVideos)
+                    Spacer()
+                    Text("\(mediaLibrary.totalVideoCount)")
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 12) {
+                    Image(systemName: "internaldrive")
+                        .foregroundStyle(.orange)
+                        .frame(width: 20)
+                    Text(Strings.storageUsage)
+                    Spacer()
+                    Text(ByteCountFormatter.string(fromByteCount: mediaLibrary.totalStorageBytes, countStyle: .file))
+                        .foregroundStyle(.secondary)
+                }
+
+                Divider()
+
+                Toggle(isOn: $settings.autoCleanEnabled) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "trash.slash")
+                            .foregroundStyle(.red)
+                            .frame(width: 20)
+                        Text(Strings.autoClean)
+                    }
+                }
+
+                if settings.autoCleanEnabled {
+                    Stepper(
+                        "\(Strings.keepLastDays): \(settings.keepLastDays) \(Strings.days)",
+                        value: $settings.keepLastDays,
+                        in: 1...365
+                    )
+                    .padding(.leading, 32)
+                }
+
+                HStack(spacing: 12) {
+                    Button {
+                        let count = mediaLibrary.cleanOldFiles(keepDays: settings.keepLastDays > 0 ? settings.keepLastDays : 30)
+                        cleanResult = count
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            cleanResult = nil
+                        }
+                    } label: {
+                        Label(Strings.cleanNow, systemImage: "trash")
+                    }
+                    .disabled(settings.keepLastDays <= 0)
+
+                    if let result = cleanResult {
+                        Text(String(format: Strings.cleanedCount, result))
+                            .font(.caption)
+                            .foregroundStyle(result > 0 ? .green : .secondary)
+                    }
+                }
+                .padding(.leading, 32)
+            } header: {
+                Label(Strings.storageUsage, systemImage: "internaldrive")
+            }
+
+            // Custom Storage Path
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: "folder")
+                        .foregroundStyle(.blue)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(Strings.customStoragePath)
+                        Text(mediaLibrary.baseDirectory.path)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Button {
+                        let panel = NSOpenPanel()
+                        panel.canChooseFiles = false
+                        panel.canChooseDirectories = true
+                        panel.allowsMultipleSelection = false
+                        panel.begin { response in
+                            guard response == .OK, let url = panel.url else { return }
+                            settings.customStoragePath = url.path
+                            mediaLibrary.ensureDirectoriesExist()
+                            mediaLibrary.scanLibrary()
+                        }
+                    } label: {
+                        Label(Strings.chooseDirectory, systemImage: "folder.badge.gearshape")
+                    }
+
+                    if !settings.customStoragePath.isEmpty {
+                        Button {
+                            settings.customStoragePath = ""
+                            mediaLibrary.ensureDirectoriesExist()
+                            mediaLibrary.scanLibrary()
+                        } label: {
+                            Label(Strings.resetToDefault, systemImage: "arrow.counterclockwise")
+                        }
+                    }
+                }
+            } header: {
+                Label(Strings.customStoragePath, systemImage: "folder")
             }
 
             // Language
@@ -83,17 +231,6 @@ struct SettingsView: View {
             // About
             Section {
                 HStack {
-                    Text(Strings.storagePath)
-                    Spacer()
-                    Text(MediaLibraryManager.shared.baseDirectory.path)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .textSelection(.enabled)
-                }
-
-                HStack {
                     Text("System")
                     Spacer()
                     Text(ProcessInfo.processInfo.operatingSystemVersionString)
@@ -104,7 +241,7 @@ struct SettingsView: View {
                 HStack {
                     Text("Version")
                     Spacer()
-                    Text("1.0.0")
+                    Text("1.1.0")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

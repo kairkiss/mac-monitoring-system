@@ -54,6 +54,32 @@ struct CameraView: View {
                 VStack(spacing: 0) {
                     Divider()
 
+                    // Camera picker (when multiple cameras)
+                    if camera.availableCameras.count > 1 {
+                        HStack(spacing: 8) {
+                            Image(systemName: "camera.on.rectangle")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Picker(Strings.selectCamera, selection: Binding(
+                                get: { SettingsStore.shared.selectedCameraID.isEmpty ? camera.availableCameras.first?.uniqueID ?? "" : SettingsStore.shared.selectedCameraID },
+                                set: { newID in
+                                    if let device = camera.availableCameras.first(where: { $0.uniqueID == newID }) {
+                                        camera.switchCamera(to: device)
+                                    }
+                                }
+                            )) {
+                                ForEach(camera.availableCameras, id: \.uniqueID) { device in
+                                    Text(device.localizedName).tag(device.uniqueID)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .controlSize(.small)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                    }
+
                     // Status
                     HStack(spacing: 8) {
                         Circle()
@@ -211,7 +237,7 @@ struct CameraView: View {
 
     private var shouldShowPreview: Bool {
         switch camera.status {
-        case .running, .photoSaved, .recording, .recordingSaved: return true
+        case .running, .photoSaved, .recording, .recordingSaved, .reconnecting: return true
         default: return false
         }
     }
@@ -228,6 +254,7 @@ struct CameraView: View {
         case .recordingSaved(let name): return "\(Strings.saved): \(name)"
         case .error(let msg): return msg
         case .stopped: return Strings.cameraStopped
+        case .reconnecting: return Strings.reconnecting
         }
     }
 

@@ -116,6 +116,9 @@ struct CameraApp: App {
                     mediaLibrary.scanLibrary()
                     automationScheduler.restoreAllTasks()
                     setupAutomationCapture()
+                    if settingsStore.autoCleanEnabled && settingsStore.keepLastDays > 0 {
+                        _ = mediaLibrary.cleanOldFiles(keepDays: settingsStore.keepLastDays)
+                    }
                 }
                 .id(languageManager.currentLanguage)
         }

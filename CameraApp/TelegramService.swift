@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-enum SendResult {
+enum SendResult: Equatable {
     case success
     case failure(String)
 }
