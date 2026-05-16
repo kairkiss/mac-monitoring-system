@@ -49,9 +49,10 @@ struct VisualEffectBlur: NSViewRepresentable {
 struct ContentView: View {
     @EnvironmentObject var lang: LanguageManager
     @State private var selectedItem: SidebarItem = .camera
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             // Sidebar
             VStack(spacing: 0) {
                 // App title
@@ -81,7 +82,7 @@ struct ContentView: View {
 
                 Spacer()
             }
-            .frame(minWidth: 180)
+            .frame(minWidth: 180, idealWidth: 200)
             .background(VisualEffectBlur(material: .sidebar))
         } detail: {
             // Detail
@@ -99,6 +100,18 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.easeInOut(duration: 0.2), value: selectedItem)
+            .toolbar {
+                ToolbarItem(placement: .navigation) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            columnVisibility = columnVisibility == .all ? .detailOnly : .all
+                        }
+                    } label: {
+                        Image(systemName: "sidebar.left")
+                    }
+                    .help("Toggle Sidebar")
+                }
+            }
         }
         .frame(minWidth: 900, minHeight: 540)
     }
