@@ -66,10 +66,20 @@ struct ScheduledTask: Identifiable, Codable {
     }
 }
 
+struct ExecutionRecord: Identifiable, Codable {
+    let id: UUID
+    let taskID: UUID
+    let taskName: String
+    let timestamp: Date
+    let succeeded: Bool
+    let detail: String?
+}
+
 final class AutomationScheduler: ObservableObject {
     static let shared = AutomationScheduler()
 
     @Published var tasks: [ScheduledTask] = []
+    @Published var executionHistory: [ExecutionRecord] = []
     @Published var isAutomationEnabled: Bool {
         didSet { UserDefaults.standard.set(isAutomationEnabled, forKey: "automationEnabled") }
     }
@@ -151,9 +161,58 @@ final class AutomationScheduler: ObservableObject {
 
     // MARK: - Restore
 
+    // MARK: - Execution History
+
+    func logExecution(taskID: UUID, taskName: String, succeeded: Bool, detail: String? = nil) {
+        let record = ExecutionRecord(
+            id: UUID(),
+            taskID: taskID,
+            taskName: taskName,
+            timestamp: Date(),
+            succeeded: succeeded,
+            detail: detail
+        )
+        executionHistory.insert(record, at: 0)
+        if executionHistory.count > 1000 {
+            executionHistory = Array(executionHistory.prefix(1000))
+        }
+        persistHistory()
+    }
+
+    func executions(for taskID: UUID) -> [ExecutionRecord] {
+        executionHistory.filter { $0.taskID == taskID }
+    }
+
+    var todayCaptureCount: Int {
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        return executionHistory.filter { $0.timestamp >= startOfDay }.count
+    }
+
+    var todayTelegramCount: Int {
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        return executionHistory.filter { $0.timestamp >= startOfDay && $0.succeeded }.count
+    }
+
+    private var historyFileURL: URL {
+        MediaLibraryManager.shared.baseDirectory.appendingPathComponent("execution_history.json")
+    }
+
+    private func persistHistory() {
+        guard let data = try? JSONEncoder().encode(executionHistory) else { return }
+        _ = MediaLibraryManager.shared.writeAtomically(data, to: historyFileURL)
+    }
+
+    private func loadHistory() -> [ExecutionRecord] {
+        guard let data = try? Data(contentsOf: historyFileURL) else { return [] }
+        return (try? JSONDecoder().decode([ExecutionRecord].self, from: data)) ?? []
+    }
+
+    // MARK: - Restore
+
     func restoreAllTasks() {
         let loaded = loadTasks()
         tasks = loaded
+        executionHistory = loadHistory()
         cancelAllTimers()
         guard isAutomationEnabled else { return }
         recoverMissedTasks()
@@ -274,6 +333,10 @@ final class AutomationScheduler: ObservableObject {
         }
 
         onCapture?(telegramSend)
+
+        let taskName = tasks[index].name.isEmpty ? tasks[index].type.displayName : tasks[index].name
+        logExecution(taskID: taskID, taskName: taskName, succeeded: true)
+        ActivityLogManager.shared.log(level: .success, category: .automation, message: "Task fired: \(taskName)", taskID: taskID.uuidString, taskName: taskName)
 
         // Reschedule
         switch tasks[index].type {

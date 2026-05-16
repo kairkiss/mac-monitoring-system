@@ -208,4 +208,48 @@ struct Strings {
     static var jpegEncodingFailed: String { lang == .chinese ? "JPEG 编码失败" : "Failed to encode JPEG" }
     static var diskSpaceInsufficient: String { lang == .chinese ? "磁盘空间不足" : "Disk space insufficient" }
     static var captureFailed: String { lang == .chinese ? "拍照失败" : "Capture failed" }
+
+    // MARK: - Recording Enhancement
+    static var recordingElapsed: String { lang == .chinese ? "录像时长" : "Recording Time" }
+    static var segmentDuration: String { lang == .chinese ? "自动分段时长 (分钟)" : "Auto-Segment Duration (min)" }
+    static var segmentDurationDesc: String { lang == .chinese ? "录像超过此时长后自动分段保存" : "Auto-split recording into segments of this duration" }
+    static var enableAudioRecording: String { lang == .chinese ? "录制音频" : "Record Audio" }
+    static var audioNotAvailable: String { lang == .chinese ? "未检测到音频设备" : "No audio device available" }
+    static var recordingSegment: String { lang == .chinese ? "录像分段" : "Recording Segment" }
+
+    // MARK: - Preview Enhancement
+    static var previousItem: String { lang == .chinese ? "上一个" : "Previous" }
+    static var nextItem: String { lang == .chinese ? "下一个" : "Next" }
+    static var slideshow: String { lang == .chinese ? "幻灯片" : "Slideshow" }
+    static var slideshowSpeed: String { lang == .chinese ? "播放速度 (秒)" : "Play Speed (sec)" }
+    static var exifInfo: String { lang == .chinese ? "照片信息" : "Photo Info" }
+    static var cameraMake: String { lang == .chinese ? "相机品牌" : "Camera Make" }
+    static var cameraModel: String { lang == .chinese ? "相机型号" : "Camera Model" }
+    static var aperture: String { lang == .chinese ? "光圈" : "Aperture" }
+    static var iso: String { lang == .chinese ? "ISO" : "ISO" }
+    static var shutterSpeed: String { lang == .chinese ? "快门速度" : "Shutter Speed" }
+    static var focalLength: String { lang == .chinese ? "焦距" : "Focal Length" }
+    static var gpsLocation: String { lang == .chinese ? "GPS 位置" : "GPS Location" }
+    static var imageWidth: String { lang == .chinese ? "宽度" : "Width" }
+    static var imageHeight: String { lang == .chinese ? "高度" : "Height" }
+    static var fileSizeLabel: String { lang == .chinese ? "文件大小" : "File Size" }
+    static var noExifData: String { lang == .chinese ? "无 EXIF 数据" : "No EXIF data available" }
+    static var zoomIn: String { lang == .chinese ? "放大" : "Zoom In" }
+    static var zoomOut: String { lang == .chinese ? "缩小" : "Zoom Out" }
+    static var resetZoom: String { lang == .chinese ? "重置缩放" : "Reset Zoom" }
+
+    // MARK: - Automation Visualization
+    static var timeline: String { lang == .chinese ? "时间线" : "Timeline" }
+    static var executionHistory: String { lang == .chinese ? "执行记录" : "Execution History" }
+    static var taskStatistics: String { lang == .chinese ? "任务统计" : "Task Statistics" }
+    static var todayCaptures: String { lang == .chinese ? "今日拍摄" : "Today's Captures" }
+    static var todayTelegramSends: String { lang == .chinese ? "今日推送" : "Today's Telegram Sends" }
+    static var totalExecutions: String { lang == .chinese ? "总执行次数" : "Total Executions" }
+    static var successRate: String { lang == .chinese ? "成功率" : "Success Rate" }
+    static var lastExecution: String { lang == .chinese ? "上次执行" : "Last Execution" }
+    static var succeeded: String { lang == .chinese ? "成功" : "Succeeded" }
+    static var failed: String { lang == .chinese ? "失败" : "Failed" }
+    static var noHistoryYet: String { lang == .chinese ? "暂无执行记录" : "No execution history yet" }
+    static var history: String { lang == .chinese ? "历史" : "History" }
+    static var statistics: String { lang == .chinese ? "统计" : "Statistics" }
 }

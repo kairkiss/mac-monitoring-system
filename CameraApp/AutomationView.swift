@@ -7,6 +7,7 @@ struct AutomationView: View {
     @State private var editingTask: ScheduledTask?
     @State private var showToast = false
     @State private var toastText = ""
+    @State private var selectedTab = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,10 +42,34 @@ struct AutomationView: View {
 
             Divider()
 
-            if automation.tasks.isEmpty {
-                emptyState
-            } else {
-                taskList
+            // Tab picker
+            Picker("", selection: $selectedTab) {
+                Text(Strings.scheduledTasks).tag(0)
+                Text(Strings.timeline).tag(1)
+                Text(Strings.history).tag(2)
+                Text(Strings.statistics).tag(3)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+
+            Divider()
+
+            switch selectedTab {
+            case 0:
+                if automation.tasks.isEmpty {
+                    emptyState
+                } else {
+                    taskList
+                }
+            case 1:
+                timelineView
+            case 2:
+                historyView
+            case 3:
+                statisticsView
+            default:
+                EmptyView()
             }
         }
         .navigationTitle(Strings.automationTitle)
@@ -163,6 +188,240 @@ struct AutomationView: View {
             return "\(Strings.every) \(task.intervalMinutes) \(Strings.minutes), \(Strings.for_) \(task.durationMinutes) \(Strings.minutes)"
         }
     }
+
+    // MARK: - Timeline View
+
+    private var timelineView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(Strings.todayCaptures)
+                    .font(.headline)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+
+                // 24-hour timeline
+                VStack(spacing: 0) {
+                    ForEach(0..<24, id: \.self) { hour in
+                        timelineRow(hour: hour)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+        }
+    }
+
+    private func timelineRow(hour: Int) -> some View {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        let hourStart = calendar.date(byAdding: .hour, value: hour, to: startOfDay)!
+        let hourEnd = calendar.date(byAdding: .hour, value: hour + 1, to: startOfDay)!
+        let events = automation.executionHistory.filter { $0.timestamp >= hourStart && $0.timestamp < hourEnd }
+
+        return HStack(alignment: .top, spacing: 12) {
+            Text(String(format: "%02d:00", hour))
+                .font(.caption.monospaced())
+                .foregroundStyle(.secondary)
+                .frame(width: 44, alignment: .trailing)
+
+            Rectangle()
+                .fill(events.isEmpty ? Color.clear : Color.accentColor)
+                .frame(width: 3)
+                .frame(minHeight: 24)
+
+            if events.isEmpty {
+                Spacer()
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(events) { event in
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(event.succeeded ? .green : .red)
+                                .frame(width: 6, height: 6)
+                            Text(event.taskName)
+                                .font(.caption)
+                                .lineLimit(1)
+                            Text(event.timestamp, style: .time)
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+                Spacer()
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    // MARK: - History View
+
+    private var historyView: some View {
+        Group {
+            if automation.executionHistory.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.tertiary)
+                    Text(Strings.noHistoryYet)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(automation.executionHistory) { record in
+                            historyRow(record)
+                        }
+                    }
+                    .padding(20)
+                }
+            }
+        }
+    }
+
+    private func historyRow(_ record: ExecutionRecord) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: record.succeeded ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.title3)
+                .foregroundStyle(record.succeeded ? .green : .red)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(record.taskName)
+                    .font(.subheadline.weight(.medium))
+                Text(record.timestamp, style: .date)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(record.timestamp, style: .time)
+                    .font(.caption.monospaced())
+                if let detail = record.detail {
+                    Text(detail)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(12)
+        .background(.background, in: RoundedRectangle(cornerRadius: 10))
+        .shadow(color: .black.opacity(0.03), radius: 2, y: 1)
+    }
+
+    // MARK: - Statistics View
+
+    private var statisticsView: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Stat cards
+                HStack(spacing: 12) {
+                    statCard(
+                        icon: "camera.fill",
+                        color: .blue,
+                        title: Strings.todayCaptures,
+                        value: "\(automation.todayCaptureCount)"
+                    )
+                    statCard(
+                        icon: "paperplane.fill",
+                        color: .green,
+                        title: Strings.todayTelegramSends,
+                        value: "\(automation.todayTelegramCount)"
+                    )
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+
+                HStack(spacing: 12) {
+                    statCard(
+                        icon: "number",
+                        color: .purple,
+                        title: Strings.totalExecutions,
+                        value: "\(automation.executionHistory.count)"
+                    )
+                    statCard(
+                        icon: "percent",
+                        color: .orange,
+                        title: Strings.successRate,
+                        value: successRateString
+                    )
+                }
+                .padding(.horizontal, 20)
+
+                // Per-task stats
+                if !automation.tasks.isEmpty {
+                    Text(Strings.taskStatistics)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+
+                    ForEach(automation.tasks) { task in
+                        perTaskRow(task)
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+        }
+    }
+
+    private func statCard(icon: String, color: Color, title: String, value: String) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(color)
+            Text(value)
+                .font(.title.bold().monospaced())
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
+    }
+
+    private func perTaskRow(_ task: ScheduledTask) -> some View {
+        let taskExecutions = automation.executions(for: task.id)
+        let successCount = taskExecutions.filter { $0.succeeded }.count
+        let totalCount = taskExecutions.count
+
+        return HStack(spacing: 12) {
+            Image(systemName: task.isEnabled ? "clock.fill" : "clock")
+                .foregroundStyle(task.isEnabled ? Color.accentColor : .secondary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(task.name.isEmpty ? task.type.displayName : task.name)
+                    .font(.subheadline.weight(.medium))
+                Text("\(totalCount) \(Strings.executionHistory)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if totalCount > 0 {
+                Text("\(successCount)/\(totalCount)")
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(.background, in: RoundedRectangle(cornerRadius: 10))
+        .shadow(color: .black.opacity(0.03), radius: 2, y: 1)
+    }
+
+    private var successRateString: String {
+        let total = automation.executionHistory.count
+        guard total > 0 else { return "--" }
+        let success = automation.executionHistory.filter { $0.succeeded }.count
+        return String(format: "%.0f%%", Double(success) / Double(total) * 100)
+    }
+
+    // MARK: - Empty State
 
     private var emptyState: some View {
         VStack(spacing: 16) {

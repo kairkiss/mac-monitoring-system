@@ -11,6 +11,8 @@ struct MediaLibraryView: View {
     @State private var showBatchDeleteConfirm = false
     @State private var itemToDelete: MediaItem?
     @State private var detailItem: MediaItem?
+    @State private var detailItems: [MediaItem] = []
+    @State private var detailIndex: Int = 0
     @State private var hoveredPhotoID: UUID?
     @State private var hoveredVideoID: UUID?
 
@@ -71,8 +73,8 @@ struct MediaLibraryView: View {
                 }
             }
             .navigationTitle(Strings.libraryTitle)
-            .navigationDestination(item: $detailItem) { item in
-                MediaDetailView(item: item)
+            .navigationDestination(item: $detailItem) { _ in
+                MediaDetailView(allItems: detailItems, currentIndex: $detailIndex)
             }
             .onAppear { mediaLibrary.scanLibrary() }
             .animation(.easeInOut(duration: 0.2), value: selectedSegment)
@@ -119,6 +121,8 @@ struct MediaLibraryView: View {
                                     if isEditing {
                                         toggleSelection(item.id)
                                     } else {
+                                        detailItems = mediaLibrary.photos
+                                        detailIndex = mediaLibrary.photos.firstIndex(where: { $0.id == item.id }) ?? 0
                                         detailItem = item
                                     }
                                 }
@@ -238,6 +242,8 @@ struct MediaLibraryView: View {
                                     if isEditing {
                                         toggleSelection(item.id)
                                     } else {
+                                        detailItems = mediaLibrary.videos
+                                        detailIndex = mediaLibrary.videos.firstIndex(where: { $0.id == item.id }) ?? 0
                                         detailItem = item
                                     }
                                 }
@@ -307,6 +313,11 @@ struct MediaLibraryView: View {
                 HStack(spacing: 10) {
                     Text(item.createdAt, style: .date)
                     Text(item.createdAt, style: .time)
+                    if let duration = item.duration {
+                        Text(formatVideoDuration(duration))
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.blue)
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -339,6 +350,13 @@ struct MediaLibraryView: View {
     }
 
     // MARK: - Helpers
+
+    private func formatVideoDuration(_ duration: TimeInterval) -> String {
+        let totalSeconds = Int(duration)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
 
     private func toggleSelection(_ id: UUID) {
         withAnimation(.spring(response: 0.2)) {

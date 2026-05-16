@@ -13,6 +13,7 @@ struct MediaItem: Identifiable, Codable, Hashable {
     let fileType: MediaType
     let createdAt: Date
     let fileSize: Int64
+    let duration: TimeInterval?
 }
 
 final class MediaLibraryManager: ObservableObject {
@@ -99,14 +100,14 @@ final class MediaLibraryManager: ObservableObject {
     }
 
     func registerPhoto(fileName: String, fileSize: Int64) {
-        let item = MediaItem(id: UUID(), fileName: fileName, fileType: .photo, createdAt: Date(), fileSize: fileSize)
+        let item = MediaItem(id: UUID(), fileName: fileName, fileType: .photo, createdAt: Date(), fileSize: fileSize, duration: nil)
         DispatchQueue.main.async { [weak self] in
             self?.photos.insert(item, at: 0)
         }
     }
 
-    func registerVideo(fileName: String, fileSize: Int64) {
-        let item = MediaItem(id: UUID(), fileName: fileName, fileType: .video, createdAt: Date(), fileSize: fileSize)
+    func registerVideo(fileName: String, fileSize: Int64, duration: TimeInterval? = nil) {
+        let item = MediaItem(id: UUID(), fileName: fileName, fileType: .video, createdAt: Date(), fileSize: fileSize, duration: duration)
         DispatchQueue.main.async { [weak self] in
             self?.videos.insert(item, at: 0)
         }
@@ -118,7 +119,7 @@ final class MediaLibraryManager: ObservableObject {
         guard writeAtomically(data, to: url) else { return nil }
         let item = MediaItem(
             id: UUID(), fileName: fileName, fileType: .photo,
-            createdAt: Date(), fileSize: Int64(data.count)
+            createdAt: Date(), fileSize: Int64(data.count), duration: nil
         )
         DispatchQueue.main.async { [weak self] in
             self?.photos.insert(item, at: 0)
@@ -137,9 +138,12 @@ final class MediaLibraryManager: ObservableObject {
             try fm.moveItem(at: sourceURL, to: destURL)
             let attrs = try? fm.attributesOfItem(atPath: destURL.path)
             let size = (attrs?[.size] as? Int64) ?? 0
+            let asset = AVURLAsset(url: destURL)
+            let dur = CMTimeGetSeconds(asset.duration)
+            let videoDuration: TimeInterval? = dur.isNaN ? nil : dur
             let item = MediaItem(
                 id: UUID(), fileName: fileName, fileType: .video,
-                createdAt: Date(), fileSize: size
+                createdAt: Date(), fileSize: size, duration: videoDuration
             )
             DispatchQueue.main.async { [weak self] in
                 self?.videos.insert(item, at: 0)
@@ -244,12 +248,20 @@ final class MediaLibraryManager: ObservableObject {
             let created = resourceValues?.creationDate ?? Date()
             let size = Int64(resourceValues?.fileSize ?? 0)
 
+            var videoDur: TimeInterval? = nil
+            if type == .video {
+                let asset = AVURLAsset(url: fileURL)
+                let dur = CMTimeGetSeconds(asset.duration)
+                if !dur.isNaN { videoDur = dur }
+            }
+
             return MediaItem(
                 id: UUID(),
                 fileName: fileURL.lastPathComponent,
                 fileType: type,
                 createdAt: created,
-                fileSize: size
+                fileSize: size,
+                duration: videoDur
             )
         }.sorted { $0.createdAt > $1.createdAt }
     }

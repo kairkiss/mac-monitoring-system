@@ -90,6 +90,29 @@ struct SettingsView: View {
                 Label(Strings.enableWatermark, systemImage: "textformat.size")
             }
 
+            // Recording Settings
+            Section {
+                Toggle(isOn: $settings.enableAudioRecording) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "mic.fill")
+                            .foregroundStyle(.blue)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Strings.enableAudioRecording)
+                        }
+                    }
+                }
+
+                Stepper("\(Strings.segmentDuration): \(settings.segmentDurationMinutes > 0 ? "\(settings.segmentDurationMinutes) \(Strings.minutes)" : "--")",
+                        value: $settings.segmentDurationMinutes, in: 0...120, step: 5)
+                Text(Strings.segmentDurationDesc)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .padding(.leading, 32)
+            } header: {
+                Label(Strings.captureSettings, systemImage: "video.fill")
+            }
+
             // Storage Management
             Section {
                 storageRow(icon: "photo.stack", color: .blue, label: Strings.totalPhotos, value: "\(mediaLibrary.totalPhotoCount)")
@@ -369,7 +392,7 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", "1.2.0")
+                aboutRow("Version", "1.2.1")
                 aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")

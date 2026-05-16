@@ -34,9 +34,17 @@ struct CameraView: View {
                                                 .frame(width: 10, height: 10)
                                                 .scaleEffect(1 + pulseOpacity * 2)
                                         )
-                                    Text(Strings.stopRecording)
-                                        .font(.caption.bold())
+                                    Text(formatRecordingDuration(camera.recordingDuration))
+                                        .font(.caption.bold().monospaced())
                                         .foregroundStyle(.white)
+                                    if camera.isAutoSegmenting {
+                                        Text(Strings.recordingSegment)
+                                            .font(.caption2.bold())
+                                            .foregroundStyle(.orange)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4))
+                                    }
                                     Spacer()
                                     Text("REC")
                                         .font(.caption2.bold().monospaced())
@@ -282,6 +290,13 @@ struct CameraView: View {
         case .stopped: return Strings.cameraStopped
         case .reconnecting: return Strings.reconnecting
         }
+    }
+
+    private func formatRecordingDuration(_ duration: TimeInterval) -> String {
+        let totalSeconds = Int(duration)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
     private func handleStatusChange(_ newStatus: CameraStatus) {

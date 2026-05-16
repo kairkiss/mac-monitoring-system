@@ -4,6 +4,8 @@
 <dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Mac监控系统需要摄像头权限来进行实时预览、拍照和录像。</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Mac监控系统需要麦克风权限来在录像时录制音频。</string>
 	<key>CFBundleName</key>
 	<string>Mac监控系统</string>
 	<key>CFBundleDisplayName</key>
@@ -11,9 +13,9 @@
 	<key>CFBundleIdentifier</key>
 	<string>com.kairkiss.MacMonitor</string>
 	<key>CFBundleVersion</key>
-	<string>4</string>
+	<string>5</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.2.0</string>
+	<string>1.2.1</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleExecutable</key>

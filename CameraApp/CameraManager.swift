@@ -79,6 +79,8 @@ final class CameraManager: NSObject, ObservableObject {
     @Published var lastSavedPhotoPath: String?
     @Published var lastSavedVideoPath: String?
     @Published var availableCameras: [AVCaptureDevice] = []
+    @Published var recordingDuration: TimeInterval = 0
+    @Published var isAutoSegmenting: Bool = false
 
     nonisolated let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "camera.session.queue")
@@ -94,6 +96,9 @@ final class CameraManager: NSObject, ObservableObject {
     private var reconnectAttempts = 0
     private let maxReconnectAttempts = 5
     private var reconnectTimer: DispatchWorkItem?
+    private var recordingTimer: Timer?
+    private var recordingStartDate: Date?
+    private var currentSegmentIndex: Int = 0
 
     var selectedDevice: AVCaptureDevice? {
         let savedID = SettingsStore.shared.selectedCameraID
@@ -400,10 +405,43 @@ final class CameraManager: NSObject, ObservableObject {
 
     func toggleRecording() {
         if movieOutput.isRecording {
+            stopRecordingTimer()
             movieOutput.stopRecording()
         } else {
             startRecording()
         }
+    }
+
+    // MARK: - Recording Timer
+
+    private func startRecordingTimer() {
+        recordingStartDate = Date()
+        recordingDuration = 0
+        recordingTimer?.invalidate()
+        recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self, let startDate = self.recordingStartDate else { return }
+            self.recordingDuration = Date().timeIntervalSince(startDate)
+            self.checkAutoSegment()
+        }
+    }
+
+    private func stopRecordingTimer() {
+        recordingTimer?.invalidate()
+        recordingTimer = nil
+        recordingStartDate = nil
+        recordingDuration = 0
+        currentSegmentIndex = 0
+    }
+
+    private func checkAutoSegment() {
+        let segmentMinutes = SettingsStore.shared.segmentDurationMinutes
+        guard segmentMinutes > 0 else { return }
+        let segmentDuration = TimeInterval(segmentMinutes * 60)
+        guard recordingDuration >= segmentDuration else { return }
+
+        isAutoSegmenting = true
+        currentSegmentIndex += 1
+        movieOutput.stopRecording()
     }
 
     // MARK: - Session Management
@@ -504,6 +542,20 @@ final class CameraManager: NSObject, ObservableObject {
             return
         }
 
+        // Audio input (if enabled and available)
+        if SettingsStore.shared.enableAudioRecording {
+            if let audioDevice = AVCaptureDevice.default(for: .audio) {
+                do {
+                    let audioInput = try AVCaptureDeviceInput(device: audioDevice)
+                    if session.canAddInput(audioInput) {
+                        session.addInput(audioInput)
+                    }
+                } catch {
+                    ActivityLogManager.shared.warning(.camera, Strings.audioNotAvailable, detail: error.localizedDescription)
+                }
+            }
+        }
+
         videoOutput.alwaysDiscardsLateVideoFrames = true
         videoOutput.videoSettings = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
@@ -533,11 +585,11 @@ final class CameraManager: NSObject, ObservableObject {
 
     private func startRecording() {
         guard movieOutput.connection(with: .video) != nil else {
-            status = .error("No video connection available")
+            status = .error(Strings.noVideoFrame)
             return
         }
         guard MediaLibraryManager.shared.hasEnoughDiskSpace() else {
-            status = .error("Disk space insufficient")
+            status = .error(Strings.diskSpaceInsufficient)
             return
         }
         let lib = MediaLibraryManager.shared
@@ -546,6 +598,7 @@ final class CameraManager: NSObject, ObservableObject {
         let url = lib.videosDirectory.appendingPathComponent(fileName)
         movieOutput.startRecording(to: url, recordingDelegate: self)
         status = .recording
+        startRecordingTimer()
     }
 
     private func timestampString() -> String {
@@ -616,15 +669,27 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
             guard let self else { return }
             if let error {
                 self.status = .error("Recording failed: \(error.localizedDescription)")
+                self.stopRecordingTimer()
                 return
             }
             let lib = MediaLibraryManager.shared
             let fileName = outputFileURL.lastPathComponent
             let attrs = try? FileManager.default.attributesOfItem(atPath: outputFileURL.path)
             let size = (attrs?[.size] as? Int64) ?? 0
-            lib.registerVideo(fileName: fileName, fileSize: size)
+            let asset = AVURLAsset(url: outputFileURL)
+            let dur = CMTimeGetSeconds(asset.duration)
+            let videoDuration: TimeInterval? = dur.isNaN ? nil : dur
+            lib.registerVideo(fileName: fileName, fileSize: size, duration: videoDuration)
             self.lastSavedVideoPath = outputFileURL.path
-            self.status = .recordingSaved(fileName)
+
+            if self.isAutoSegmenting {
+                self.isAutoSegmenting = false
+                self.status = .recording
+                self.startRecording()
+            } else {
+                self.stopRecordingTimer()
+                self.status = .recordingSaved(fileName)
+            }
         }
     }
 }

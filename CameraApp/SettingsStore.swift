@@ -66,6 +66,15 @@ final class SettingsStore: ObservableObject {
     @Published var notifyOnMotion: Bool {
         didSet { UserDefaults.standard.set(notifyOnMotion, forKey: "notifyOnMotion") }
     }
+    @Published var segmentDurationMinutes: Int {
+        didSet { UserDefaults.standard.set(segmentDurationMinutes, forKey: "segmentDurationMinutes") }
+    }
+    @Published var enableAudioRecording: Bool {
+        didSet { UserDefaults.standard.set(enableAudioRecording, forKey: "enableAudioRecording") }
+    }
+    @Published var slideshowIntervalSeconds: Int {
+        didSet { UserDefaults.standard.set(slideshowIntervalSeconds, forKey: "slideshowIntervalSeconds") }
+    }
 
     private init() {
         telegramBotToken = KeychainService.shared.telegramBotToken
@@ -89,5 +98,8 @@ final class SettingsStore: ObservableObject {
         enableNotifications = UserDefaults.standard.bool(forKey: "enableNotifications")
         notifyOnErrors = UserDefaults.standard.bool(forKey: "notifyOnErrors")
         notifyOnMotion = UserDefaults.standard.bool(forKey: "notifyOnMotion")
+        segmentDurationMinutes = UserDefaults.standard.object(forKey: "segmentDurationMinutes") as? Int ?? 0
+        enableAudioRecording = UserDefaults.standard.bool(forKey: "enableAudioRecording")
+        slideshowIntervalSeconds = UserDefaults.standard.object(forKey: "slideshowIntervalSeconds") as? Int ?? 5
     }
 }
