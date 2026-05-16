@@ -55,7 +55,6 @@ struct ContentView: View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             // Sidebar
             VStack(spacing: 0) {
-                // App title
                 HStack(spacing: 8) {
                     Image(systemName: "camera.fill")
                         .font(.title3)
@@ -71,7 +70,6 @@ struct ContentView: View {
                 Divider()
                     .padding(.horizontal, 12)
 
-                // Navigation items
                 VStack(spacing: 2) {
                     ForEach(SidebarItem.allCases) { item in
                         sidebarRow(item)
@@ -85,31 +83,43 @@ struct ContentView: View {
             .frame(minWidth: 180, idealWidth: 200)
             .background(VisualEffectBlur(material: .sidebar))
         } detail: {
-            // Detail
-            Group {
-                switch selectedItem {
-                case .camera:
-                    CameraView()
-                case .library:
-                    MediaLibraryView()
-                case .automation:
-                    AutomationView()
-                case .settings:
-                    SettingsView()
+            ZStack(alignment: .topLeading) {
+                // Detail content
+                Group {
+                    switch selectedItem {
+                    case .camera:
+                        CameraView()
+                    case .library:
+                        MediaLibraryView()
+                    case .automation:
+                        AutomationView()
+                    case .settings:
+                        SettingsView()
+                    }
                 }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(.easeInOut(duration: 0.2), value: selectedItem)
-            .toolbar {
-                ToolbarItem(placement: .navigation) {
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(.easeInOut(duration: 0.2), value: selectedItem)
+
+                // Sidebar toggle — only visible when sidebar is hidden
+                if columnVisibility == .detailOnly {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {
-                            columnVisibility = columnVisibility == .all ? .detailOnly : .all
+                            columnVisibility = .all
                         }
                     } label: {
                         Image(systemName: "sidebar.left")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 28, height: 28)
+                            .background(
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                                    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+                            )
                     }
-                    .help("Toggle Sidebar")
+                    .buttonStyle(.plain)
+                    .padding(12)
+                    .transition(.opacity)
                 }
             }
         }

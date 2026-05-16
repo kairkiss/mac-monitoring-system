@@ -77,10 +77,14 @@ final class CameraManager: NSObject, ObservableObject {
 
     var selectedDevice: AVCaptureDevice? {
         let savedID = SettingsStore.shared.selectedCameraID
-        if !savedID.isEmpty, let device = AVCaptureDevice(uniqueID: savedID) {
+        if !savedID.isEmpty, let device = AVCaptureDevice(uniqueID: savedID), device.isConnected {
             return device
         }
-        return availableCameras.first ?? AVCaptureDevice.default(for: .video)
+        // Fall back to any connected camera
+        if let first = availableCameras.first(where: { $0.isConnected }) {
+            return first
+        }
+        return AVCaptureDevice.default(for: .video)
     }
 
     var isCameraBusyByOtherApp: Bool {
@@ -146,6 +150,10 @@ final class CameraManager: NSObject, ObservableObject {
             self?.status = .reconnecting
         }
         reconnectAttempts = 0
+        // Smart switch: if another camera is available, switch immediately
+        if switchToAvailableCamera() {
+            return
+        }
         scheduleReconnect()
     }
 
@@ -155,6 +163,21 @@ final class CameraManager: NSObject, ObservableObject {
             reconnectAttempts = 0
             attemptReconnect()
         }
+    }
+
+    /// Try to switch to another available camera. Returns true if switch was initiated.
+    private func switchToAvailableCamera() -> Bool {
+        guard !availableCameras.isEmpty else { return false }
+        let currentID = SettingsStore.shared.selectedCameraID
+        // Find a camera that's not the current one and is connected
+        let alternative = availableCameras.first { $0.uniqueID != currentID && $0.isConnected }
+        guard let newCamera = alternative else { return false }
+        SettingsStore.shared.selectedCameraID = newCamera.uniqueID
+        stopSession()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.startSession()
+        }
+        return true
     }
 
     @objc private func systemWillSleep() {
@@ -197,6 +220,8 @@ final class CameraManager: NSObject, ObservableObject {
     }
 
     private func attemptReconnect() {
+        // Try to switch to any available camera first
+        if switchToAvailableCamera() { return }
         guard selectedDevice != nil else {
             scheduleReconnect()
             return
