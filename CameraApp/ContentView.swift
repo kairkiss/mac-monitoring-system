@@ -11,6 +11,39 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .settings: return "gearshape.fill"
         }
     }
+    var title: String {
+        switch self {
+        case .camera: return Strings.cameraTitle
+        case .library: return Strings.libraryTitle
+        case .automation: return Strings.automationTitle
+        case .settings: return Strings.settingsTitle
+        }
+    }
+}
+
+// MARK: - Visual Effect Blur
+
+struct VisualEffectBlur: NSViewRepresentable {
+    let material: NSVisualEffectView.Material
+    let blendingMode: NSVisualEffectView.BlendingMode
+
+    init(material: NSVisualEffectView.Material = .sidebar, blendingMode: NSVisualEffectView.BlendingMode = .behindWindow) {
+        self.material = material
+        self.blendingMode = blendingMode
+    }
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = material
+        view.blendingMode = blendingMode
+        view.state = .active
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+        nsView.material = material
+        nsView.blendingMode = blendingMode
+    }
 }
 
 struct ContentView: View {
@@ -18,23 +51,81 @@ struct ContentView: View {
     @State private var selectedItem: SidebarItem = .camera
 
     var body: some View {
-        TabView(selection: $selectedItem) {
-            CameraView()
-                .tabItem { Label(Strings.cameraTitle, systemImage: "camera.fill") }
-                .tag(SidebarItem.camera)
+        NavigationSplitView {
+            // Sidebar
+            VStack(spacing: 0) {
+                // App title
+                HStack(spacing: 8) {
+                    Image(systemName: "camera.fill")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                    Text("Mac监控系统")
+                        .font(.headline)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
 
-            MediaLibraryView()
-                .tabItem { Label(Strings.libraryTitle, systemImage: "photo.on.rectangle") }
-                .tag(SidebarItem.library)
+                Divider()
+                    .padding(.horizontal, 12)
 
-            AutomationView()
-                .tabItem { Label(Strings.automationTitle, systemImage: "clock.arrow.circlepath") }
-                .tag(SidebarItem.automation)
+                // Navigation items
+                VStack(spacing: 2) {
+                    ForEach(SidebarItem.allCases) { item in
+                        sidebarRow(item)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
 
-            SettingsView()
-                .tabItem { Label(Strings.settingsTitle, systemImage: "gearshape.fill") }
-                .tag(SidebarItem.settings)
+                Spacer()
+            }
+            .frame(minWidth: 180)
+            .background(VisualEffectBlur(material: .sidebar))
+        } detail: {
+            // Detail
+            Group {
+                switch selectedItem {
+                case .camera:
+                    CameraView()
+                case .library:
+                    MediaLibraryView()
+                case .automation:
+                    AutomationView()
+                case .settings:
+                    SettingsView()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .animation(.easeInOut(duration: 0.2), value: selectedItem)
         }
         .frame(minWidth: 900, minHeight: 540)
+    }
+
+    private func sidebarRow(_ item: SidebarItem) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                selectedItem = item
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: item.icon)
+                    .font(.system(size: 15))
+                    .foregroundStyle(selectedItem == item ? .white : .secondary)
+                    .frame(width: 24)
+                Text(item.title)
+                    .font(.system(size: 13, weight: selectedItem == item ? .semibold : .regular))
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(selectedItem == item ? Color.accentColor : Color.clear)
+            )
+            .foregroundStyle(selectedItem == item ? .white : .primary)
+        }
+        .buttonStyle(.plain)
     }
 }

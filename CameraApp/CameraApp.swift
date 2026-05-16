@@ -122,7 +122,7 @@ struct CameraApp: App {
                 }
                 .id(languageManager.currentLanguage)
         }
-        .windowStyle(.titleBar)
+        .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1000, height: 600)
 
         MenuBarExtra {

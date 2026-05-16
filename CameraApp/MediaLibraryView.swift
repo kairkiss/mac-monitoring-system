@@ -11,6 +11,8 @@ struct MediaLibraryView: View {
     @State private var showBatchDeleteConfirm = false
     @State private var itemToDelete: MediaItem?
     @State private var detailItem: MediaItem?
+    @State private var hoveredPhotoID: UUID?
+    @State private var hoveredVideoID: UUID?
 
     private let columns = [
         GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 16)
@@ -62,8 +64,10 @@ struct MediaLibraryView: View {
 
                 if selectedSegment == 0 {
                     photoGrid
+                        .transition(.opacity.combined(with: .move(edge: .leading)))
                 } else {
                     videoList
+                        .transition(.opacity.combined(with: .move(edge: .trailing)))
                 }
             }
             .navigationTitle(Strings.libraryTitle)
@@ -71,6 +75,7 @@ struct MediaLibraryView: View {
                 MediaDetailView(item: item)
             }
             .onAppear { mediaLibrary.scanLibrary() }
+            .animation(.easeInOut(duration: 0.2), value: selectedSegment)
             .alert(Strings.confirmDelete, isPresented: $showDeleteConfirm) {
                 Button(Strings.cancel, role: .cancel) { }
                 Button(Strings.delete, role: .destructive) {
@@ -104,7 +109,7 @@ struct MediaLibraryView: View {
     private var photoGrid: some View {
         Group {
             if mediaLibrary.photos.isEmpty {
-                emptyState(icon: "photo.on.rectangle", text: Strings.noPhotosYet)
+                animatedEmptyState(icon: "photo.on.rectangle", text: Strings.noPhotosYet)
             } else {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 16) {
@@ -149,6 +154,7 @@ struct MediaLibraryView: View {
                                         Label(Strings.delete, systemImage: "trash")
                                     }
                                 }
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
                         }
                     }
                     .padding(20)
@@ -158,7 +164,8 @@ struct MediaLibraryView: View {
     }
 
     private func photoCard(_ item: MediaItem) -> some View {
-        VStack(spacing: 0) {
+        let isHovered = hoveredPhotoID == item.id
+        return VStack(spacing: 0) {
             ZStack(alignment: .topTrailing) {
                 Group {
                     if let thumb = mediaLibrary.thumbnail(for: item, maxSize: CGSize(width: 240, height: 180)) {
@@ -206,9 +213,14 @@ struct MediaLibraryView: View {
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.windowBackgroundColor))
-                .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+                .shadow(color: .black.opacity(isHovered ? 0.12 : 0.06), radius: isHovered ? 10 : 4, y: isHovered ? 5 : 2)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .scaleEffect(isHovered ? 1.03 : 1.0)
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isHovered)
+        .onHover { hovering in
+            hoveredPhotoID = hovering ? item.id : nil
+        }
     }
 
     // MARK: - Video List
@@ -216,7 +228,7 @@ struct MediaLibraryView: View {
     private var videoList: some View {
         Group {
             if mediaLibrary.videos.isEmpty {
-                emptyState(icon: "film.stack", text: Strings.noVideosYet)
+                animatedEmptyState(icon: "film.stack", text: Strings.noVideosYet)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 8) {
@@ -251,6 +263,7 @@ struct MediaLibraryView: View {
                                         Label(Strings.delete, systemImage: "trash")
                                     }
                                 }
+                                .transition(.opacity.combined(with: .move(edge: .trailing)))
                         }
                     }
                     .padding(20)
@@ -260,7 +273,8 @@ struct MediaLibraryView: View {
     }
 
     private func videoCard(_ item: MediaItem) -> some View {
-        HStack(spacing: 14) {
+        let isHovered = hoveredVideoID == item.id
+        return HStack(spacing: 14) {
             if isEditing {
                 Image(systemName: selection.contains(item.id) ? "checkmark.circle.fill" : "circle.fill")
                     .font(.title3)
@@ -314,9 +328,14 @@ struct MediaLibraryView: View {
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.windowBackgroundColor))
-                .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
+                .shadow(color: .black.opacity(isHovered ? 0.08 : 0.04), radius: isHovered ? 8 : 3, y: isHovered ? 4 : 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .scaleEffect(isHovered ? 1.01 : 1.0)
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isHovered)
+        .onHover { hovering in
+            hoveredVideoID = hovering ? item.id : nil
+        }
     }
 
     // MARK: - Helpers
@@ -359,21 +378,29 @@ struct MediaLibraryView: View {
         }
     }
 
-    // MARK: - Empty State
+    // MARK: - Animated Empty State
 
-    private func emptyState(icon: String, text: String) -> some View {
-        VStack(spacing: 16) {
+    private func animatedEmptyState(icon: String, text: String) -> some View {
+        VStack(spacing: 20) {
             ZStack {
                 Circle()
                     .fill(.quaternary)
-                    .frame(width: 80, height: 80)
+                    .frame(width: 90, height: 90)
+                    .shadow(color: .black.opacity(0.04), radius: 8, y: 4)
                 Image(systemName: icon)
-                    .font(.system(size: 36))
+                    .font(.system(size: 38))
                     .foregroundStyle(.tertiary)
             }
-            Text(text)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            .transition(.scale.combined(with: .opacity))
+
+            VStack(spacing: 6) {
+                Text(text)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Text("拖拽或右键导出文件")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

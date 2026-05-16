@@ -8,14 +8,20 @@ struct MediaDetailView: View {
     @EnvironmentObject var mediaLibrary: MediaLibraryManager
     @State private var showDeleteConfirm = false
     @State private var player: AVPlayer?
-    @State private var exportResult: URL?
+    @State private var imageLoaded = false
 
     var body: some View {
-        Group {
-            if item.fileType == .photo {
-                photoView
-            } else {
-                videoView
+        ZStack {
+            // Background blur
+            VisualEffectBlur(material: .underWindowBackground, blendingMode: .behindWindow)
+                .ignoresSafeArea()
+
+            Group {
+                if item.fileType == .photo {
+                    photoView
+                } else {
+                    videoView
+                }
             }
         }
         .navigationTitle(item.fileName)
@@ -67,6 +73,16 @@ struct MediaDetailView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
+                    .padding(30)
+                    .opacity(imageLoaded ? 1 : 0)
+                    .scaleEffect(imageLoaded ? 1 : 0.95)
+                    .onAppear {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.05)) {
+                            imageLoaded = true
+                        }
+                    }
             } else {
                 ContentUnavailableView {
                     Label(Strings.photo, systemImage: "photo")
@@ -75,11 +91,11 @@ struct MediaDetailView: View {
                 }
             }
         }
-        .background(Color.black)
     }
 
     private func loadDownsampledImage() -> NSImage? {
         let url = mediaLibrary.fileURL(for: item)
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
         let maxDimension: CGFloat = 2048
         let options: [CFString: Any] = [
@@ -124,6 +140,9 @@ struct MediaDetailView: View {
         Group {
             if let player {
                 VideoPlayer(player: player)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .shadow(color: .black.opacity(0.2), radius: 16, y: 8)
+                    .padding(30)
                     .onAppear { player.play() }
                     .onDisappear { player.pause() }
             } else {

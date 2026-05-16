@@ -12,9 +12,15 @@ final class TelegramService: ObservableObject {
     @Published var lastSendStatus: SendResult?
     @Published var isSending = false
 
+    private let maxRetries = 2
+
     private init() {}
 
     func sendPhoto(imageData: Data, caption: String = "") {
+        sendPhotoWithRetry(imageData: imageData, caption: caption, attempt: 0)
+    }
+
+    private func sendPhotoWithRetry(imageData: Data, caption: String, attempt: Int) {
         let settings = SettingsStore.shared
         let token = settings.telegramBotToken
         let chatID = settings.telegramChatID
@@ -26,9 +32,11 @@ final class TelegramService: ObservableObject {
             return
         }
 
-        DispatchQueue.main.async { [weak self] in
-            self?.isSending = true
-            self?.lastSendStatus = nil
+        if attempt == 0 {
+            DispatchQueue.main.async { [weak self] in
+                self?.isSending = true
+                self?.lastSendStatus = nil
+            }
         }
 
         let boundary = "Boundary-\(UUID().uuidString)"
@@ -36,22 +44,19 @@ final class TelegramService: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
 
         var body = Data()
-
-        // chat_id field
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"chat_id\"\r\n\r\n".data(using: .utf8)!)
         body.append("\(chatID)\r\n".data(using: .utf8)!)
 
-        // caption field
         if !caption.isEmpty {
             body.append("--\(boundary)\r\n".data(using: .utf8)!)
             body.append("Content-Disposition: form-data; name=\"caption\"\r\n\r\n".data(using: .utf8)!)
             body.append("\(caption)\r\n".data(using: .utf8)!)
         }
 
-        // photo file
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"photo\"; filename=\"photo.jpg\"\r\n".data(using: .utf8)!)
         body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
@@ -61,23 +66,44 @@ final class TelegramService: ObservableObject {
         request.httpBody = body
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.isSending = false
+            guard let self else { return }
 
-                if let error {
-                    self.lastSendStatus = .failure(error.localizedDescription)
+            if let error {
+                if attempt < self.maxRetries {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        self.sendPhotoWithRetry(imageData: imageData, caption: caption, attempt: attempt + 1)
+                    }
                     return
                 }
+                DispatchQueue.main.async {
+                    self.isSending = false
+                    self.lastSendStatus = .failure(error.localizedDescription)
+                }
+                return
+            }
 
-                if let httpResponse = response as? HTTPURLResponse {
-                    if httpResponse.statusCode == 200 {
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 200 {
+                    DispatchQueue.main.async {
+                        self.isSending = false
                         self.lastSendStatus = .success
-                    } else {
-                        let body = data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unknown error"
-                        self.lastSendStatus = .failure("HTTP \(httpResponse.statusCode): \(body)")
                     }
                 } else {
+                    if attempt < self.maxRetries {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            self.sendPhotoWithRetry(imageData: imageData, caption: caption, attempt: attempt + 1)
+                        }
+                        return
+                    }
+                    let body = data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unknown error"
+                    DispatchQueue.main.async {
+                        self.isSending = false
+                        self.lastSendStatus = .failure("HTTP \(httpResponse.statusCode): \(body)")
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.isSending = false
                     self.lastSendStatus = .failure("No response")
                 }
             }
@@ -85,7 +111,6 @@ final class TelegramService: ObservableObject {
     }
 
     func sendTestPhoto() {
-        // Create a small test image (1x1 red pixel PNG)
         let size = NSSize(width: 100, height: 100)
         let image = NSImage(size: size)
         image.lockFocus()

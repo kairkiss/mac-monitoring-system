@@ -7,6 +7,7 @@ struct CameraView: View {
     @State private var toastIsError = false
     @State private var isHoveringPhoto = false
     @State private var isHoveringRecord = false
+    @State private var pulseOpacity: Double = 0
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -17,7 +18,7 @@ struct CameraView: View {
 
                     if shouldShowPreview {
                         CameraPreviewView(session: camera.session)
-                            .transition(.opacity)
+                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
 
                         // Recording indicator
                         if camera.status == .recording {
@@ -27,11 +28,16 @@ struct CameraView: View {
                                         .fill(.red)
                                         .frame(width: 10, height: 10)
                                         .shadow(color: .red.opacity(0.6), radius: 4)
+                                        .overlay(
+                                            Circle()
+                                                .fill(.red.opacity(pulseOpacity))
+                                                .frame(width: 10, height: 10)
+                                                .scaleEffect(1 + pulseOpacity * 2)
+                                        )
                                     Text(Strings.stopRecording)
                                         .font(.caption.bold())
                                         .foregroundStyle(.white)
                                     Spacer()
-                                    // Elapsed time display
                                     Text("REC")
                                         .font(.caption2.bold().monospaced())
                                         .foregroundStyle(.red)
@@ -42,6 +48,11 @@ struct CameraView: View {
                                 .padding(.horizontal, 16)
                                 .padding(.top, 12)
                                 Spacer()
+                            }
+                            .onAppear {
+                                withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                                    pulseOpacity = 0.6
+                                }
                             }
                         }
                     } else {
@@ -54,7 +65,7 @@ struct CameraView: View {
                 VStack(spacing: 0) {
                     Divider()
 
-                    // Camera picker (when multiple cameras)
+                    // Camera picker
                     if camera.availableCameras.count > 1 {
                         HStack(spacing: 8) {
                             Image(systemName: "camera.on.rectangle")
@@ -80,15 +91,9 @@ struct CameraView: View {
                         .padding(.top, 8)
                     }
 
-                    // Status
+                    // Status pill badge
                     HStack(spacing: 8) {
-                        Circle()
-                            .fill(camera.status.color)
-                            .frame(width: 8, height: 8)
-                        Text(statusTitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                        statusPill
                         Spacer()
                     }
                     .padding(.horizontal, 20)
@@ -99,7 +104,6 @@ struct CameraView: View {
 
                     // Buttons
                     HStack(spacing: 20) {
-                        // Photo button
                         Button { camera.capturePhoto() } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "camera.fill")
@@ -112,13 +116,12 @@ struct CameraView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
-                        .disabled(camera.status != .running)
+                        .disabled(!camera.status.isOperational || camera.status == .recording)
                         .scaleEffect(isHoveringPhoto && camera.status == .running ? 1.02 : 1.0)
                         .onHover { hovering in
                             withAnimation(.spring(response: 0.2)) { isHoveringPhoto = hovering }
                         }
 
-                        // Record button
                         if camera.status == .recording {
                             Button { camera.toggleRecording() } label: {
                                 HStack(spacing: 6) {
@@ -146,7 +149,7 @@ struct CameraView: View {
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.large)
-                            .disabled(camera.status != .running)
+                            .disabled(!camera.status.isOperational)
                             .scaleEffect(isHoveringRecord && camera.status == .running ? 1.02 : 1.0)
                             .onHover { hovering in
                                 withAnimation(.spring(response: 0.2)) { isHoveringRecord = hovering }
@@ -174,6 +177,31 @@ struct CameraView: View {
         .onAppear {
             CaptureController.shared.cameraManager = camera
         }
+    }
+
+    // MARK: - Status Pill
+
+    private var statusPill: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(camera.status.color)
+                .frame(width: 7, height: 7)
+                .shadow(color: camera.status.color.opacity(0.5), radius: 3)
+            Text(statusTitle)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            Capsule()
+                .fill(camera.status.color.opacity(0.1))
+        )
+        .overlay(
+            Capsule()
+                .strokeBorder(camera.status.color.opacity(0.2), lineWidth: 0.5)
+        )
     }
 
     // MARK: - Toast
@@ -206,6 +234,7 @@ struct CameraView: View {
                 Circle()
                     .fill(.ultraThinMaterial)
                     .frame(width: 100, height: 100)
+                    .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
                 Image(systemName: camera.status.icon)
                     .font(.system(size: 44))
                     .foregroundStyle(camera.status.color)
@@ -236,10 +265,7 @@ struct CameraView: View {
     // MARK: - Helpers
 
     private var shouldShowPreview: Bool {
-        switch camera.status {
-        case .running, .photoSaved, .recording, .recordingSaved, .reconnecting: return true
-        default: return false
-        }
+        camera.status.isOperational
     }
 
     private var statusTitle: String {

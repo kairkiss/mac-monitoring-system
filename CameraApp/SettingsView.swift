@@ -44,21 +44,20 @@ struct SettingsView: View {
                     if let status = telegram.lastSendStatus {
                         switch status {
                         case .success:
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                            Text(Strings.telegramSent)
+                            Label(Strings.telegramSent, systemImage: "checkmark.circle.fill")
                                 .font(.caption)
                                 .foregroundStyle(.green)
+                                .transition(.opacity.combined(with: .scale))
                         case .failure(let msg):
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.red)
-                            Text(msg)
+                            Label(msg, systemImage: "xmark.circle.fill")
                                 .font(.caption)
                                 .foregroundStyle(.red)
                                 .lineLimit(2)
+                                .transition(.opacity.combined(with: .scale))
                         }
                     }
                 }
+                .animation(.spring(response: 0.3), value: telegram.lastSendStatus)
                 .onChange(of: telegram.lastSendStatus) { _, _ in
                     DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                         telegram.lastSendStatus = nil
@@ -93,35 +92,9 @@ struct SettingsView: View {
 
             // Storage Management
             Section {
-                HStack(spacing: 12) {
-                    Image(systemName: "photo.stack")
-                        .foregroundStyle(.blue)
-                        .frame(width: 20)
-                    Text(Strings.totalPhotos)
-                    Spacer()
-                    Text("\(mediaLibrary.totalPhotoCount)")
-                        .foregroundStyle(.secondary)
-                }
-
-                HStack(spacing: 12) {
-                    Image(systemName: "film.stack")
-                        .foregroundStyle(.purple)
-                        .frame(width: 20)
-                    Text(Strings.totalVideos)
-                    Spacer()
-                    Text("\(mediaLibrary.totalVideoCount)")
-                        .foregroundStyle(.secondary)
-                }
-
-                HStack(spacing: 12) {
-                    Image(systemName: "internaldrive")
-                        .foregroundStyle(.orange)
-                        .frame(width: 20)
-                    Text(Strings.storageUsage)
-                    Spacer()
-                    Text(ByteCountFormatter.string(fromByteCount: mediaLibrary.totalStorageBytes, countStyle: .file))
-                        .foregroundStyle(.secondary)
-                }
+                storageRow(icon: "photo.stack", color: .blue, label: Strings.totalPhotos, value: "\(mediaLibrary.totalPhotoCount)")
+                storageRow(icon: "film.stack", color: .purple, label: Strings.totalVideos, value: "\(mediaLibrary.totalVideoCount)")
+                storageRow(icon: "internaldrive", color: .orange, label: Strings.storageUsage, value: ByteCountFormatter.string(fromByteCount: mediaLibrary.totalStorageBytes, countStyle: .file))
 
                 Divider()
 
@@ -159,9 +132,11 @@ struct SettingsView: View {
                         Text(String(format: Strings.cleanedCount, result))
                             .font(.caption)
                             .foregroundStyle(result > 0 ? .green : .secondary)
+                            .transition(.opacity)
                     }
                 }
                 .padding(.leading, 32)
+                .animation(.spring(response: 0.3), value: cleanResult)
             } header: {
                 Label(Strings.storageUsage, systemImage: "internaldrive")
             }
@@ -230,26 +205,36 @@ struct SettingsView: View {
 
             // About
             Section {
-                HStack {
-                    Text("System")
-                    Spacer()
-                    Text(ProcessInfo.processInfo.operatingSystemVersionString)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                HStack {
-                    Text("Version")
-                    Spacer()
-                    Text("1.1.0")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
+                aboutRow("Version", "1.1.1")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")
             }
         }
         .formStyle(.grouped)
         .navigationTitle(Strings.settingsTitle)
+    }
+
+    private func storageRow(icon: String, color: Color, label: String, value: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundStyle(color)
+                .frame(width: 20)
+            Text(label)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
+                .font(.callout.monospaced())
+        }
+    }
+
+    private func aboutRow(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            Text(value)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 }

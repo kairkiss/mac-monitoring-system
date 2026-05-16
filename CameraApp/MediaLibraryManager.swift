@@ -42,7 +42,7 @@ final class MediaLibraryManager: ObservableObject {
     }
 
     private init() {
-        thumbnailCache.totalCostLimit = 50 * 1024 * 1024 // 50 MB
+        thumbnailCache.totalCostLimit = 50 * 1024 * 1024
         ensureDirectoriesExist()
         NotificationCenter.default.addObserver(
             self, selector: #selector(didReceiveMemoryWarning),
@@ -53,6 +53,38 @@ final class MediaLibraryManager: ObservableObject {
     @objc private func didReceiveMemoryWarning() {
         thumbnailCache.removeAllObjects()
     }
+
+    // MARK: - Disk Space
+
+    func hasEnoughDiskSpace(minimumMB: Int64 = 50) -> Bool {
+        let path = baseDirectory.path
+        guard let attrs = try? FileManager.default.attributesOfFileSystem(forPath: path),
+              let freeSize = attrs[.systemFreeSize] as? Int64 else {
+            return true
+        }
+        return freeSize > minimumMB * 1024 * 1024
+    }
+
+    // MARK: - Atomic Write
+
+    func writeAtomically(_ data: Data, to url: URL) -> Bool {
+        let tempURL = url.deletingLastPathComponent()
+            .appendingPathComponent(".\(UUID().uuidString).tmp")
+        do {
+            try data.write(to: tempURL)
+            let fm = FileManager.default
+            if fm.fileExists(atPath: url.path) {
+                try fm.removeItem(at: url)
+            }
+            try fm.moveItem(at: tempURL, to: url)
+            return true
+        } catch {
+            try? FileManager.default.removeItem(at: tempURL)
+            return false
+        }
+    }
+
+    // MARK: - Directory Management
 
     func ensureDirectoriesExist() {
         let fm = FileManager.default
@@ -83,22 +115,15 @@ final class MediaLibraryManager: ObservableObject {
     func savePhotoData(_ data: Data) -> URL? {
         let fileName = "Photo_\(timestampString()).jpg"
         let url = photosDirectory.appendingPathComponent(fileName)
-        do {
-            try data.write(to: url)
-            let item = MediaItem(
-                id: UUID(),
-                fileName: fileName,
-                fileType: .photo,
-                createdAt: Date(),
-                fileSize: Int64(data.count)
-            )
-            DispatchQueue.main.async { [weak self] in
-                self?.photos.insert(item, at: 0)
-            }
-            return url
-        } catch {
-            return nil
+        guard writeAtomically(data, to: url) else { return nil }
+        let item = MediaItem(
+            id: UUID(), fileName: fileName, fileType: .photo,
+            createdAt: Date(), fileSize: Int64(data.count)
+        )
+        DispatchQueue.main.async { [weak self] in
+            self?.photos.insert(item, at: 0)
         }
+        return url
     }
 
     func saveVideo(at sourceURL: URL) -> URL? {
@@ -113,11 +138,8 @@ final class MediaLibraryManager: ObservableObject {
             let attrs = try? fm.attributesOfItem(atPath: destURL.path)
             let size = (attrs?[.size] as? Int64) ?? 0
             let item = MediaItem(
-                id: UUID(),
-                fileName: fileName,
-                fileType: .video,
-                createdAt: Date(),
-                fileSize: size
+                id: UUID(), fileName: fileName, fileType: .video,
+                createdAt: Date(), fileSize: size
             )
             DispatchQueue.main.async { [weak self] in
                 self?.videos.insert(item, at: 0)
@@ -185,6 +207,8 @@ final class MediaLibraryManager: ObservableObject {
         }
 
         let url = fileURL(for: item)
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+
         let image: NSImage?
         switch item.fileType {
         case .photo:

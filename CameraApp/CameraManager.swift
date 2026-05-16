@@ -43,6 +43,13 @@ enum CameraStatus: Equatable {
         case .reconnecting: return .orange
         }
     }
+
+    var isOperational: Bool {
+        switch self {
+        case .running, .photoSaved, .recording, .recordingSaved, .reconnecting: return true
+        default: return false
+        }
+    }
 }
 
 final class CameraManager: NSObject, ObservableObject {
@@ -63,6 +70,7 @@ final class CameraManager: NSObject, ObservableObject {
 
     private var isSessionRunning = false
     private var isInBackground = false
+    private var isConfiguring = false
     private var reconnectAttempts = 0
     private let maxReconnectAttempts = 5
     private var reconnectTimer: DispatchWorkItem?
@@ -249,23 +257,19 @@ final class CameraManager: NSObject, ObservableObject {
 
     // MARK: - Photo Capture
 
-    /// Capture photo regardless of status. Starts session if needed.
     func capturePhoto() {
-        // If session is not running, start it first then capture
         if !isSessionRunning {
             startSession()
-            // Wait for session to be ready, then capture
             var attempts = 0
             var check: (() -> Void)!
             check = { [weak self] in
                 guard let self else { return }
                 attempts += 1
                 if self.isSessionRunning {
-                    // Session ready, wait a bit for first frame
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         self.doCapturePhoto()
                     }
-                } else if attempts < 30 { // 9 seconds max
+                } else if attempts < 30 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { check?() }
                 } else {
                     self.status = .error("Camera failed to start")
@@ -274,20 +278,17 @@ final class CameraManager: NSObject, ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { check() }
             return
         }
-
         doCapturePhoto()
     }
 
     private func doCapturePhoto() {
         guard let sampleBuffer = latestSampleBuffer,
               let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
-            // No frame yet, wait a bit and retry once
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 self?.doCapturePhotoDirect()
             }
             return
         }
-
         savePhoto(from: imageBuffer)
     }
 
@@ -301,6 +302,11 @@ final class CameraManager: NSObject, ObservableObject {
     }
 
     private func savePhoto(from imageBuffer: CVImageBuffer) {
+        guard MediaLibraryManager.shared.hasEnoughDiskSpace() else {
+            status = .error("Disk space insufficient")
+            return
+        }
+
         var ciImage = CIImage(cvImageBuffer: imageBuffer)
         if SettingsStore.shared.enableWatermark {
             ciImage = applyWatermark(to: ciImage)
@@ -322,20 +328,18 @@ final class CameraManager: NSObject, ObservableObject {
         lib.ensureDirectoriesExist()
         let fileName = "Photo_\(timestampString()).jpg"
         let url = lib.photosDirectory.appendingPathComponent(fileName)
-        do {
-            try jpegData.write(to: url)
+        if lib.writeAtomically(jpegData, to: url) {
             lib.registerPhoto(fileName: fileName, fileSize: Int64(jpegData.count))
             lastSavedPhotoPath = url.path
             status = .photoSaved(fileName)
-            // Auto-reset to running after 2.5s so button re-enables
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
                 guard let self else { return }
                 if case .photoSaved = self.status {
                     self.status = .running
                 }
             }
-        } catch {
-            status = .error("Save failed: \(error.localizedDescription)")
+        } else {
+            status = .error("Save failed")
         }
     }
 
@@ -364,10 +368,9 @@ final class CameraManager: NSObject, ObservableObject {
             attempts += 1
             if self.isSessionRunning {
                 completion()
-            } else if attempts < 30 { // 9 seconds max
+            } else if attempts < 30 {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { check?() }
             } else {
-                // Timeout - try to start fresh
                 self.status = .checking
                 self.startSession()
             }
@@ -402,13 +405,17 @@ final class CameraManager: NSObject, ObservableObject {
     }
 
     private func startSession() {
-        guard !isSessionRunning else { return }
+        guard !isSessionRunning && !isConfiguring else { return }
         sessionQueue.async { [weak self] in
             self?.configureAndStartSession()
         }
     }
 
     private nonisolated func configureAndStartSession() {
+        guard !isConfiguring else { return }
+        isConfiguring = true
+        defer { isConfiguring = false }
+
         session.beginConfiguration()
         session.sessionPreset = .high
 
@@ -474,6 +481,10 @@ final class CameraManager: NSObject, ObservableObject {
     private func startRecording() {
         guard movieOutput.connection(with: .video) != nil else {
             status = .error("No video connection available")
+            return
+        }
+        guard MediaLibraryManager.shared.hasEnoughDiskSpace() else {
+            status = .error("Disk space insufficient")
             return
         }
         let lib = MediaLibraryManager.shared

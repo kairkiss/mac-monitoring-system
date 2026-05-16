@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.1.1 (2025-05-16)
+
+### Stability & Robustness
+
+- Camera session reentrancy guard prevents concurrent configuration conflicts
+- Atomic file writes (temp file + rename) prevent corruption on crash
+- Disk space check before photo/video save
+- Thumbnail loading guards for missing or corrupted files
+- Telegram send auto-retry (up to 2 times) on network failure
+- `isOperational` computed property centralizes status-availability logic
+
+### UI Polish
+
+- **NavigationSplitView sidebar** replaces TabView, with accent-colored selection capsule and app title
+- **Hidden title bar** for cleaner window chrome
+- **VisualEffectBlur** background on detail view for depth
+- **Status pill badge** on camera view with colored capsule and shadow
+- **Photo card hover** — scale up (1.03x) + deeper shadow on hover
+- **Video card hover** — subtle scale + shadow enhancement
+- **Recording pulse** — animated red dot with expanding pulse ring
+- **Animated empty states** with transition effects
+- **Detail view entrance** — photo fades in with spring scale animation
+- **Video/detail shadow** — floating card effect with rounded corners
+- **Segment switching** — crossfade transition between Photos/Videos
+- **Monospaced storage values** for aligned number display
+- **Settings status animations** — spring transitions for Telegram status
+
 ## v1.1.0 (2025-05-16)
 
 ### New Features
