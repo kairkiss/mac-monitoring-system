@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.1 (2025-05-04)
+
+### Bug Fixes
+
+- Fix menu bar "Open Control Panel" button not working reliably
+- Window is now hidden (not destroyed) when closed, allowing reliable reopening
+- Window reference is refreshed on each open attempt to handle stale references
+
 ## v1.0.0 (2025-05-04)
 
 Initial release.

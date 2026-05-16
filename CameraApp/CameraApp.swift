@@ -57,30 +57,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        NSApp.setActivationPolicy(.regular)
+        // Always search for a fresh window — reference may be stale
+        captureMainWindow()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            guard let self else { return }
-
-            if self.mainWindow == nil || self.mainWindow?.contentView == nil {
-                self.captureMainWindow()
+        // If still no window, switch to regular so SwiftUI can create one
+        if mainWindow == nil || mainWindow?.contentView == nil {
+            NSApp.setActivationPolicy(.regular)
+            // Ask SwiftUI to open a window
+            NSApp.sendAction(Selector(("openWindow:")), to: nil, from: nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.captureMainWindow()
+                self?.displayMainWindow()
             }
-
-            if let window = self.mainWindow {
-                window.orderFrontRegardless()
-                window.makeKeyAndOrderFront(nil)
-                NSApp.activate(ignoringOtherApps: true)
-            }
+            return
         }
+
+        NSApp.setActivationPolicy(.regular)
+        displayMainWindow()
+    }
+
+    private func displayMainWindow() {
+        guard let window = mainWindow else { return }
+        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
 extension AppDelegate: NSWindowDelegate {
     func windowShouldClose(_ sender: NSWindow) -> Bool {
+        // Hide instead of close so the window can be reopened
+        sender.orderOut(nil)
         DispatchQueue.main.async {
             NSApp.setActivationPolicy(.accessory)
         }
-        return true
+        return false
     }
 }
 
