@@ -97,6 +97,9 @@ final class MediaLibraryManager: ObservableObject {
     func scanLibrary() {
         photos = scanDirectory(photosDirectory, type: .photo)
         videos = scanDirectory(videosDirectory, type: .video)
+        let photoNames = Set(photos.map { $0.fileName })
+        let videoNames = Set(videos.map { $0.fileName })
+        MediaIndexStore.shared.reconcileWithLibrary(photoFileNames: photoNames, videoFileNames: videoNames)
     }
 
     func registerPhoto(fileName: String, fileSize: Int64) {
@@ -159,6 +162,7 @@ final class MediaLibraryManager: ObservableObject {
         try? FileManager.default.removeItem(at: url)
         let cacheKey = "\(item.id.uuidString)_thumb" as NSString
         thumbnailCache.removeObject(forKey: cacheKey)
+        MediaIndexStore.shared.removeEntry(for: item.fileName)
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             switch item.fileType {
@@ -179,6 +183,7 @@ final class MediaLibraryManager: ObservableObject {
             try? FileManager.default.removeItem(at: url)
             let cacheKey = "\(item.id.uuidString)_thumb" as NSString
             thumbnailCache.removeObject(forKey: cacheKey)
+            MediaIndexStore.shared.removeEntry(for: item.fileName)
             count += 1
         }
         photos.removeAll { $0.createdAt < cutoff }
@@ -187,6 +192,7 @@ final class MediaLibraryManager: ObservableObject {
         for item in oldVideos {
             let url = fileURL(for: item)
             try? FileManager.default.removeItem(at: url)
+            MediaIndexStore.shared.removeEntry(for: item.fileName)
             count += 1
         }
         videos.removeAll { $0.createdAt < cutoff }

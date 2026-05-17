@@ -1,5 +1,4 @@
 import Foundation
-import UserNotifications
 import AppKit
 
 final class HealthMonitor: ObservableObject {
@@ -104,11 +103,22 @@ final class HealthMonitor: ObservableObject {
         }
     }
 
+    private var frameWarningCooldownUntil: Date = .distantPast
+
     private func checkFrameHealth() {
-        // If camera is running but no frames received in 30s, something is wrong
         let camera = CameraManager.shared
         guard camera.status == .running else { return }
-        // Frame watchdog is informational only — don't spam notifications
+        guard Date() >= frameWarningCooldownUntil else { return }
+
+        let elapsed = Date().timeIntervalSince(lastFrameTime)
+        if elapsed > 30 {
+            frameWarningCooldownUntil = Date().addingTimeInterval(cooldownDuration)
+            let detail = String(format: "No frames received for %.0f seconds", elapsed)
+            ActivityLogManager.shared.warning(.health, "Camera frame watchdog", detail: detail)
+            if SettingsStore.shared.enableNotifications && SettingsStore.shared.notifyOnErrors {
+                sendNotification(title: Strings.healthMonitor, body: detail)
+            }
+        }
     }
 
     func recordFrameReceived() {
@@ -126,7 +136,7 @@ final class HealthMonitor: ObservableObject {
         telegramCooldownUntil = Date().addingTimeInterval(cooldownDuration)
         let alert = HealthAlert(
             type: .telegramFailure,
-            message: "\(Strings.notifyTelegramFailure) (\(telegramFailureCount) \(Strings.seconds))",
+            message: "\(Strings.notifyTelegramFailure) (\(telegramFailureCount) consecutive failures)",
             timestamp: Date()
         )
         addAlert(alert)
@@ -157,17 +167,7 @@ final class HealthMonitor: ObservableObject {
     // MARK: - Notifications
 
     private func sendNotification(title: String, body: String) {
-        guard SettingsStore.shared.enableNotifications else { return }
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil
-        )
-        UNUserNotificationCenter.current().add(request)
+        NotificationManager.shared.sendNotification(title: title, body: body)
     }
 }
 

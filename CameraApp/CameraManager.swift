@@ -652,6 +652,7 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         from connection: AVCaptureConnection
     ) {
         latestSampleBuffer = sampleBuffer
+        HealthMonitor.shared.recordFrameReceived()
         MotionDetector.shared.processFrame(sampleBuffer)
     }
 }

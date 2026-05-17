@@ -228,22 +228,73 @@ final class AutomationScheduler: ObservableObject {
     func recoverMissedTasks() {
         let windowMinutes = SettingsStore.shared.recoveryWindowMinutes
         guard windowMinutes > 0 else { return }
-        let cutoff = Date().addingTimeInterval(-TimeInterval(windowMinutes * 60))
+        let now = Date()
+        let cutoff = now.addingTimeInterval(-TimeInterval(windowMinutes * 60))
 
         for i in tasks.indices {
             guard tasks[i].isEnabled else { continue }
-            guard tasks[i].type == .daily || tasks[i].type == .weekly else { continue }
+            guard isAutomationEnabled else { continue }
 
-            let lastRun = tasks[i].lastRunAt ?? tasks[i].createdAt
-            guard lastRun < cutoff else { continue }
+            guard let expected = expectedLastFireTime(for: tasks[i]) else { continue }
+            guard expected >= cutoff && expected <= now else { continue }
 
-            // Check if the task should have fired within the recovery window
-            if let scheduledFire = tasks[i].nextFireTime, scheduledFire <= Date() {
-                let telegramSend = tasks[i].telegramSend
-                ActivityLogManager.shared.info(.automation, "Recovering missed task: \(tasks[i].name)", detail: "Last run: \(lastRun)")
-                onCapture?(telegramSend)
-                tasks[i].lastRunAt = Date()
+            let lastRun = tasks[i].lastRunAt
+            guard lastRun == nil || lastRun! < expected else { continue }
+
+            let taskName = tasks[i].name.isEmpty ? tasks[i].type.displayName : tasks[i].name
+            let telegramSend = tasks[i].telegramSend
+            ActivityLogManager.shared.log(
+                level: .info,
+                category: .automation,
+                message: "Recovering missed task: \(taskName)",
+                detail: "Expected at: \(expected), last run: \(lastRun?.description ?? "never")"
+            )
+            onCapture?(telegramSend)
+            tasks[i].lastRunAt = now
+            tasks[i].nextFireTime = calculateNextFireTime(for: tasks[i])
+        }
+        persistTasks()
+    }
+
+    /// Calculate the most recent time this task should have fired, based on its rules.
+    func expectedLastFireTime(for task: ScheduledTask) -> Date? {
+        let calendar = Calendar.current
+        let now = Date()
+
+        switch task.type {
+        case .daily:
+            // Today at the configured time
+            var components = calendar.dateComponents([.year, .month, .day], from: now)
+            components.hour = task.hour
+            components.minute = task.minute
+            components.second = 0
+            guard let todayTarget = calendar.date(from: components) else { return nil }
+            if todayTarget <= now {
+                return todayTarget
+            } else {
+                // Today's time hasn't passed yet, use yesterday
+                return calendar.date(byAdding: .day, value: -1, to: todayTarget)
             }
+
+        case .weekly:
+            // Go backwards up to 7 days to find the most recent matching weekday
+            for offset in 0...7 {
+                guard let candidateDate = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
+                let weekday = calendar.component(.weekday, from: candidateDate)
+                guard task.weekdays.contains(weekday) else { continue }
+                var components = calendar.dateComponents([.year, .month, .day], from: candidateDate)
+                components.hour = task.hour
+                components.minute = task.minute
+                components.second = 0
+                guard let targetTime = calendar.date(from: components) else { continue }
+                if targetTime <= now {
+                    return targetTime
+                }
+            }
+            return nil
+
+        case .countdown, .interval:
+            return nil
         }
     }
 

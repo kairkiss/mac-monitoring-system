@@ -102,9 +102,23 @@ final class ActivityLogManager: ObservableObject {
 
     // MARK: - Persistence
 
+    private static let jsonEncoder: JSONEncoder = {
+        let enc = JSONEncoder()
+        enc.dateEncodingStrategy = .iso8601
+        enc.outputFormatting = [.sortedKeys]
+        return enc
+    }()
+
+    private static let jsonDecoder: JSONDecoder = {
+        let dec = JSONDecoder()
+        dec.dateDecodingStrategy = .iso8601
+        return dec
+    }()
+
     private func appendEntry(_ entry: ActivityLogEntry) {
-        guard let data = try? JSONEncoder().encode(entry) else { return }
-        let line = data.base64EncodedString() + "\n"
+        guard let data = try? Self.jsonEncoder.encode(entry),
+              var line = String(data: data, encoding: .utf8) else { return }
+        line += "\n"
         guard let lineData = line.data(using: .utf8) else { return }
 
         let fm = FileManager.default
@@ -128,17 +142,29 @@ final class ActivityLogManager: ObservableObject {
             guard let data = try? String(contentsOf: self.fileURL, encoding: .utf8) else { return }
             let lines = data.components(separatedBy: "\n").filter { !$0.isEmpty }
             var loaded: [ActivityLogEntry] = []
-            let decoder = JSONDecoder()
             for line in lines.suffix(2000) {
-                guard let lineData = Data(base64Encoded: line),
-                      let entry = try? decoder.decode(ActivityLogEntry.self, from: lineData) else { continue }
-                loaded.append(entry)
+                if let entry = self.decodeLine(line) {
+                    loaded.append(entry)
+                }
             }
             loaded.sort { $0.timestamp > $1.timestamp }
             DispatchQueue.main.async {
                 self.entries = loaded
             }
         }
+    }
+
+    /// Try standard JSONL first, fall back to base64-encoded JSON for backward compatibility.
+    private func decodeLine(_ line: String) -> ActivityLogEntry? {
+        if let lineData = line.data(using: .utf8),
+           let entry = try? Self.jsonDecoder.decode(ActivityLogEntry.self, from: lineData) {
+            return entry
+        }
+        if let base64Data = Data(base64Encoded: line),
+           let entry = try? JSONDecoder().decode(ActivityLogEntry.self, from: base64Data) {
+            return entry
+        }
+        return nil
     }
 
     private func trimFileIfNeeded() {

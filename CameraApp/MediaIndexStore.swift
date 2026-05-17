@@ -102,6 +102,40 @@ final class MediaIndexStore: ObservableObject {
         persist()
     }
 
+    /// Reconcile index with actual files on disk.
+    /// Removes orphan index entries and creates default entries for unindexed files.
+    func reconcileWithLibrary(photoFileNames: Set<String>, videoFileNames: Set<String>) {
+        let allFileNames = photoFileNames.union(videoFileNames)
+        var orphansRemoved = 0
+        var missingAdded = 0
+
+        // Remove orphan entries (index exists but file doesn't)
+        let orphans = entries.keys.filter { !allFileNames.contains($0) }
+        for orphan in orphans {
+            entries.removeValue(forKey: orphan)
+            orphansRemoved += 1
+        }
+
+        // Add missing entries (file exists but no index)
+        for fileName in allFileNames {
+            if entries[fileName] == nil {
+                let source: MediaSource = fileName.hasPrefix("Photo_") ? .manual : .manual
+                entries[fileName] = MediaIndexEntry(source: source)
+                missingAdded += 1
+            }
+        }
+
+        if orphansRemoved > 0 || missingAdded > 0 {
+            persist()
+            if orphansRemoved > 0 {
+                ActivityLogManager.shared.info(.media, "Cleaned \(orphansRemoved) orphan index entries")
+            }
+            if missingAdded > 0 {
+                ActivityLogManager.shared.info(.media, "Added \(missingAdded) missing index entries")
+            }
+        }
+    }
+
     // MARK: - Persistence
 
     private func load() {

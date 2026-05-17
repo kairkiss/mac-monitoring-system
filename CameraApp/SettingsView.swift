@@ -321,6 +321,11 @@ struct SettingsView: View {
                         Text(Strings.enableNotifications)
                     }
                 }
+                .onChange(of: settings.enableNotifications) { _, newValue in
+                    if newValue {
+                        NotificationManager.shared.requestPermissionIfNeeded()
+                    }
+                }
 
                 if settings.enableNotifications {
                     Toggle(isOn: $settings.notifyOnErrors) {
@@ -392,7 +397,7 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", "1.2.1")
+                aboutRow("Version", "1.2.2")
                 aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")
