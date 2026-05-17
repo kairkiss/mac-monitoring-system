@@ -669,8 +669,14 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             if let error {
-                self.status = .error("Recording failed: \(error.localizedDescription)")
+                self.isAutoSegmenting = false
                 self.stopRecordingTimer()
+                self.status = .error("Recording failed: \(error.localizedDescription)")
+                // Recover to running state after showing the error briefly
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                    guard let self, case .error = self.status else { return }
+                    self.status = .running
+                }
                 return
             }
             let lib = MediaLibraryManager.shared
