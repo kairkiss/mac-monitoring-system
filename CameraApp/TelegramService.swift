@@ -115,6 +115,7 @@ final class TelegramService: ObservableObject {
                     }
                 }
             } else {
+                ActivityLogManager.shared.log(level: .error, category: .telegram, message: "Telegram send failed: no response", detail: "No HTTP response received", relatedFile: fileName)
                 NotificationCenter.default.post(name: .telegramSendFailed, object: nil)
                 DispatchQueue.main.async {
                     self.isSending = false

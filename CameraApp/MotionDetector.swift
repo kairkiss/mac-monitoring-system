@@ -30,9 +30,6 @@ final class MotionDetector: ObservableObject {
         guard now.timeIntervalSince(lastAnalysisTime) >= analysisInterval else { return }
         lastAnalysisTime = now
 
-        // Respect cooldown after detection
-        guard now.timeIntervalSince(lastDetectionTime) >= cooldown else { return }
-
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         let ciImage = CIImage(cvImageBuffer: pixelBuffer)
@@ -118,6 +115,9 @@ final class MotionDetector: ObservableObject {
         }
 
         previousBlockBrightness = currentBlocks
+
+        // Respect cooldown after detection — baseline is already updated above
+        guard now.timeIntervalSince(lastDetectionTime) >= cooldown else { return }
 
         if changedBlocks >= changedBlockCountThreshold {
             lastDetectionTime = now

@@ -270,6 +270,13 @@ struct SettingsView: View {
                         Text(Strings.enableHealthMonitor)
                     }
                 }
+                .onChange(of: settings.enableHealthMonitor) { _, newValue in
+                    if newValue {
+                        HealthMonitor.shared.startMonitoring()
+                    } else {
+                        HealthMonitor.shared.stopMonitoring()
+                    }
+                }
 
                 if settings.enableHealthMonitor {
                     Toggle(isOn: $settings.notifyCameraDisconnect) {
@@ -397,7 +404,7 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", "1.2.2")
+                aboutRow("Version", "1.2.3")
                 aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")

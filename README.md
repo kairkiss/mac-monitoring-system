@@ -2,14 +2,18 @@
 
 A macOS camera monitoring app with automation scheduling and Telegram push notifications.
 
-> **v1.2.2** — Stability and reliability release. Fixes Activity Log storage format, reduces Motion Detection CPU usage and false positives, improves Health Monitor wiring and notification permission handling. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **v1.2.3** — Final v1.2 stability release. Fixes notification permission pop-on-launch, improves multi-camera selection to respect user preference, fixes motion detection cooldown baseline issue. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 
 - **Camera Preview** — Real-time webcam preview with photo capture and video recording
-- **Media Library** — Browse, view, and delete captured photos and videos
-- **Automation** — Schedule automatic captures: daily, weekly, countdown, or interval-based
+- **Media Library** — Browse, view, and delete captured photos and videos with swipe navigation, pinch-to-zoom, EXIF viewer, and slideshow mode
+- **Automation** — Schedule automatic captures: daily, weekly, countdown, or interval-based, with timeline visualization and execution history
 - **Telegram Push** — Send captured photos to your Telegram chat via Bot API
+- **Motion Detection** — Frame-diff based motion detection with configurable sensitivity; optional auto-capture and Telegram push on motion
+- **Health Monitor** — Camera disconnect detection, low disk space alerts, Telegram failure tracking
+- **Activity Log** — JSONL-based logging with search, filter, and export
+- **Multi-Camera** — Supports multiple cameras with preferred camera persistence and graceful fallback
 - **Menu Bar** — Runs in the background with a menu bar icon; quick capture and control panel access
 - **Bilingual UI** — Chinese and English, switchable in Settings
 

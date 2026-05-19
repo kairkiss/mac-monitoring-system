@@ -32,6 +32,7 @@ struct ScheduledTask: Identifiable, Codable {
     let createdAt: Date
     var nextFireTime: Date?
     var lastRunAt: Date?
+    var lastAttemptAt: Date?
 
     init(
         id: UUID = UUID(),
@@ -47,7 +48,8 @@ struct ScheduledTask: Identifiable, Codable {
         telegramSend: Bool = false,
         createdAt: Date = Date(),
         nextFireTime: Date? = nil,
-        lastRunAt: Date? = nil
+        lastRunAt: Date? = nil,
+        lastAttemptAt: Date? = nil
     ) {
         self.id = id
         self.name = name
@@ -63,6 +65,7 @@ struct ScheduledTask: Identifiable, Codable {
         self.createdAt = createdAt
         self.nextFireTime = nextFireTime
         self.lastRunAt = lastRunAt
+        self.lastAttemptAt = lastAttemptAt
     }
 }
 
@@ -251,6 +254,7 @@ final class AutomationScheduler: ObservableObject {
             )
             onCapture?(telegramSend)
             tasks[i].lastRunAt = now
+            tasks[i].lastAttemptAt = now
             tasks[i].nextFireTime = calculateNextFireTime(for: tasks[i])
         }
         persistTasks()
@@ -372,13 +376,16 @@ final class AutomationScheduler: ObservableObject {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
         guard tasks[index].isEnabled else { return }
 
-        tasks[index].lastRunAt = Date()
+        let now = Date()
+        tasks[index].lastRunAt = now
+        tasks[index].lastAttemptAt = now
         let telegramSend = tasks[index].telegramSend
 
         // Check camera availability before capturing
         let camera = CameraManager.shared
         if camera.isCameraBusyByOtherApp {
             // Camera is occupied, retry in 5 minutes
+            tasks[index].lastAttemptAt = Date()
             scheduleRetry(for: taskID, after: 300)
             return
         }

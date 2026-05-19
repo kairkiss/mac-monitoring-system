@@ -81,6 +81,8 @@ final class CameraManager: NSObject, ObservableObject {
     @Published var availableCameras: [AVCaptureDevice] = []
     @Published var recordingDuration: TimeInterval = 0
     @Published var isAutoSegmenting: Bool = false
+    @Published var isUsingFallbackCamera: Bool = false
+    @Published var activeCameraName: String = ""
 
     nonisolated let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "camera.session.queue")
@@ -100,9 +102,12 @@ final class CameraManager: NSObject, ObservableObject {
     private var recordingStartDate: Date?
     private var currentSegmentIndex: Int = 0
 
+    private var activeCameraID: String = ""
+
     var selectedDevice: AVCaptureDevice? {
-        let savedID = SettingsStore.shared.selectedCameraID
-        if !savedID.isEmpty, let device = AVCaptureDevice(uniqueID: savedID), device.isConnected {
+        let preferredID = SettingsStore.shared.selectedCameraID
+        // Try preferred camera first
+        if !preferredID.isEmpty, let device = AVCaptureDevice(uniqueID: preferredID), device.isConnected {
             return device
         }
         // Fall back to any connected camera
@@ -156,6 +161,8 @@ final class CameraManager: NSObject, ObservableObject {
     @objc private func appDidBecomeActive() {
         isInBackground = false
         refreshAvailableCameras()
+        // Try to restore preferred camera if using fallback
+        if isUsingFallbackCamera && restorePreferredCameraIfAvailable() { return }
         if !isSessionRunning {
             startSession()
         }
@@ -170,13 +177,16 @@ final class CameraManager: NSObject, ObservableObject {
 
     @objc private func cameraWasDisconnected() {
         refreshAvailableCameras()
+        // Check if the disconnected camera was the active one
+        let activeDevice = AVCaptureDevice(uniqueID: activeCameraID)
+        guard activeDevice == nil || !activeDevice!.isConnected else { return }
         guard isSessionRunning else { return }
         DispatchQueue.main.async { [weak self] in
             self?.status = .reconnecting
         }
         reconnectAttempts = 0
-        // Smart switch: if another camera is available, switch immediately
-        if switchToAvailableCamera() {
+        // Try fallback camera without overwriting user's preferred selection
+        if activateFallbackCamera() {
             return
         }
         scheduleReconnect()
@@ -184,20 +194,48 @@ final class CameraManager: NSObject, ObservableObject {
 
     @objc private func cameraWasConnected() {
         refreshAvailableCameras()
+        // If using fallback, check if preferred camera is back
+        if isUsingFallbackCamera {
+            if restorePreferredCameraIfAvailable() { return }
+        }
         if status == .reconnecting || status == .noCamera {
             reconnectAttempts = 0
             attemptReconnect()
         }
     }
 
-    /// Try to switch to another available camera. Returns true if switch was initiated.
-    private func switchToAvailableCamera() -> Bool {
+    /// Activate a fallback camera without overwriting user's preferred selection.
+    private func activateFallbackCamera() -> Bool {
         guard !availableCameras.isEmpty else { return false }
-        let currentID = SettingsStore.shared.selectedCameraID
-        // Find a camera that's not the current one and is connected
-        let alternative = availableCameras.first { $0.uniqueID != currentID && $0.isConnected }
-        guard let newCamera = alternative else { return false }
-        SettingsStore.shared.selectedCameraID = newCamera.uniqueID
+        let preferredID = SettingsStore.shared.selectedCameraID
+        let fallback = availableCameras.first { $0.uniqueID != preferredID && $0.isConnected }
+        guard let fallbackCamera = fallback else { return false }
+        // Do NOT modify selectedCameraID — preserve user's preference
+        activeCameraID = fallbackCamera.uniqueID
+        DispatchQueue.main.async { [weak self] in
+            self?.isUsingFallbackCamera = true
+            self?.activeCameraName = fallbackCamera.localizedName
+            ActivityLogManager.shared.info(.camera, Strings.fallbackCameraActivated, detail: fallbackCamera.localizedName)
+        }
+        stopSession()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.startSession()
+        }
+        return true
+    }
+
+    /// Restore preferred camera when it becomes available again.
+    private func restorePreferredCameraIfAvailable() -> Bool {
+        let preferredID = SettingsStore.shared.selectedCameraID
+        guard !preferredID.isEmpty else { return false }
+        guard let preferred = AVCaptureDevice(uniqueID: preferredID), preferred.isConnected else { return false }
+        guard preferred.uniqueID != activeCameraID else { return false }
+        activeCameraID = preferredID
+        DispatchQueue.main.async { [weak self] in
+            self?.isUsingFallbackCamera = false
+            self?.activeCameraName = preferred.localizedName
+            ActivityLogManager.shared.info(.camera, Strings.preferredCameraRestored, detail: preferred.localizedName)
+        }
         stopSession()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             self?.startSession()
@@ -245,8 +283,10 @@ final class CameraManager: NSObject, ObservableObject {
     }
 
     private func attemptReconnect() {
-        // Try to switch to any available camera first
-        if switchToAvailableCamera() { return }
+        // If using fallback, try to restore preferred first
+        if isUsingFallbackCamera && restorePreferredCameraIfAvailable() { return }
+        // Try fallback camera without overwriting preferred selection
+        if activateFallbackCamera() { return }
         guard selectedDevice != nil else {
             scheduleReconnect()
             return
@@ -277,6 +317,9 @@ final class CameraManager: NSObject, ObservableObject {
 
     func switchCamera(to device: AVCaptureDevice) {
         SettingsStore.shared.selectedCameraID = device.uniqueID
+        activeCameraID = device.uniqueID
+        isUsingFallbackCamera = false
+        activeCameraName = device.localizedName
         guard isSessionRunning else { return }
         stopSession()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
@@ -513,7 +556,15 @@ final class CameraManager: NSObject, ObservableObject {
         for input in session.inputs { session.removeInput(input) }
         for output in session.outputs { session.removeOutput(output) }
 
-        guard let camera = selectedDevice else {
+        // Determine which camera to use: activeCameraID if set, otherwise selectedDevice
+        let camera: AVCaptureDevice?
+        if !activeCameraID.isEmpty, let active = AVCaptureDevice(uniqueID: activeCameraID), active.isConnected {
+            camera = active
+        } else {
+            camera = selectedDevice
+        }
+
+        guard let camera else {
             session.commitConfiguration()
             DispatchQueue.main.async { [weak self] in
                 self?.status = .noCamera
@@ -572,9 +623,17 @@ final class CameraManager: NSObject, ObservableObject {
         session.commitConfiguration()
         session.startRunning()
 
+        let cameraID = camera.uniqueID
+        let cameraName = camera.localizedName
+        let preferredID = SettingsStore.shared.selectedCameraID
+        let isFallback = cameraID != preferredID
+
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.isSessionRunning = true
+            self.activeCameraID = cameraID
+            self.activeCameraName = cameraName
+            self.isUsingFallbackCamera = isFallback
             if self.session.inputs.isEmpty {
                 self.status = .sessionFailed("No camera input available")
             } else {

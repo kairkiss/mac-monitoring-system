@@ -99,6 +99,21 @@ struct CameraView: View {
                         .padding(.top, 8)
                     }
 
+                    // Fallback camera indicator
+                    if camera.isUsingFallbackCamera {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                            Text("\(Strings.usingFallbackCamera): \(camera.activeCameraName)")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 4)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
                     // Status pill badge
                     HStack(spacing: 8) {
                         statusPill

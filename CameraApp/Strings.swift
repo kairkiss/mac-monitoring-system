@@ -252,4 +252,11 @@ struct Strings {
     static var noHistoryYet: String { lang == .chinese ? "暂无执行记录" : "No execution history yet" }
     static var history: String { lang == .chinese ? "历史" : "History" }
     static var statistics: String { lang == .chinese ? "统计" : "Statistics" }
+
+    // MARK: - Camera Fallback
+    static var usingFallbackCamera: String { lang == .chinese ? "使用备用摄像头" : "Using Fallback Camera" }
+    static var waitingForPreferredCamera: String { lang == .chinese ? "等待首选摄像头" : "Waiting for Preferred Camera" }
+    static var preferredCameraRestored: String { lang == .chinese ? "首选摄像头已恢复" : "Preferred Camera Restored" }
+    static var preferredCameraUnavailable: String { lang == .chinese ? "首选摄像头不可用" : "Preferred Camera Unavailable" }
+    static var fallbackCameraActivated: String { lang == .chinese ? "已切换到备用摄像头" : "Fallback Camera Activated" }
 }

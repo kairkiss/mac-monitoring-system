@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.2.3 (2026-05-19)
+
+Final v1.2 stability release. Resolves residual issues from v1.2.2, refactors multi-camera selection to respect user preference, and improves motion detection and automation reliability.
+
+### Fixes & Improvements
+
+- **Notification Permission**: Removed automatic permission request on app launch; permission is now only requested when user enables notifications in Settings
+- **Health Monitor Toggle**: Enabling/disabling Health Monitor in Settings now immediately starts/stops monitoring without requiring app restart
+- **Telegram Logging**: "No response" failure branch now properly logged to Activity Log
+- **Multi-Camera Selection**: Refactored camera switching logic — user-selected camera is now preserved as "preferred"; when disconnected, app uses fallback camera but restores preferred camera when it becomes available again; new camera connections no longer auto-switch away from user's choice
+- **Motion Detection**: Cooldown timer no longer blocks brightness baseline updates; motion analysis continues during cooldown to prevent stale reference frames
+- **Missed Task Recovery**: Added `lastAttemptAt` tracking to scheduled tasks for better recovery diagnostics
+- **CHANGELOG**: Fixed inaccurate "No new files" note in v1.2.2 entry
+
+### Technical
+
+- Version: 1.2.3 (build 7)
+- No new files added to Xcode project
+- All existing functionality preserved
+
 ## v1.2.2 (2026-05-17)
 
 Maintenance / polish / reliability release. No new features — focuses on stabilizing v1.2.1 additions.
@@ -18,7 +38,7 @@ Maintenance / polish / reliability release. No new features — focuses on stabi
 ### Technical
 
 - Version: 1.2.2 (build 6)
-- No new files added to Xcode project
+- 1 new file added: `NotificationManager.swift`
 - All existing functionality preserved
 
 ## v1.2.1 (2026-05-16)

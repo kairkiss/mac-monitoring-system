@@ -1,5 +1,4 @@
 import SwiftUI
-import UserNotifications
 
 /// Shared controller for menu bar quick capture
 final class CaptureController: ObservableObject {
@@ -119,7 +118,6 @@ struct CameraApp: App {
                     automationScheduler.restoreAllTasks()
                     setupAutomationCapture()
                     setupMotionDetection()
-                    requestNotificationPermission()
                     HealthMonitor.shared.startMonitoring()
                     if settingsStore.autoCleanEnabled && settingsStore.keepLastDays > 0 {
                         _ = mediaLibrary.cleanOldFiles(keepDays: settingsStore.keepLastDays)
@@ -159,10 +157,6 @@ struct CameraApp: App {
                 }
             }
         }
-    }
-
-    private func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
     }
 
     private func setupMotionDetection() {
