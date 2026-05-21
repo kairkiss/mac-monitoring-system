@@ -69,5 +69,63 @@ struct APICameraHandler {
             camera.switchCamera(to: deviceID)
             return HTTPResponse.ok()
         }
+
+        // Start recording
+        router.addRoute(method: "POST", path: "/api/camera/record/start") { _ in
+            let camera = CameraManager.shared
+            guard !camera.isVideoRecording else {
+                return HTTPResponse.error("Already recording", status: 409)
+            }
+            let semaphore = DispatchSemaphore(value: 0)
+            var startResult: Result<URL, Error>?
+            camera.ensureSessionRunning {
+                camera.startRecording { r in
+                    startResult = r
+                    semaphore.signal()
+                }
+            }
+            semaphore.wait()
+            switch startResult {
+            case .success(let url):
+                return HTTPResponse.json(["status": "recording", "fileName": url.lastPathComponent])
+            case .failure(let error):
+                return HTTPResponse.error("Recording failed: \(error.localizedDescription)", status: 500)
+            case .none:
+                return HTTPResponse.error("Camera not available", status: 503)
+            }
+        }
+
+        // Stop recording
+        router.addRoute(method: "POST", path: "/api/camera/record/stop") { _ in
+            let camera = CameraManager.shared
+            guard camera.isVideoRecording else {
+                return HTTPResponse.error("Not recording", status: 409)
+            }
+            let semaphore = DispatchSemaphore(value: 0)
+            var stopResult: Result<URL, Error>?
+            camera.stopRecording { r in
+                stopResult = r
+                semaphore.signal()
+            }
+            semaphore.wait()
+            switch stopResult {
+            case .success(let url):
+                return HTTPResponse.json(["status": "saved", "fileName": url.lastPathComponent])
+            case .failure(let error):
+                return HTTPResponse.error("Stop failed: \(error.localizedDescription)", status: 500)
+            case .none:
+                return HTTPResponse.ok()
+            }
+        }
+
+        // Recording status
+        router.addRoute(method: "GET", path: "/api/camera/record/status") { _ in
+            let camera = CameraManager.shared
+            return HTTPResponse.json([
+                "isRecording": camera.isVideoRecording,
+                "isSessionRunning": camera.isSessionRunning,
+                "deviceName": camera.activeCameraName ?? "Unknown"
+            ] as [String: Any])
+        }
     }
 }

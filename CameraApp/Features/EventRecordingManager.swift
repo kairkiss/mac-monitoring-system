@@ -10,6 +10,7 @@ final class EventRecordingManager {
     func handleMotionDetected() {
         guard SettingsStore.shared.eventRecordingEnabled else { return }
         guard !isRecording else { return }
+        guard !CameraManager.shared.isVideoRecording else { return }
 
         isRecording = true
         let duration = SettingsStore.shared.eventClipDurationSeconds

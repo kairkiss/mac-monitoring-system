@@ -35,6 +35,8 @@ final class MediaLibraryManager: ObservableObject {
 
     var photosDirectory: URL { baseDirectory.appendingPathComponent("Photos") }
     var videosDirectory: URL { baseDirectory.appendingPathComponent("Videos") }
+    var thumbnailsDirectory: URL { baseDirectory.appendingPathComponent("Thumbnails") }
+    var reportsDirectory: URL { baseDirectory.appendingPathComponent("Reports") }
 
     var totalPhotoCount: Int { photos.count }
     var totalVideoCount: Int { videos.count }
@@ -46,32 +48,86 @@ final class MediaLibraryManager: ObservableObject {
     var videoFileNames: [String] { videos.map { $0.fileName } }
 
     func photoURL(for fileName: String) -> URL? {
-        let url = photosDirectory.appendingPathComponent(fileName)
+        let safeName = sanitizeFileName(fileName)
+        let url = photosDirectory.appendingPathComponent(safeName)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
     func videoURL(for fileName: String) -> URL? {
-        let url = videosDirectory.appendingPathComponent(fileName)
+        let safeName = sanitizeFileName(fileName)
+        let url = videosDirectory.appendingPathComponent(safeName)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
     func thumbnailURL(for fileName: String) -> URL? {
-        // Check for a cached thumbnail file
-        let thumbDir = baseDirectory.appendingPathComponent("Thumbnails")
-        let thumbURL = thumbDir.appendingPathComponent(fileName)
+        let safeName = sanitizeFileName(fileName)
+        // Check MediaIndexEntry thumbnailPath first
+        if let thumbPath = MediaIndexStore.shared.entry(for: fileName).thumbnailPath {
+            let url = URL(fileURLWithPath: thumbPath)
+            if FileManager.default.fileExists(atPath: url.path) { return url }
+        }
+        // Fallback to Thumbnails directory
+        let thumbURL = thumbnailsDirectory.appendingPathComponent(safeName)
         return FileManager.default.fileExists(atPath: thumbURL.path) ? thumbURL : nil
     }
 
-    func deleteItem(fileName: String) -> Bool {
-        if let item = photos.first(where: { $0.fileName == fileName }) {
-            deleteItem(item)
+    /// Delete only the local file, preserving the MediaIndex entry.
+    /// Used by RetentionManager to remove local originals after verified upload.
+    @discardableResult
+    func deleteLocalOriginal(fileName: String) -> Bool {
+        let safeName = sanitizeFileName(fileName)
+        let fm = FileManager.default
+
+        // Try photos
+        let photoPath = photosDirectory.appendingPathComponent(safeName)
+        if fm.fileExists(atPath: photoPath.path) {
+            do {
+                try fm.removeItem(at: photoPath)
+                let cacheKey = safeName as NSString
+                thumbnailCache.removeObject(forKey: cacheKey)
+                DispatchQueue.main.async { [weak self] in
+                    self?.photos.removeAll { $0.fileName == safeName }
+                }
+                return true
+            } catch {
+                return false
+            }
+        }
+
+        // Try videos
+        let videoPath = videosDirectory.appendingPathComponent(safeName)
+        if fm.fileExists(atPath: videoPath.path) {
+            do {
+                try fm.removeItem(at: videoPath)
+                DispatchQueue.main.async { [weak self] in
+                    self?.videos.removeAll { $0.fileName == safeName }
+                }
+                return true
+            } catch {
+                return false
+            }
+        }
+
+        return false
+    }
+
+    func deleteItem(fileName: String, removeIndex: Bool = true) -> Bool {
+        let safeName = sanitizeFileName(fileName)
+        if let item = photos.first(where: { $0.fileName == safeName }) {
+            deleteItem(item, removeIndex: removeIndex)
             return true
         }
-        if let item = videos.first(where: { $0.fileName == fileName }) {
-            deleteItem(item)
+        if let item = videos.first(where: { $0.fileName == safeName }) {
+            deleteItem(item, removeIndex: removeIndex)
             return true
         }
         return false
+    }
+
+    func mediaItem(for fileName: String) -> MediaItem? {
+        let safeName = sanitizeFileName(fileName)
+        return photos.first(where: { $0.fileName == safeName })
+            ?? videos.first(where: { $0.fileName == safeName })
     }
 
     private init() {
@@ -121,7 +177,7 @@ final class MediaLibraryManager: ObservableObject {
 
     func ensureDirectoriesExist() {
         let fm = FileManager.default
-        for dir in [baseDirectory, photosDirectory, videosDirectory] {
+        for dir in [baseDirectory, photosDirectory, videosDirectory, thumbnailsDirectory, reportsDirectory] {
             try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
         }
     }
@@ -189,12 +245,14 @@ final class MediaLibraryManager: ObservableObject {
         }
     }
 
-    func deleteItem(_ item: MediaItem) {
+    func deleteItem(_ item: MediaItem, removeIndex: Bool = true) {
         let url = fileURL(for: item)
         try? FileManager.default.removeItem(at: url)
         let cacheKey = "\(item.id.uuidString)_thumb" as NSString
         thumbnailCache.removeObject(forKey: cacheKey)
-        MediaIndexStore.shared.removeEntry(for: item.fileName)
+        if removeIndex {
+            MediaIndexStore.shared.removeEntry(for: item.fileName)
+        }
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             switch item.fileType {
@@ -265,6 +323,16 @@ final class MediaLibraryManager: ObservableObject {
             thumbnailCache.setObject(result, forKey: cacheKey, cost: cost)
         }
         return image
+    }
+
+    // MARK: - Path Safety
+
+    /// Sanitize fileName to prevent path traversal attacks.
+    /// Uses only the lastPathComponent and rejects any ".." components.
+    private func sanitizeFileName(_ fileName: String) -> String {
+        let safe = (fileName as NSString).lastPathComponent
+        if safe.contains("..") || safe.isEmpty { return UUID().uuidString }
+        return safe
     }
 
     // MARK: - Private

@@ -15,6 +15,8 @@ final class WebRouter {
     private var staticFileRoot: URL?
 
     func addRoute(method: String, path: String, requiresAuth: Bool = true, requiredRole: UserRole? = nil, handler: @escaping RouteHandler) {
+        // Prevent duplicate routes on restart
+        guard !routes.contains(where: { $0.method == method && $0.pattern == path }) else { return }
         routes.append(Route(method: method, pattern: path, handler: handler, requiresAuth: requiresAuth, requiredRole: requiredRole))
     }
 

@@ -366,6 +366,192 @@ struct SettingsView: View {
                 Label(Strings.missedTaskRecovery, systemImage: "arrow.clockwise")
             }
 
+            // Web Server
+            Section {
+                Toggle(isOn: $settings.webServerEnabled) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "globe")
+                            .foregroundStyle(.blue)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Strings.webServer)
+                            Text("\(Strings.webServerAddress): \(settings.webServerBindAddress):\(settings.webServerPort)")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+                .onChange(of: settings.webServerEnabled) { _, newValue in
+                    if newValue {
+                        WebServerManager.shared.start()
+                    } else {
+                        WebServerManager.shared.stop()
+                    }
+                }
+
+                if settings.webServerEnabled {
+                    Stepper("\(Strings.webServerPort): \(settings.webServerPort)", value: $settings.webServerPort, in: 1024...65535, step: 1)
+                        .padding(.leading, 32)
+                        .onChange(of: settings.webServerPort) { _, _ in
+                            WebServerManager.shared.restart()
+                        }
+
+                    HStack(spacing: 12) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 8))
+                            .foregroundStyle(WebServerManager.shared.isRunning ? .green : .red)
+                        Text(WebServerManager.shared.isRunning ? Strings.webServerRunning : Strings.webServerStopped)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.leading, 32)
+                }
+            } header: {
+                Label(Strings.webServer, systemImage: "globe")
+            }
+
+            // Upload Queue
+            Section {
+                Toggle(isOn: $settings.autoUploadPhotos) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "photo")
+                            .foregroundStyle(.blue)
+                            .frame(width: 20)
+                        Text(Strings.autoUploadPhotos)
+                    }
+                }
+
+                Toggle(isOn: $settings.autoUploadVideos) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "video")
+                            .foregroundStyle(.purple)
+                            .frame(width: 20)
+                        Text(Strings.autoUploadVideos)
+                    }
+                }
+
+                Stepper("\(Strings.maxConcurrentUploads): \(settings.uploadMaxConcurrent)", value: $settings.uploadMaxConcurrent, in: 1...5)
+                    .padding(.leading, 32)
+
+                Stepper("Max Retries: \(settings.uploadMaxRetries)", value: $settings.uploadMaxRetries, in: 0...10)
+                    .padding(.leading, 32)
+            } header: {
+                Label(Strings.uploadQueue, systemImage: "arrow.up.circle")
+            }
+
+            // Retention Policy
+            Section {
+                Toggle(isOn: $settings.retentionDeleteAfterUpload) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "trash.slash")
+                            .foregroundStyle(.red)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Strings.deleteLocalAfterUpload)
+                        }
+                    }
+                }
+
+                if settings.retentionDeleteAfterUpload {
+                    Stepper("\(Strings.gracePeriodHours): \(settings.retentionGracePeriodHours)h", value: $settings.retentionGracePeriodHours, in: 1...168)
+                        .padding(.leading, 32)
+
+                    Toggle(isOn: $settings.retentionProtectFavorites) {
+                        Text(Strings.protectFavorites)
+                    }
+                    .padding(.leading, 32)
+                }
+            } header: {
+                Label(Strings.retentionPolicy, systemImage: "trash.slash")
+            }
+
+            // Event Recording
+            Section {
+                Toggle(isOn: $settings.eventRecordingEnabled) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "film")
+                            .foregroundStyle(.orange)
+                            .frame(width: 20)
+                        Text(Strings.enableEventRecording)
+                    }
+                }
+
+                if settings.eventRecordingEnabled {
+                    Stepper("\(Strings.eventClipDuration): \(settings.eventClipDurationSeconds)s", value: $settings.eventClipDurationSeconds, in: 3...60, step: 3)
+                        .padding(.leading, 32)
+
+                    Toggle(isOn: $settings.autoUploadEventClips) {
+                        Text(Strings.uploadEventClips)
+                    }
+                    .padding(.leading, 32)
+                }
+            } header: {
+                Label(Strings.eventRecording, systemImage: "film")
+            }
+
+            // Daily Report
+            Section {
+                Toggle(isOn: $settings.dailyReportEnabled) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "doc.text")
+                            .foregroundStyle(.blue)
+                            .frame(width: 20)
+                        Text(Strings.dailyReport)
+                    }
+                }
+
+                if settings.dailyReportEnabled {
+                    HStack(spacing: 12) {
+                        Image(systemName: "clock")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 20)
+                        DatePicker(Strings.reportTime, selection: Binding(
+                            get: {
+                                var components = DateComponents()
+                                components.hour = settings.dailyReportHour
+                                components.minute = settings.dailyReportMinute
+                                return Calendar.current.date(from: components) ?? Date()
+                            },
+                            set: { date in
+                                let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+                                settings.dailyReportHour = components.hour ?? 23
+                                settings.dailyReportMinute = components.minute ?? 55
+                            }
+                        ), displayedComponents: .hourAndMinute)
+                    }
+                    .padding(.leading, 32)
+                }
+            } header: {
+                Label(Strings.dailyReport, systemImage: "doc.text")
+            }
+
+            // Timelapse
+            Section {
+                Toggle(isOn: $settings.timelapseEnabled) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "timelapse")
+                            .foregroundStyle(.green)
+                            .frame(width: 20)
+                        Text(Strings.enableTimelapse)
+                    }
+                }
+
+                if settings.timelapseEnabled {
+                    Stepper("\(Strings.captureInterval): \(settings.timelapseIntervalSeconds)s", value: $settings.timelapseIntervalSeconds, in: 5...3600, step: 5)
+                        .padding(.leading, 32)
+
+                    Stepper("\(Strings.outputFPS): \(settings.timelapseFPS)", value: $settings.timelapseFPS, in: 1...60, step: 5)
+                        .padding(.leading, 32)
+
+                    Toggle(isOn: $settings.autoUploadTimelapse) {
+                        Text(Strings.autoUploadTimelapse)
+                    }
+                    .padding(.leading, 32)
+                }
+            } header: {
+                Label(Strings.timelapse, systemImage: "timelapse")
+            }
+
             // Privacy & Security
             Section {
                 HStack(spacing: 12) {
@@ -404,7 +590,7 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", "2.0.0")
+                aboutRow("Version", "2.0.1")
                 aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")

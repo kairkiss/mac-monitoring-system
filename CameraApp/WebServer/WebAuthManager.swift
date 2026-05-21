@@ -20,12 +20,19 @@ enum UserRole: String, Codable {
 struct WebUser: Codable {
     let username: String
     let passwordHash: String
+    var passwordSalt: String?  // nil = legacy unsalted hash (pre-2.0.1)
     var role: UserRole
     var enabled: Bool
 
     func verifyPassword(_ password: String) -> Bool {
-        let hash = WebAuthManager.hashPassword(password)
-        return hash == passwordHash
+        // Try salted hash first (v2.0.1+)
+        if let salt = passwordSalt {
+            let salted = WebAuthManager.hashPassword(password, salt: salt)
+            if salted == passwordHash { return true }
+        }
+        // Fall back to legacy unsalted hash for backward compatibility
+        let legacy = WebAuthManager.hashPasswordLegacy(password)
+        return legacy == passwordHash
     }
 }
 
@@ -56,10 +63,23 @@ final class WebAuthManager {
 
     // MARK: - Password Hashing
 
-    static func hashPassword(_ password: String) -> String {
+    /// v2.0.1: salted SHA256
+    static func hashPassword(_ password: String, salt: String) -> String {
+        let data = Data((salt + password).utf8)
+        let hash = SHA256.hash(data: data)
+        return hash.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Legacy unsalted SHA256 (pre-2.0.1) — used only for backward-compatible verification
+    static func hashPasswordLegacy(_ password: String) -> String {
         let data = Data(password.utf8)
         let hash = SHA256.hash(data: data)
         return hash.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Generate a random salt
+    static func generateSalt() -> String {
+        return UUID().uuidString.replacingOccurrences(of: "-", with: "")
     }
 
     // MARK: - User Management
@@ -88,9 +108,11 @@ final class WebAuthManager {
             password = secret
         }
 
+        let salt = WebAuthManager.generateSalt()
         let admin = WebUser(
             username: "admin",
-            passwordHash: WebAuthManager.hashPassword(password),
+            passwordHash: WebAuthManager.hashPassword(password, salt: salt),
+            passwordSalt: salt,
             role: .admin,
             enabled: true
         )
@@ -145,9 +167,11 @@ final class WebAuthManager {
 
     func addUser(username: String, password: String, role: UserRole) -> Bool {
         guard !users.contains(where: { $0.username == username }) else { return false }
+        let salt = WebAuthManager.generateSalt()
         let user = WebUser(
             username: username,
-            passwordHash: WebAuthManager.hashPassword(password),
+            passwordHash: WebAuthManager.hashPassword(password, salt: salt),
+            passwordSalt: salt,
             role: role,
             enabled: true
         )
@@ -172,9 +196,11 @@ final class WebAuthManager {
 
     func changePassword(username: String, newPassword: String) -> Bool {
         guard let index = users.firstIndex(where: { $0.username == username }) else { return false }
+        let salt = WebAuthManager.generateSalt()
         users[index] = WebUser(
             username: users[index].username,
-            passwordHash: WebAuthManager.hashPassword(newPassword),
+            passwordHash: WebAuthManager.hashPassword(newPassword, salt: salt),
+            passwordSalt: salt,
             role: users[index].role,
             enabled: users[index].enabled
         )

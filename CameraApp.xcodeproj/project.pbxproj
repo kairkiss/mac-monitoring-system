@@ -51,6 +51,9 @@
 		AA00000029 /* APITaskHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000002B; };
 		AA0000002A /* APILogHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000002C; };
 		AA0000002B /* APIHealthHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000002D; };
+		AA00000034 /* APIUploadHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000036; };
+		AA00000035 /* APIStorageHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000037; };
+		AA00000036 /* APIReportHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000038; };
 		AA0000002C /* UploadJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000002E; };
 		AA0000002D /* UploadJobStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000002F; };
 		AA0000002E /* UploadQueueStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000030; };
@@ -107,6 +110,9 @@
 		AB0000002B /* APITaskHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APITaskHandler.swift; sourceTree = "<group>"; };
 		AB0000002C /* APILogHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APILogHandler.swift; sourceTree = "<group>"; };
 		AB0000002D /* APIHealthHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIHealthHandler.swift; sourceTree = "<group>"; };
+		AB00000036 /* APIUploadHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIUploadHandler.swift; sourceTree = "<group>"; };
+		AB00000037 /* APIStorageHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIStorageHandler.swift; sourceTree = "<group>"; };
+		AB00000038 /* APIReportHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIReportHandler.swift; sourceTree = "<group>"; };
 		AB0000002E /* UploadJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadJob.swift; sourceTree = "<group>"; };
 		AB0000002F /* UploadJobStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadJobStatus.swift; sourceTree = "<group>"; };
 		AB00000030 /* UploadQueueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadQueueStore.swift; sourceTree = "<group>"; };
@@ -224,6 +230,9 @@
 				AB0000002B /* APITaskHandler.swift */,
 				AB0000002C /* APILogHandler.swift */,
 				AB0000002D /* APIHealthHandler.swift */,
+				AB00000036 /* APIUploadHandler.swift */,
+				AB00000037 /* APIStorageHandler.swift */,
+				AB00000038 /* APIReportHandler.swift */,
 			);
 			path = API;
 			sourceTree = "<group>";
@@ -354,6 +363,9 @@
 				AA00000029 /* APITaskHandler.swift in Sources */,
 				AA0000002A /* APILogHandler.swift in Sources */,
 				AA0000002B /* APIHealthHandler.swift in Sources */,
+				AA00000034 /* APIUploadHandler.swift in Sources */,
+				AA00000035 /* APIStorageHandler.swift in Sources */,
+				AA00000036 /* APIReportHandler.swift in Sources */,
 				AA0000002C /* UploadJob.swift in Sources */,
 				AA0000002D /* UploadJobStatus.swift in Sources */,
 				AA0000002E /* UploadQueueStore.swift in Sources */,
@@ -427,14 +439,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -449,14 +461,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

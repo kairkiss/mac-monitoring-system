@@ -22,21 +22,80 @@
 <main class="content">
     <h1>Live View</h1>
     <div class="live-container">
-        <img id="preview" src="" alt="Camera Preview" style="display:none">
-        <p id="noCamera" style="color:#a0a0a0">Camera preview requires capture...</p>
-        <div style="margin-top:12px; display:flex; gap:8px;">
+        <div class="card" style="padding:0;overflow:hidden;max-width:640px;">
+            <img id="preview" src="" alt="Camera Preview" style="width:100%;display:block;background:#1a1a1a;min-height:360px;">
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
             <button id="captureBtn">Capture Photo</button>
+            <button id="recordBtn" style="background:#e53935;">Start Recording</button>
+            <span id="recordStatus" style="color:#a0a0a0;font-size:13px;"></span>
+            <span id="deviceName" style="color:#a0a0a0;font-size:13px;margin-left:auto;"></span>
         </div>
     </div>
 </main>
 <script src="/js/app.js"></script>
 <script>
+let isRecording = false;
+let previewInterval = null;
+
+function startPreview() {
+    if (previewInterval) return;
+    const img = document.getElementById('preview');
+    previewInterval = setInterval(async () => {
+        try {
+            const res = await fetch('/api/camera/preview', {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('deviceName').textContent = data.deviceName || '';
+            }
+        } catch (e) {}
+    }, 3000);
+}
+
+async function refreshStatus() {
+    try {
+        const data = await api('/api/camera/record/status');
+        if (!data) return;
+        isRecording = data.isRecording;
+        document.getElementById('deviceName').textContent = data.deviceName || '';
+        const btn = document.getElementById('recordBtn');
+        const status = document.getElementById('recordStatus');
+        if (isRecording) {
+            btn.textContent = 'Stop Recording';
+            btn.style.background = '#666';
+            status.textContent = 'Recording...';
+            status.style.color = '#f44336';
+        } else {
+            btn.textContent = 'Start Recording';
+            btn.style.background = '#e53935';
+            status.textContent = '';
+        }
+    } catch (e) {}
+}
+
 document.getElementById('captureBtn').addEventListener('click', async () => {
     try {
         const data = await api('/api/camera/capture', { method: 'POST', body: {} });
         if (data) toast(`Captured: ${data.fileName}`);
     } catch (e) {}
 });
+
+document.getElementById('recordBtn').addEventListener('click', async () => {
+    const url = isRecording ? '/api/camera/record/stop' : '/api/camera/record/start';
+    try {
+        const data = await api(url, { method: 'POST', body: {} });
+        if (data) {
+            toast(data.status === 'recording' ? 'Recording started' : `Recording saved: ${data.fileName}`);
+            refreshStatus();
+        }
+    } catch (e) {}
+});
+
+refreshStatus();
+setInterval(refreshStatus, 3000);
+startPreview();
 </script>
 </body>
 </html>

@@ -93,6 +93,7 @@ final class CameraManager: NSObject, ObservableObject {
     private let sampleBufferQueue = DispatchQueue(label: "camera.sampleBuffer")
 
     private(set) var isSessionRunning = false
+    var isVideoRecording: Bool { movieOutput.isRecording }
 
     var currentDeviceID: String { activeCameraID }
     private var isInBackground = false
@@ -463,6 +464,25 @@ final class CameraManager: NSObject, ObservableObject {
         }
     }
 
+    func startRecording(completion: @escaping (Result<URL, Error>) -> Void) {
+        guard !movieOutput.isRecording else {
+            completion(.failure(NSError(domain: "Camera", code: 409, userInfo: [NSLocalizedDescriptionKey: "Already recording"])))
+            return
+        }
+        webRecordCompletion = completion
+        startRecording()
+    }
+
+    func stopRecording(completion: @escaping (Result<URL, Error>) -> Void) {
+        guard movieOutput.isRecording else {
+            completion(.failure(NSError(domain: "Camera", code: 409, userInfo: [NSLocalizedDescriptionKey: "Not recording"])))
+            return
+        }
+        webRecordCompletion = completion
+        stopRecordingTimer()
+        movieOutput.stopRecording()
+    }
+
     func startEventClip(duration: TimeInterval, completion: @escaping (Result<URL, CameraCaptureError>) -> Void) {
         ensureSessionRunning { [weak self] in
             guard let self else {
@@ -481,6 +501,7 @@ final class CameraManager: NSObject, ObservableObject {
     }
 
     private var eventClipCompletion: ((Result<URL, CameraCaptureError>) -> Void)?
+    private var webRecordCompletion: ((Result<URL, Error>) -> Void)?
 
     // MARK: - Recording Timer
 
@@ -778,6 +799,12 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
             // Event clip callback
             if let completion = self.eventClipCompletion {
                 self.eventClipCompletion = nil
+                completion(.success(outputFileURL))
+            }
+
+            // Web record callback
+            if let completion = self.webRecordCompletion {
+                self.webRecordCompletion = nil
                 completion(.success(outputFileURL))
             }
 

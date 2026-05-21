@@ -4,8 +4,11 @@ final class UploadQueueManager: ObservableObject {
     static let shared = UploadQueueManager()
 
     @Published private(set) var isProcessing = false
+    @Published private(set) var isPaused = false
 
     private let store = UploadQueueStore.shared
+
+    var jobs: [UploadJob] { store.jobs }
     private let settings = SettingsStore.shared
     private var processingTimer: Timer?
 
@@ -69,6 +72,25 @@ final class UploadQueueManager: ObservableObject {
         job.status = .cancelled
         store.updateJob(job)
         MediaIndexStore.shared.setUploadStatus(.notQueued, for: job.fileName)
+    }
+
+    func retryAllFailed() {
+        for var job in store.jobs where job.status == .failed {
+            job.status = .pending
+            job.lastError = nil
+            store.updateJob(job)
+        }
+        processNext()
+    }
+
+    func pauseAll() {
+        isPaused = true
+        stopProcessing()
+    }
+
+    func resumeAll() {
+        isPaused = false
+        startProcessing()
     }
 
     private func processNext() {

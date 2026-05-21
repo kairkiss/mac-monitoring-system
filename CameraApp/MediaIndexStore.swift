@@ -195,15 +195,21 @@ final class MediaIndexStore: ObservableObject {
     }
 
     /// Reconcile index with actual files on disk.
-    /// Removes orphan index entries and creates default entries for unindexed files.
+    /// Removes orphan index entries but preserves archived/verified entries.
     func reconcileWithLibrary(photoFileNames: Set<String>, videoFileNames: Set<String>) {
         let allFileNames = photoFileNames.union(videoFileNames)
         var orphansRemoved = 0
         var missingAdded = 0
 
         // Remove orphan entries (index exists but file doesn't)
+        // BUT preserve archived entries (verified upload + local deleted) and protected entries
         let orphans = entries.keys.filter { !allFileNames.contains($0) }
         for orphan in orphans {
+            let entry = entries[orphan]!
+            // Keep archived entries: verified upload where local was intentionally deleted
+            if entry.verified && !entry.localOriginalExists { continue }
+            // Keep protected entries
+            if entry.protected { continue }
             entries.removeValue(forKey: orphan)
             orphansRemoved += 1
         }

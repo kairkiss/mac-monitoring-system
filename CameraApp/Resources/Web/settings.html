@@ -21,7 +21,12 @@
 </nav>
 <main class="content">
     <h1>Settings</h1>
-    <p style="color:var(--fg2);margin-bottom:16px;">Settings are managed in the macOS app. Web settings management coming soon.</p>
+
+    <div class="card">
+        <h3>Storage</h3>
+        <div id="storageInfo" style="color:var(--fg2)">Loading...</div>
+    </div>
+
     <div class="card">
         <h3>Web Users</h3>
         <table>
@@ -29,9 +34,25 @@
             <tbody id="userList"></tbody>
         </table>
     </div>
+
+    <div class="card">
+        <h3>Storage Providers</h3>
+        <p style="color:var(--fg2);font-size:13px;margin-bottom:12px;">Google Drive and WebDAV are planned features. Configure storage providers in the macOS app.</p>
+        <div id="providerList"></div>
+    </div>
 </main>
 <script src="/js/app.js"></script>
 <script>
+async function loadStorage() {
+    const data = await api('/api/storage/status');
+    if (!data) return;
+    const sizeMB = (data.totalStorageBytes / 1048576).toFixed(1);
+    document.getElementById('storageInfo').innerHTML =
+        `<p>Active Provider: <strong>${data.providerDisplayName}</strong></p>` +
+        `<p>Photos: ${data.totalPhotos} | Videos: ${data.totalVideos}</p>` +
+        `<p>Storage Used: ${sizeMB} MB | Free: ${data.diskFreeMB} MB</p>`;
+}
+
 async function loadUsers() {
     const data = await api('/api/auth/users');
     if (!data) return;
@@ -39,7 +60,21 @@ async function loadUsers() {
         `<tr><td>${u.username}</td><td>${u.role}</td><td>${u.enabled ? 'Yes' : 'No'}</td></tr>`
     ).join('');
 }
+
+async function loadProviders() {
+    const data = await api('/api/storage/providers');
+    if (!data) return;
+    document.getElementById('providerList').innerHTML = data.providers.map(p => {
+        const badge = p.isPlanned ? '<span style="color:#ff9800;font-size:12px;">Planned</span>' :
+                      p.isAvailable ? '<span style="color:#4caf50;font-size:12px;">Available</span>' : '';
+        return `<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">` +
+               `<span>${p.displayName}</span>${badge}</div>`;
+    }).join('');
+}
+
+loadStorage();
 loadUsers();
+loadProviders();
 </script>
 </body>
 </html>

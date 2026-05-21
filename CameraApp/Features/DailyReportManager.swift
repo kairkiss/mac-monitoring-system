@@ -28,6 +28,10 @@ final class DailyReportManager {
         timer = nil
     }
 
+    func generateNow() {
+        generateReport()
+    }
+
     private func scheduleNext() {
         let settings = SettingsStore.shared
         let now = Date()
@@ -43,18 +47,30 @@ final class DailyReportManager {
     }
 
     @objc private func generateReport() {
-        let today = ISO8601DateFormatter().string(from: Date()).prefix(10)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd"
+        let today = formatter.string(from: Date())
         let index = MediaIndexStore.shared
         let health = HealthMonitor.shared
 
-        let todayPhotos = index.entries.filter { $0.value.source != .event && $0.key.contains(String(today)) }.count
-        let todayVideos = index.entries.filter { $0.value.source == .event && $0.key.contains(String(today)) }.count
+        // Photo filenames: Photo_yyyyMMdd_HHmmss.jpg — match yyyyMMdd portion
+        let todayPhotos = index.entries.filter { key, value in
+            value.source != .event && key.contains(today)
+        }.count
+        let todayVideos = index.entries.filter { key, value in
+            value.source == .event && key.contains(today)
+        }.count
         let uploads = index.entries.filter { $0.value.uploadDate != nil }.count
         let failures = index.entries.filter { $0.value.uploadStatus == .failed }.count
         let motionEvents = index.items(withSource: .motion).count
 
+        // Use display date with hyphens for the report
+        let displayFormatter = DateFormatter()
+        displayFormatter.dateFormat = "yyyy-MM-dd"
+        let displayDate = displayFormatter.string(from: Date())
+
         let report = DailyReport(
-            date: String(today),
+            date: displayDate,
             photoCount: todayPhotos,
             videoCount: todayVideos,
             uploadCount: uploads,
@@ -65,13 +81,12 @@ final class DailyReportManager {
         )
 
         saveReport(report)
-        ActivityLogManager.shared.info(.report, "Daily report generated for \(today)")
+        ActivityLogManager.shared.info(.report, "Daily report generated for \(displayDate)")
         scheduleNext()
     }
 
     private func saveReport(_ report: DailyReport) {
-        let url = MediaLibraryManager.shared.baseDirectory.appendingPathComponent("reports/\(report.date).json")
-        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let url = MediaLibraryManager.shared.reportsDirectory.appendingPathComponent("\(report.date).json")
         guard let data = try? JSONEncoder().encode(report) else { return }
         try? data.write(to: url)
     }

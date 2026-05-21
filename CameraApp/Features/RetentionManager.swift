@@ -39,9 +39,9 @@ final class RetentionManager {
             // Protect recent files
             if let uploadDate = entry.uploadDate, now.timeIntervalSince(uploadDate) < graceHours { continue }
 
-            // Delete local original
+            // Delete local original only — preserve index entry
             if entry.localOriginalExists {
-                _ = media.deleteItem(fileName: fileName)
+                _ = media.deleteLocalOriginal(fileName: fileName)
                 index.markLocalDeleted(fileName)
                 deleted += 1
             }

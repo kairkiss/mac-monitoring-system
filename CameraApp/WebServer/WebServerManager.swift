@@ -77,5 +77,14 @@ final class WebServerManager: ObservableObject {
 
         // Health
         APIHealthHandler.register(router: router)
+
+        // Upload queue
+        APIUploadHandler.register(router: router)
+
+        // Storage
+        APIStorageHandler.register(router: router)
+
+        // Reports & Timelapse
+        APIReportHandler.register(router: router)
     }
 }

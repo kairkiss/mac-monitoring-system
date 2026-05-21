@@ -21,8 +21,65 @@
 </nav>
 <main class="content">
     <h1>Upload Queue</h1>
-    <p style="color:var(--fg2)">Upload queue management will be available once a storage provider is configured.</p>
+    <div class="stats-bar">
+        <div class="stat"><span class="stat-value" id="totalCount">0</span><span class="stat-label">Total</span></div>
+        <div class="stat"><span class="stat-value" id="pendingCount">0</span><span class="stat-label">Pending</span></div>
+        <div class="stat"><span class="stat-value" id="failedCount">0</span><span class="stat-label">Failed</span></div>
+        <div class="stat"><span class="stat-value" id="pauseStatus">Active</span><span class="stat-label">Status</span></div>
+    </div>
+    <div style="margin-bottom:16px; display:flex; gap:8px;">
+        <button onclick="retryFailed()">Retry All Failed</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+    </div>
+    <div class="card">
+        <table>
+            <thead><tr><th>File</th><th>Status</th><th>Provider</th><th>Attempts</th><th>Error</th><th>Actions</th></tr></thead>
+            <tbody id="queueList"></tbody>
+        </table>
+        <p id="emptyMsg" style="color:var(--fg2);display:none;text-align:center;padding:20px;">No upload jobs in queue.</p>
+    </div>
 </main>
 <script src="/js/app.js"></script>
+<script>
+let isPaused = false;
+
+async function loadQueue() {
+    const data = await api('/api/upload/queue');
+    if (!data) return;
+    isPaused = data.isPaused;
+    document.getElementById('totalCount').textContent = data.totalJobs;
+    document.getElementById('pendingCount').textContent = data.pendingCount;
+    document.getElementById('failedCount').textContent = data.failedCount;
+    document.getElementById('pauseStatus').textContent = isPaused ? 'Paused' : 'Active';
+    document.getElementById('pauseBtn').textContent = isPaused ? 'Resume' : 'Pause';
+
+    const tbody = document.getElementById('queueList');
+    const empty = document.getElementById('emptyMsg');
+    if (data.jobs.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+    tbody.innerHTML = data.jobs.map(j => {
+        const statusClass = j.status === 'failed' ? 'color:#f44336' : j.status === 'completed' ? 'color:#4caf50' : '';
+        const actions = j.status === 'failed' ? `<button onclick="retryJob('${j.id}')">Retry</button>` :
+                        j.status !== 'completed' && j.status !== 'cancelled' ? `<button onclick="cancelJob('${j.id}')">Cancel</button>` : '';
+        return `<tr><td>${j.fileName}</td><td style="${statusClass}">${j.status}</td><td>${j.provider}</td><td>${j.attempts}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${j.lastError || '-'}</td><td>${actions}</td></tr>`;
+    }).join('');
+}
+
+async function retryJob(id) { await api('/api/upload/retry', { method: 'POST', body: { jobID: id } }); loadQueue(); }
+async function cancelJob(id) { await api('/api/upload/cancel', { method: 'POST', body: { jobID: id } }); loadQueue(); }
+async function retryFailed() { await api('/api/upload/retry-failed', { method: 'POST' }); loadQueue(); }
+async function togglePause() {
+    const url = isPaused ? '/api/upload/resume' : '/api/upload/pause';
+    await api(url, { method: 'POST' });
+    loadQueue();
+}
+
+loadQueue();
+setInterval(loadQueue, 5000);
+</script>
 </body>
 </html>
