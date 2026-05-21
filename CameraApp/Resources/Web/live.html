@@ -21,11 +21,17 @@
 </nav>
 <main class="content">
     <h1>Live View</h1>
-    <div class="card" style="max-width:640px;padding:24px;text-align:center;">
-        <p style="color:var(--fg2);margin-bottom:12px;">Live snapshot preview is not available in v2.0.2. Remote capture and recording controls are available below.</p>
-        <span id="deviceName" style="color:var(--fg2);font-size:13px;"></span>
+    <div class="card" style="max-width:640px;padding:16px;">
+        <div id="snapshotWrap" style="text-align:center;min-height:360px;display:flex;align-items:center;justify-content:center;">
+            <img id="snapshot" src="" alt="Live snapshot" style="max-width:100%;border-radius:var(--radius);display:none;">
+            <p id="snapshotPlaceholder" style="color:var(--fg2);">Connecting to camera...</p>
+        </div>
+        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+            <span id="deviceName" style="color:var(--fg2);font-size:13px;"></span>
+            <span id="snapshotInfo" style="color:var(--fg2);font-size:12px;"></span>
+        </div>
     </div>
-    <div style="margin-top:16px; display:flex; gap:8px; align-items:center;">
+    <div style="margin-top:16px;display:flex;gap:8px;align-items:center;">
         <button id="captureBtn">Capture Photo</button>
         <button id="recordBtn" style="background:#e53935;">Start Recording</button>
         <span id="recordStatus" style="color:#a0a0a0;font-size:13px;"></span>
@@ -34,13 +40,64 @@
 <script src="/js/app.js"></script>
 <script>
 let isRecording = false;
+let refreshInterval = 2000;
+let timer = null;
+let consecutiveErrors = 0;
+
+function startSnapshotRefresh() {
+    if (timer) clearInterval(timer);
+    timer = setInterval(refreshSnapshot, refreshInterval);
+}
+
+async function refreshSnapshot() {
+    const img = document.getElementById('snapshot');
+    const placeholder = document.getElementById('snapshotPlaceholder');
+    const info = document.getElementById('snapshotInfo');
+    try {
+        const token = getToken();
+        const res = await fetch('/api/camera/snapshot.jpg', {
+            headers: { 'Authorization': 'Bearer ' + token },
+            cache: 'no-cache'
+        });
+        if (!res.ok) {
+            throw new Error('HTTP ' + res.status);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        // Revoke previous URL to avoid memory leak
+        if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+        img.src = url;
+        img.style.display = 'block';
+        placeholder.style.display = 'none';
+        consecutiveErrors = 0;
+        const now = new Date();
+        info.textContent = now.toLocaleTimeString();
+        // Restore fast refresh if it was slowed down
+        if (refreshInterval !== 2000) {
+            refreshInterval = 2000;
+            startSnapshotRefresh();
+        }
+    } catch (e) {
+        consecutiveErrors++;
+        if (consecutiveErrors >= 3) {
+            placeholder.textContent = 'Camera not available';
+            placeholder.style.display = 'block';
+            img.style.display = 'none';
+            // Slow down polling on persistent errors
+            if (refreshInterval !== 5000) {
+                refreshInterval = 5000;
+                startSnapshotRefresh();
+            }
+        }
+    }
+}
 
 async function refreshStatus() {
     try {
         const data = await api('/api/camera/record/status');
         if (!data) return;
         isRecording = data.isRecording;
-        document.getElementById('deviceName').textContent = data.deviceName ? `Camera: ${data.deviceName}` : '';
+        document.getElementById('deviceName').textContent = data.deviceName ? 'Camera: ' + data.deviceName : '';
         const btn = document.getElementById('recordBtn');
         const status = document.getElementById('recordStatus');
         if (isRecording) {
@@ -59,7 +116,7 @@ async function refreshStatus() {
 document.getElementById('captureBtn').addEventListener('click', async () => {
     try {
         const data = await api('/api/camera/capture', { method: 'POST', body: {} });
-        if (data) toast(`Captured: ${data.fileName}`);
+        if (data) toast('Captured: ' + data.fileName);
     } catch (e) {}
 });
 
@@ -68,14 +125,27 @@ document.getElementById('recordBtn').addEventListener('click', async () => {
     try {
         const data = await api(url, { method: 'POST', body: {} });
         if (data) {
-            toast(data.status === 'recording' ? 'Recording started' : `Recording saved: ${data.fileName}`);
+            toast(data.status === 'recording' ? 'Recording started' : 'Recording saved: ' + data.fileName);
             refreshStatus();
         }
     } catch (e) {}
 });
 
+// Slow down when tab is hidden, restore when visible
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        refreshInterval = 5000;
+    } else {
+        refreshInterval = 2000;
+        refreshSnapshot();
+    }
+    startSnapshotRefresh();
+});
+
 refreshStatus();
-setInterval(refreshStatus, 3000);
+refreshSnapshot();
+startSnapshotRefresh();
+setInterval(refreshStatus, 5000);
 </script>
 </body>
 </html>

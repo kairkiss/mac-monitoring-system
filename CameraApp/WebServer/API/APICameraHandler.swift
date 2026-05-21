@@ -2,7 +2,28 @@ import Foundation
 
 struct APICameraHandler {
     static func register(router: WebRouter) {
-        // Camera snapshot (JPEG)
+        // Camera snapshot JPEG (real image)
+        router.addRoute(method: "GET", path: "/api/camera/snapshot.jpg") { _ in
+            let camera = CameraManager.shared
+            guard camera.isSessionRunning else {
+                return HTTPResponse.error("Camera not running", status: 503)
+            }
+            guard let jpegData = camera.latestSnapshotJPEG() else {
+                return HTTPResponse.error("No frame available", status: 503)
+            }
+            return HTTPResponse(
+                status: 200,
+                statusText: "OK",
+                headers: [
+                    "Content-Type": "image/jpeg",
+                    "Content-Length": "\(jpegData.count)",
+                    "Cache-Control": "no-cache"
+                ],
+                body: jpegData
+            )
+        }
+
+        // Camera status (JSON)
         router.addRoute(method: "GET", path: "/api/camera/preview") { _ in
             let camera = CameraManager.shared
             guard camera.isSessionRunning else {

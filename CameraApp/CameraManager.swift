@@ -91,6 +91,8 @@ final class CameraManager: NSObject, ObservableObject {
     private nonisolated let videoOutput = AVCaptureVideoDataOutput()
     private var latestSampleBuffer: CMSampleBuffer?
     private let sampleBufferQueue = DispatchQueue(label: "camera.sampleBuffer")
+    private var latestJPEGData: Data?
+    private var latestJPEGDate: Date = .distantPast
 
     private(set) var isSessionRunning = false
     var isVideoRecording: Bool { movieOutput.isRecording }
@@ -759,8 +761,31 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         from connection: AVCaptureConnection
     ) {
         latestSampleBuffer = sampleBuffer
+        // Update cached JPEG for web snapshot (throttled to ~5fps)
+        let now = Date()
+        if now.timeIntervalSince(latestJPEGDate) > 0.2 {
+            if let cgImage = imageFromSampleBuffer(sampleBuffer) {
+                let rep = NSBitmapImageRep(cgImage: cgImage)
+                if let jpeg = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.6]) {
+                    latestJPEGData = jpeg
+                    latestJPEGDate = now
+                }
+            }
+        }
         HealthMonitor.shared.recordFrameReceived()
         MotionDetector.shared.processFrame(sampleBuffer)
+    }
+
+    nonisolated private func imageFromSampleBuffer(_ sampleBuffer: CMSampleBuffer) -> CGImage? {
+        guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
+        let ciImage = CIImage(cvImageBuffer: imageBuffer)
+        let context = CIContext()
+        return context.createCGImage(ciImage, from: ciImage.extent)
+    }
+
+    /// Thread-safe JPEG snapshot for web API.
+    func latestSnapshotJPEG() -> Data? {
+        return latestJPEGData
     }
 }
 

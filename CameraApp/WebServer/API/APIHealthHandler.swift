@@ -5,11 +5,19 @@ struct APIHealthHandler {
         // Health status
         router.addRoute(method: "GET", path: "/api/health") { _ in
             let health = HealthMonitor.shared
+            let alerts = health.recentAlerts().filter { !$0.isResolved }.map { alert -> [String: Any] in
+                return [
+                    "type": String(describing: alert.type),
+                    "message": alert.message,
+                    "timestamp": ISO8601DateFormatter().string(from: alert.timestamp)
+                ] as [String: Any]
+            }
             return HTTPResponse.json([
                 "isMonitoring": health.isMonitoring,
                 "diskFreeMB": health.diskFreeMB,
                 "lastFrameReceived": health.lastFrameReceived.map { ISO8601DateFormatter().string(from: $0) } as Any,
-                "consecutiveTelegramFailures": health.consecutiveTelegramFailures
+                "consecutiveTelegramFailures": health.consecutiveTelegramFailures,
+                "alerts": alerts
             ] as [String: Any])
         }
 

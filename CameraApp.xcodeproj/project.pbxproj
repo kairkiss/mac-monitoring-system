@@ -62,6 +62,7 @@
 		AA00000031 /* EventRecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000033; };
 		AA00000032 /* DailyReportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000034; };
 		AA00000033 /* TimelapseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000035; };
+		AA00000037 /* ThumbnailGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000039; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -121,6 +122,7 @@
 		AB00000033 /* EventRecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventRecordingManager.swift; sourceTree = "<group>"; };
 		AB00000034 /* DailyReportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReportManager.swift; sourceTree = "<group>"; };
 		AB00000035 /* TimelapseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelapseManager.swift; sourceTree = "<group>"; };
+		AB00000039 /* ThumbnailGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailGenerator.swift; sourceTree = "<group>"; };
 		AC00000001 /* CameraApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CameraApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -255,6 +257,7 @@
 				AB00000033 /* EventRecordingManager.swift */,
 				AB00000034 /* DailyReportManager.swift */,
 				AB00000035 /* TimelapseManager.swift */,
+				AB00000039 /* ThumbnailGenerator.swift */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -374,6 +377,7 @@
 				AA00000031 /* EventRecordingManager.swift in Sources */,
 				AA00000032 /* DailyReportManager.swift in Sources */,
 				AA00000033 /* TimelapseManager.swift in Sources */,
+				AA00000037 /* ThumbnailGenerator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -439,14 +443,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.2;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -461,14 +465,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.2;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

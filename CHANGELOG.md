@@ -1,5 +1,33 @@
 # Changelog
 
+## v2.1.0 (2026-05-21)
+
+Web Usability Release — makes web features truly usable with real camera snapshots, complete media library, and improved upload chain.
+
+### New Features
+
+- **Live View Snapshot**: Real JPEG camera snapshot displayed in web Live View, auto-refreshing every 2 seconds (slows to 5s on blur or errors)
+- **Full Web Media Library**: Thumbnail grid with search, filters (type/source/upload status/favorites), pagination, detail modal with download, delete, upload, favorite, protect actions; archived entries shown with badge
+- **Date-Based Upload Organization**: Local/Mounted Folder uploads now organize files into `MacMonitor/YYYY/MM/DD/photos|videos/` directory structure
+- **Post-Upload Verification**: Upload verification checks file existence and size match after copy; fails upload if verification fails
+- **Enhanced Dashboard**: Camera status with recording indicator, storage provider, upload queue stats (pending/active/failed), health alerts, version/build display
+- **Thumbnail Generator**: On-demand thumbnail generation from photos and video first frames, cached in Thumbnails directory
+- **Health Alerts in API**: `/api/health` endpoint now includes unresolved alerts inline
+
+### Improvements
+
+- UploadQueueManager stores file size in completed jobs
+- APIStatusHandler returns recording status and detailed upload queue stats
+- LocalFolderProvider and MountedFolderProvider now use distinct types
+- UploadJob includes optional fileSize field
+
+### Technical
+
+- Version: 2.1.0
+- Build: 11
+- No data migration required
+- No existing user data is deleted
+
 ## v2.0.2 (2026-05-21)
 
 Micro Hotfix for v2.0.1 residual issues.

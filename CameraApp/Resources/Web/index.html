@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mac监控系统 - Dashboard</title>
 <link rel="stylesheet" href="/css/style.css">
+<style>
+.stat-value { font-size: 28px; font-weight: 700; }
+.stat-sub { font-size: 12px; color: var(--fg2); margin-top: 4px; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.dot-green { background: var(--green); }
+.dot-red { background: var(--red); }
+.dot-orange { background: var(--orange); }
+.dot-gray { background: #666; }
+</style>
 </head>
 <body>
 <nav class="sidebar">
@@ -24,41 +33,152 @@
 </nav>
 <main class="content">
     <h1>Dashboard</h1>
-    <div class="grid" id="statusGrid">
-        <div class="card" id="cameraCard">
+    <div class="grid">
+        <div class="card">
             <h3>Camera</h3>
-            <p id="cameraStatus">Loading...</p>
+            <p class="stat-value" id="cameraStatus">-</p>
+            <p class="stat-sub" id="cameraSub"></p>
         </div>
-        <div class="card" id="automationCard">
+        <div class="card">
+            <h3>Recording</h3>
+            <p class="stat-value" id="recordStatus">-</p>
+            <p class="stat-sub" id="recordSub"></p>
+        </div>
+        <div class="card">
             <h3>Automation</h3>
-            <p id="automationStatus">Loading...</p>
+            <p class="stat-value" id="automationStatus">-</p>
+            <p class="stat-sub" id="automationSub"></p>
         </div>
-        <div class="card" id="storageCard">
-            <h3>Storage</h3>
-            <p id="storageStatus">Loading...</p>
+        <div class="card">
+            <h3>Storage Provider</h3>
+            <p class="stat-value" id="storageStatus">-</p>
+            <p class="stat-sub" id="storageSub"></p>
         </div>
-        <div class="card" id="uploadCard">
+        <div class="card">
             <h3>Upload Queue</h3>
-            <p id="uploadStatus">Loading...</p>
+            <p class="stat-value" id="uploadStatus">-</p>
+            <p class="stat-sub" id="uploadSub"></p>
+        </div>
+        <div class="card">
+            <h3>Media Library</h3>
+            <p class="stat-value" id="mediaStatus">-</p>
+            <p class="stat-sub" id="mediaSub"></p>
+        </div>
+        <div class="card">
+            <h3>Health</h3>
+            <p class="stat-value" id="healthStatus">-</p>
+            <p class="stat-sub" id="healthSub"></p>
+        </div>
+        <div class="card">
+            <h3>System</h3>
+            <p class="stat-value" id="versionInfo" style="font-size:18px;">-</p>
+            <p class="stat-sub" id="uptimeInfo"></p>
         </div>
     </div>
 </main>
 <script src="/js/app.js"></script>
 <script>
+function dot(color) { return '<span class="status-dot dot-' + color + '"></span>'; }
+
 async function refreshStatus() {
     const data = await api('/api/status');
     if (!data) return;
-    document.getElementById('cameraStatus').textContent =
-        data.camera.isRunning ? `Running: ${data.camera.deviceName}` : 'Stopped';
-    document.getElementById('automationStatus').textContent =
-        data.automation.isEnabled ? `Enabled (${data.automation.taskCount} tasks)` : 'Disabled';
-    document.getElementById('storageStatus').textContent =
-        data.storage.provider === 'none' ? 'No provider' : data.storage.provider;
-    document.getElementById('uploadStatus').textContent =
-        `${data.uploadQueue.pending} pending`;
+
+    // Camera
+    const camEl = document.getElementById('cameraStatus');
+    const camSub = document.getElementById('cameraSub');
+    if (data.camera.isRunning) {
+        camEl.innerHTML = dot('green') + 'Running';
+        camSub.textContent = data.camera.deviceName || '';
+    } else {
+        camEl.innerHTML = dot('red') + 'Stopped';
+        camSub.textContent = '';
+    }
+
+    // Recording
+    const recEl = document.getElementById('recordStatus');
+    const recSub = document.getElementById('recordSub');
+    if (data.camera.isRecording) {
+        recEl.innerHTML = dot('red') + 'Recording';
+        recSub.textContent = 'In progress';
+    } else {
+        recEl.innerHTML = dot('gray') + 'Idle';
+        recSub.textContent = '';
+    }
+
+    // Automation
+    const autoEl = document.getElementById('automationStatus');
+    const autoSub = document.getElementById('automationSub');
+    if (data.automation.isEnabled) {
+        autoEl.innerHTML = dot('green') + 'Enabled';
+        autoSub.textContent = data.automation.taskCount + ' task(s)';
+    } else {
+        autoEl.innerHTML = dot('gray') + 'Disabled';
+        autoSub.textContent = '';
+    }
+
+    // Storage
+    const storEl = document.getElementById('storageStatus');
+    const storSub = document.getElementById('storageSub');
+    if (data.storage.provider === 'none' || !data.storage.provider) {
+        storEl.innerHTML = dot('gray') + 'None';
+        storSub.textContent = 'Not configured';
+    } else {
+        storEl.innerHTML = dot('green') + data.storage.provider;
+        storSub.textContent = '';
+    }
+
+    // Upload queue
+    const upEl = document.getElementById('uploadStatus');
+    const upSub = document.getElementById('uploadSub');
+    const pending = data.uploadQueue.pending || 0;
+    const active = data.uploadQueue.active || 0;
+    const failed = data.uploadQueue.failed || 0;
+    if (failed > 0) {
+        upEl.innerHTML = dot('orange') + pending + ' queued';
+        upSub.textContent = failed + ' failed, ' + active + ' uploading';
+    } else if (active > 0) {
+        upEl.innerHTML = dot('green') + active + ' uploading';
+        upSub.textContent = pending + ' queued';
+    } else {
+        upEl.innerHTML = dot('gray') + pending + ' queued';
+        upSub.textContent = '';
+    }
+
+    // Version
+    document.getElementById('versionInfo').textContent = 'v' + (data.version || '?') + ' (' + (data.build || '?') + ')';
 }
+
+async function refreshHealth() {
+    try {
+        const data = await api('/api/health');
+        if (!data) return;
+        const el = document.getElementById('healthStatus');
+        const sub = document.getElementById('healthSub');
+        if (data.alerts && data.alerts.length > 0) {
+            el.innerHTML = dot('orange') + data.alerts.length + ' alert(s)';
+            sub.textContent = data.alerts[0].message || '';
+        } else {
+            el.innerHTML = dot('green') + 'OK';
+            sub.textContent = 'No issues';
+        }
+    } catch (e) {}
+}
+
+async function refreshMediaCount() {
+    try {
+        const data = await api('/api/media?perPage=1');
+        if (!data) return;
+        document.getElementById('mediaStatus').textContent = data.total || 0;
+        document.getElementById('mediaSub').textContent = 'Total items';
+    } catch (e) {}
+}
+
 refreshStatus();
+refreshHealth();
+refreshMediaCount();
 setInterval(refreshStatus, 5000);
+setInterval(refreshHealth, 30000);
 </script>
 </body>
 </html>

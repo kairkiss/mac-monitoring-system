@@ -119,6 +119,7 @@ final class UploadQueueManager: ObservableObject {
                 completed.status = .completed
                 completed.completedAt = Date()
                 completed.progress = 1.0
+                completed.fileSize = result.fileSize
                 self.store.updateJob(completed)
 
                 MediaIndexStore.shared.markUploadVerified(

@@ -27,7 +27,7 @@ final class StorageManager: ObservableObject {
         case .mountedFolder:
             let path = settings.mountedFolderPath
             if !path.isEmpty {
-                activeProvider = LocalFolderProvider(path: path)
+                activeProvider = LocalFolderProvider(path: path, type: .mountedFolder)
             } else {
                 activeProvider = nil
             }

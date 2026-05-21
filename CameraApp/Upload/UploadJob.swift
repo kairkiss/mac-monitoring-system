@@ -14,6 +14,7 @@ struct UploadJob: Codable, Identifiable {
     var createdAt: Date = Date()
     var startedAt: Date?
     var completedAt: Date?
+    var fileSize: Int64?
 
     init(fileName: String, localPath: String, remotePath: String, providerType: String) {
         self.id = UUID().uuidString
