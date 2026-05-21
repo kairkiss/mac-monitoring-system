@@ -1,6 +1,30 @@
 # Changelog
 
-## v2.0.0 (2026-05-21)
+## v2.0.2 (2026-05-21)
+
+Micro Hotfix for v2.0.1 residual issues.
+
+### Fixes
+
+- Fixed non-optional `activeCameraName` nil-coalescing compile risk across API handlers
+- Fixed `/api/status` version/build hardcoding — now reads from Info.plist at runtime
+- Fixed RetentionManager to only call `markLocalDeleted` after successful local file deletion
+- Fixed UploadQueueManager to respect `isPaused` state before processing jobs
+- Added basic Storage Provider settings UI with provider picker, folder selection, and test connection
+- Clarified Google Drive and WebDAV as planned providers (not fully implemented)
+- Updated Live View to honestly state live snapshot is not available in v2.0.2
+- Updated README and CHANGELOG for accuracy
+
+### Technical
+
+- Version: 2.0.2
+- Build: 10
+- No data migration required
+- No existing user data is deleted
+
+## v2.0.1 (2026-05-21)
+
+Hotfix for v2.0.0 critical issues.
 
 Major release. Transforms the local camera tool into a Mac-resident camera node with web dashboard, storage providers, upload queue, cloud archival, and automated retention.
 

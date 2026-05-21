@@ -54,7 +54,7 @@ final class UploadQueueManager: ObservableObject {
         MediaIndexStore.shared.setUploadStatus(.queued, for: fileName, provider: provider.type.rawValue, remotePath: remotePath, jobID: job.id)
         ActivityLogManager.shared.info(.upload, "Queued \(fileName) for upload")
 
-        if isProcessing {
+        if isProcessing && !isPaused {
             processNext()
         }
     }
@@ -64,7 +64,7 @@ final class UploadQueueManager: ObservableObject {
         job.status = .pending
         job.lastError = nil
         store.updateJob(job)
-        processNext()
+        if !isPaused { processNext() }
     }
 
     func cancel(jobID: String) {
@@ -80,7 +80,7 @@ final class UploadQueueManager: ObservableObject {
             job.lastError = nil
             store.updateJob(job)
         }
-        processNext()
+        if !isPaused { processNext() }
     }
 
     func pauseAll() {
@@ -94,6 +94,7 @@ final class UploadQueueManager: ObservableObject {
     }
 
     private func processNext() {
+        guard !isPaused else { return }
         guard let provider = StorageManager.shared.activeProvider else { return }
         let maxConcurrent = settings.uploadMaxConcurrent
         let activeCount = store.activeJobs().count

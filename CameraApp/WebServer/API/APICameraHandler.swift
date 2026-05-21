@@ -9,10 +9,10 @@ struct APICameraHandler {
                 return HTTPResponse.error("Camera not running", status: 503)
             }
 
-            // Return a placeholder status — actual snapshot requires async capture
+            let deviceName = camera.activeCameraName.isEmpty ? "Unknown" : camera.activeCameraName
             return HTTPResponse.json([
                 "status": "Camera is running",
-                "deviceName": camera.activeCameraName ?? "Unknown"
+                "deviceName": deviceName
             ])
         }
 
@@ -121,10 +121,11 @@ struct APICameraHandler {
         // Recording status
         router.addRoute(method: "GET", path: "/api/camera/record/status") { _ in
             let camera = CameraManager.shared
+            let deviceName = camera.activeCameraName.isEmpty ? "Unknown" : camera.activeCameraName
             return HTTPResponse.json([
                 "isRecording": camera.isVideoRecording,
                 "isSessionRunning": camera.isSessionRunning,
-                "deviceName": camera.activeCameraName ?? "Unknown"
+                "deviceName": deviceName
             ] as [String: Any])
         }
     }

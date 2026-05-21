@@ -8,12 +8,16 @@ struct APIStatusHandler {
             let storage = StorageManager.shared
             let health = HealthMonitor.shared
 
+            let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.0.2"
+            let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "10"
+            let deviceName = camera.activeCameraName.isEmpty ? "Unknown" : camera.activeCameraName
+
             return HTTPResponse.json([
-                "version": "2.0.0",
-                "build": 8,
+                "version": version,
+                "build": build,
                 "camera": [
                     "isRunning": camera.isSessionRunning,
-                    "deviceName": camera.activeCameraName ?? "None"
+                    "deviceName": deviceName
                 ] as [String: Any],
                 "automation": [
                     "isEnabled": automation.isAutomationEnabled,

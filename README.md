@@ -4,7 +4,7 @@ MacMonitor 2.0 turns the app into a local camera node with a web dashboard, stor
 
 Mac监控系统 2.0 将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
 
-> **v2.0.0** — Major release. Adds local web server, web dashboard, storage providers, upload queue, cloud archival, event recording, daily reports, timelapse, and multi-user access. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **v2.0.2** — Micro Hotfix. Fixes compile risks, API version mismatch, retention safety, upload pause behavior, and adds Storage Provider settings UI. Google Drive and WebDAV remain planned providers. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 
@@ -19,7 +19,7 @@ Mac监控系统 2.0 将本地摄像头工具升级为 Mac 常驻采集节点，�
 - **Multi-Camera** — Supports multiple cameras with preferred camera persistence and graceful fallback
 - **Web Dashboard** — Browser-based control panel for remote monitoring, camera control, media browsing, and task management
 - **REST API** — Full API for camera, media, tasks, logs, health, uploads, and storage
-- **Storage Providers** — Local folder, mounted folder, Google Drive, and WebDAV backends
+- **Storage Providers** — Local folder and mounted folder backends (available); Google Drive and WebDAV (planned, not fully implemented)
 - **Upload Queue** — Persistent queue with retry, progress tracking, and bandwidth limiting
 - **Retention Policy** — Automatic cleanup of local originals after verified cloud upload
 - **Daily Reports** — Automated daily summary of activity, uploads, and health

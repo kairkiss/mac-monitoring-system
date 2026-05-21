@@ -41,9 +41,12 @@ final class RetentionManager {
 
             // Delete local original only — preserve index entry
             if entry.localOriginalExists {
-                _ = media.deleteLocalOriginal(fileName: fileName)
-                index.markLocalDeleted(fileName)
-                deleted += 1
+                if media.deleteLocalOriginal(fileName: fileName) {
+                    index.markLocalDeleted(fileName)
+                    deleted += 1
+                } else {
+                    ActivityLogManager.shared.warning(.retention, "Failed to delete local original: \(fileName)")
+                }
             }
         }
 

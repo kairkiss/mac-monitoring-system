@@ -6,6 +6,7 @@ struct SettingsView: View {
     @EnvironmentObject var lang: LanguageManager
     @EnvironmentObject var mediaLibrary: MediaLibraryManager
     @State private var cleanResult: Int?
+    @State private var storageTestResult: Bool?
 
     var body: some View {
         Form {
@@ -209,6 +210,157 @@ struct SettingsView: View {
                 }
             } header: {
                 Label(Strings.customStoragePath, systemImage: "folder")
+            }
+
+            // Storage Provider
+            Section {
+                Picker(Strings.storageProviders, selection: $settings.activeStorageProviderType) {
+                    Text(Strings.none).tag("none")
+                    Text(Strings.localFolder).tag("localFolder")
+                    Text(Strings.mountedFolder).tag("mountedFolder")
+                    Text("\(Strings.googleDrive) (Planned)").tag("googleDrive")
+                    Text("\(Strings.webdav) (Planned)").tag("webdav")
+                }
+                .onChange(of: settings.activeStorageProviderType) { _, _ in
+                    StorageManager.shared.configure()
+                    storageTestResult = nil
+                }
+
+                if settings.activeStorageProviderType == "localFolder" {
+                    HStack(spacing: 12) {
+                        Image(systemName: "folder")
+                            .foregroundStyle(.blue)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Strings.localFolder)
+                            Text(settings.localFolderPath.isEmpty ? "Not set" : settings.localFolderPath)
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    }
+
+                    HStack(spacing: 8) {
+                        Button {
+                            let panel = NSOpenPanel()
+                            panel.canChooseFiles = false
+                            panel.canChooseDirectories = true
+                            panel.allowsMultipleSelection = false
+                            panel.begin { response in
+                                guard response == .OK, let url = panel.url else { return }
+                                settings.localFolderPath = url.path
+                                StorageManager.shared.configure()
+                            }
+                        } label: {
+                            Label(Strings.chooseDirectory, systemImage: "folder.badge.gearshape")
+                        }
+
+                        if !settings.localFolderPath.isEmpty {
+                            Button {
+                                settings.localFolderPath = ""
+                                StorageManager.shared.configure()
+                            } label: {
+                                Label(Strings.resetToDefault, systemImage: "arrow.counterclockwise")
+                            }
+                        }
+
+                        Button {
+                            Task {
+                                storageTestResult = await StorageManager.shared.testConnection()
+                            }
+                        } label: {
+                            Label(Strings.testConnection, systemImage: "network")
+                        }
+                        .disabled(settings.localFolderPath.isEmpty)
+                    }
+
+                    if let result = storageTestResult {
+                        Label(result ? "Connected" : "Failed", systemImage: result ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(result ? .green : .red)
+                    }
+                }
+
+                if settings.activeStorageProviderType == "mountedFolder" {
+                    HStack(spacing: 12) {
+                        Image(systemName: "externaldrive")
+                            .foregroundStyle(.purple)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Strings.mountedFolder)
+                            Text(settings.mountedFolderPath.isEmpty ? "Not set" : settings.mountedFolderPath)
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    }
+
+                    HStack(spacing: 8) {
+                        Button {
+                            let panel = NSOpenPanel()
+                            panel.canChooseFiles = false
+                            panel.canChooseDirectories = true
+                            panel.allowsMultipleSelection = false
+                            panel.begin { response in
+                                guard response == .OK, let url = panel.url else { return }
+                                settings.mountedFolderPath = url.path
+                                StorageManager.shared.configure()
+                            }
+                        } label: {
+                            Label(Strings.chooseDirectory, systemImage: "folder.badge.gearshape")
+                        }
+
+                        if !settings.mountedFolderPath.isEmpty {
+                            Button {
+                                settings.mountedFolderPath = ""
+                                StorageManager.shared.configure()
+                            } label: {
+                                Label(Strings.resetToDefault, systemImage: "arrow.counterclockwise")
+                            }
+                        }
+
+                        Button {
+                            Task {
+                                storageTestResult = await StorageManager.shared.testConnection()
+                            }
+                        } label: {
+                            Label(Strings.testConnection, systemImage: "network")
+                        }
+                        .disabled(settings.mountedFolderPath.isEmpty)
+                    }
+
+                    if let result = storageTestResult {
+                        Label(result ? "Connected" : "Failed", systemImage: result ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(result ? .green : .red)
+                    }
+                }
+
+                if settings.activeStorageProviderType == "googleDrive" {
+                    HStack(spacing: 12) {
+                        Image(systemName: "cloud")
+                            .foregroundStyle(.orange)
+                            .frame(width: 20)
+                        Text("Google Drive provider is planned and not fully implemented in v2.0.2.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if settings.activeStorageProviderType == "webdav" {
+                    HStack(spacing: 12) {
+                        Image(systemName: "server.rack")
+                            .foregroundStyle(.orange)
+                            .frame(width: 20)
+                        Text("WebDAV provider is planned and not fully implemented in v2.0.2.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Label(Strings.storageProviders, systemImage: "externaldrive")
             }
 
             // Motion Detection
@@ -590,7 +742,7 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", "2.0.1")
+                aboutRow("Version", "2.0.2")
                 aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")
