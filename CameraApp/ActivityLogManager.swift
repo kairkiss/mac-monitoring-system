@@ -18,6 +18,11 @@ enum LogCategory: String, Codable, CaseIterable {
     case motion
     case health
     case notification
+    case webServer
+    case upload
+    case retention
+    case timelapse
+    case report
 }
 
 struct ActivityLogEntry: Identifiable, Codable {
@@ -41,6 +46,17 @@ final class ActivityLogManager: ObservableObject {
     private let queue = DispatchQueue(label: "activity.log.queue", qos: .utility)
     private var fileURL: URL {
         MediaLibraryManager.shared.baseDirectory.appendingPathComponent("activity_log.jsonl")
+    }
+
+    var logFileURL: URL { fileURL }
+
+    func entries(limit: Int) -> [ActivityLogEntry] {
+        Array(entries.prefix(limit))
+    }
+
+    func clearLog() {
+        entries.removeAll()
+        try? Data().write(to: fileURL)
     }
 
     private init() {

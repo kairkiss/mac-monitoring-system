@@ -92,7 +92,9 @@ final class CameraManager: NSObject, ObservableObject {
     private var latestSampleBuffer: CMSampleBuffer?
     private let sampleBufferQueue = DispatchQueue(label: "camera.sampleBuffer")
 
-    private var isSessionRunning = false
+    private(set) var isSessionRunning = false
+
+    var currentDeviceID: String { activeCameraID }
     private var isInBackground = false
     private var isConfiguring = false
     private var reconnectAttempts = 0
@@ -327,6 +329,12 @@ final class CameraManager: NSObject, ObservableObject {
         }
     }
 
+    func switchCamera(to deviceID: String) {
+        if let device = AVCaptureDevice(uniqueID: deviceID) {
+            switchCamera(to: device)
+        }
+    }
+
     // MARK: - Authorization
 
     func requestAccess() {
@@ -454,6 +462,25 @@ final class CameraManager: NSObject, ObservableObject {
             startRecording()
         }
     }
+
+    func startEventClip(duration: TimeInterval, completion: @escaping (Result<URL, CameraCaptureError>) -> Void) {
+        ensureSessionRunning { [weak self] in
+            guard let self else {
+                completion(.failure(.cameraNotReady))
+                return
+            }
+            // Use existing recording mechanism with auto-stop
+            self.startRecording()
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+                guard let self, self.movieOutput.isRecording else { return }
+                self.eventClipCompletion = completion
+                self.stopRecordingTimer()
+                self.movieOutput.stopRecording()
+            }
+        }
+    }
+
+    private var eventClipCompletion: ((Result<URL, CameraCaptureError>) -> Void)?
 
     // MARK: - Recording Timer
 
@@ -747,6 +774,12 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
             let videoDuration: TimeInterval? = dur.isNaN ? nil : dur
             lib.registerVideo(fileName: fileName, fileSize: size, duration: videoDuration)
             self.lastSavedVideoPath = outputFileURL.path
+
+            // Event clip callback
+            if let completion = self.eventClipCompletion {
+                self.eventClipCompletion = nil
+                completion(.success(outputFileURL))
+            }
 
             if self.isAutoSegmenting {
                 self.isAutoSegmenting = false

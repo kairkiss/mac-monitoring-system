@@ -259,4 +259,88 @@ struct Strings {
     static var preferredCameraRestored: String { lang == .chinese ? "首选摄像头已恢复" : "Preferred Camera Restored" }
     static var preferredCameraUnavailable: String { lang == .chinese ? "首选摄像头不可用" : "Preferred Camera Unavailable" }
     static var fallbackCameraActivated: String { lang == .chinese ? "已切换到备用摄像头" : "Fallback Camera Activated" }
+
+    // MARK: - Web Server
+    static var webServer: String { lang == .chinese ? "Web 服务器" : "Web Server" }
+    static var enableWebServer: String { lang == .chinese ? "启用 Web 服务器" : "Enable Web Server" }
+    static var webServerPort: String { lang == .chinese ? "端口" : "Port" }
+    static var webServerAddress: String { lang == .chinese ? "监听地址" : "Listen Address" }
+    static var webServerRunning: String { lang == .chinese ? "运行中" : "Running" }
+    static var webServerStopped: String { lang == .chinese ? "已停止" : "Stopped" }
+    static var webDashboardURL: String { lang == .chinese ? "仪表盘地址" : "Dashboard URL" }
+    static var openDashboard: String { lang == .chinese ? "打开仪表盘" : "Open Dashboard" }
+    static var localAccessToken: String { lang == .chinese ? "访问令牌" : "Access Token" }
+    static var regenerateToken: String { lang == .chinese ? "重新生成令牌" : "Regenerate Token" }
+
+    // MARK: - General
+    static var none: String { lang == .chinese ? "无" : "None" }
+
+    // MARK: - Storage Providers
+    static var storageProviders: String { lang == .chinese ? "存储后端" : "Storage Providers" }
+    static var localFolder: String { lang == .chinese ? "本地文件夹" : "Local Folder" }
+    static var mountedFolder: String { lang == .chinese ? "挂载文件夹" : "Mounted Folder" }
+    static var googleDrive: String { lang == .chinese ? "Google Drive" : "Google Drive" }
+    static var webdav: String { lang == .chinese ? "WebDAV" : "WebDAV" }
+    static var providerNotConfigured: String { lang == .chinese ? "未配置" : "Not Configured" }
+    static var providerConnected: String { lang == .chinese ? "已连接" : "Connected" }
+    static var providerDisconnected: String { lang == .chinese ? "未连接" : "Disconnected" }
+    static var testConnection: String { lang == .chinese ? "测试连接" : "Test Connection" }
+    static var defaultProvider: String { lang == .chinese ? "默认存储后端" : "Default Provider" }
+
+    // MARK: - Upload Queue
+    static var uploadQueue: String { lang == .chinese ? "上传队列" : "Upload Queue" }
+    static var uploadPending: String { lang == .chinese ? "等待上传" : "Pending" }
+    static var uploadInProgress: String { lang == .chinese ? "上传中" : "Uploading" }
+    static var uploadCompleted: String { lang == .chinese ? "上传完成" : "Completed" }
+    static var uploadFailed: String { lang == .chinese ? "上传失败" : "Failed" }
+    static var uploadRetrying: String { lang == .chinese ? "重试中" : "Retrying" }
+    static var retryUpload: String { lang == .chinese ? "重试上传" : "Retry" }
+    static var cancelUpload: String { lang == .chinese ? "取消上传" : "Cancel" }
+    static var autoUploadPhotos: String { lang == .chinese ? "自动上传照片" : "Auto Upload Photos" }
+    static var autoUploadVideos: String { lang == .chinese ? "自动上传视频" : "Auto Upload Videos" }
+    static var maxConcurrentUploads: String { lang == .chinese ? "最大并发上传数" : "Max Concurrent Uploads" }
+    static var bandwidthLimit: String { lang == .chinese ? "带宽限制 (KB/s)" : "Bandwidth Limit (KB/s)" }
+    static var bandwidthUnlimited: String { lang == .chinese ? "无限制" : "Unlimited" }
+
+    // MARK: - Retention
+    static var retentionPolicy: String { lang == .chinese ? "自动清理策略" : "Retention Policy" }
+    static var deleteLocalAfterUpload: String { lang == .chinese ? "上传验证后删除本地原文件" : "Delete local original after verified upload" }
+    static var keepLocalDays: String { lang == .chinese ? "本地保留天数" : "Keep Local Days" }
+    static var keepThumbnails: String { lang == .chinese ? "保留缩略图" : "Keep Thumbnails" }
+    static var protectFavorites: String { lang == .chinese ? "保护收藏文件" : "Protect Favorites" }
+    static var gracePeriodHours: String { lang == .chinese ? "宽限期 (小时)" : "Grace Period (hours)" }
+
+    // MARK: - Event Recording
+    static var eventRecording: String { lang == .chinese ? "事件录像" : "Event Recording" }
+    static var enableEventRecording: String { lang == .chinese ? "启用事件录像" : "Enable Event Recording" }
+    static var eventClipDuration: String { lang == .chinese ? "片段时长 (秒)" : "Clip Duration (seconds)" }
+    static var uploadEventClips: String { lang == .chinese ? "自动上传事件片段" : "Auto Upload Event Clips" }
+
+    // MARK: - Daily Report
+    static var dailyReport: String { lang == .chinese ? "每日报告" : "Daily Report" }
+    static var enableDailyReport: String { lang == .chinese ? "启用每日报告" : "Enable Daily Report" }
+    static var generateReport: String { lang == .chinese ? "生成报告" : "Generate Report" }
+    static var reportTime: String { lang == .chinese ? "报告生成时间" : "Report Time" }
+
+    // MARK: - Timelapse
+    static var timelapse: String { lang == .chinese ? "延时摄影" : "Timelapse" }
+    static var enableTimelapse: String { lang == .chinese ? "启用延时摄影" : "Enable Timelapse" }
+    static var captureInterval: String { lang == .chinese ? "拍摄间隔 (秒)" : "Capture Interval (sec)" }
+    static var outputFPS: String { lang == .chinese ? "输出帧率" : "Output FPS" }
+    static var autoUploadTimelapse: String { lang == .chinese ? "自动上传延时视频" : "Auto Upload Timelapse" }
+
+    // MARK: - Web Users
+    static var webUsers: String { lang == .chinese ? "Web 用户管理" : "Web Users" }
+    static var adminRole: String { lang == .chinese ? "管理员" : "Admin" }
+    static var operatorRole: String { lang == .chinese ? "操作员" : "Operator" }
+    static var viewerRole: String { lang == .chinese ? "查看者" : "Viewer" }
+    static var addUser: String { lang == .chinese ? "添加用户" : "Add User" }
+    static var requireLogin: String { lang == .chinese ? "需要登录" : "Require Login" }
+
+    // MARK: - Audit Log
+    static var auditLog: String { lang == .chinese ? "审计日志" : "Audit Log" }
+
+    // MARK: - Cloudflare
+    static var cloudflareTunnel: String { lang == .chinese ? "Cloudflare Tunnel" : "Cloudflare Tunnel" }
+    static var cloudflareGuide: String { lang == .chinese ? "远程访问配置指南" : "Remote Access Setup Guide" }
 }

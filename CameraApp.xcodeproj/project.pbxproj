@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AA00001001 /* Resources/Web in Resources */ = {isa = PBXBuildFile; fileRef = AE00000020; };
 		AA00000001 /* CameraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000001; };
 		AA00000002 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000002; };
 		AA00000003 /* CameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000003; };
@@ -30,6 +31,34 @@
 		AA00000015 /* MediaIndexStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000017; };
 		AA00000016 /* HealthMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000018; };
 		AA00000017 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000019; };
+		AA00000018 /* StorageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000001A; };
+		AA00000019 /* StorageProviderType.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000001B; };
+		AA0000001A /* StorageProviderConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000001C; };
+		AA0000001B /* LocalFolderProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000001D; };
+		AA0000001C /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000001E; };
+		AA0000001D /* HTTPRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000001F; };
+		AA0000001E /* HTTPResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000020; };
+		AA0000001F /* HTTPConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000021; };
+		AA00000020 /* WebRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000022; };
+		AA00000021 /* WebAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000023; };
+		AA00000022 /* AuditLogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000024; };
+		AA00000023 /* HTTPServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000025; };
+		AA00000024 /* WebServerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000026; };
+		AA00000025 /* APIAuthHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000027; };
+		AA00000026 /* APIStatusHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000028; };
+		AA00000027 /* APICameraHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000029; };
+		AA00000028 /* APIMediaHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000002A; };
+		AA00000029 /* APITaskHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000002B; };
+		AA0000002A /* APILogHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000002C; };
+		AA0000002B /* APIHealthHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000002D; };
+		AA0000002C /* UploadJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000002E; };
+		AA0000002D /* UploadJobStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000002F; };
+		AA0000002E /* UploadQueueStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000030; };
+		AA0000002F /* UploadQueueManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000031; };
+		AA00000030 /* RetentionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000032; };
+		AA00000031 /* EventRecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000033; };
+		AA00000032 /* DailyReportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000034; };
+		AA00000033 /* TimelapseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000035; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +87,34 @@
 		AB00000017 /* MediaIndexStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaIndexStore.swift; sourceTree = "<group>"; };
 		AB00000018 /* HealthMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthMonitor.swift; sourceTree = "<group>"; };
 		AB00000019 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		AB0000001A /* StorageProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageProvider.swift; sourceTree = "<group>"; };
+		AB0000001B /* StorageProviderType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageProviderType.swift; sourceTree = "<group>"; };
+		AB0000001C /* StorageProviderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageProviderConfig.swift; sourceTree = "<group>"; };
+		AB0000001D /* LocalFolderProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalFolderProvider.swift; sourceTree = "<group>"; };
+		AB0000001E /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
+		AB0000001F /* HTTPRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPRequest.swift; sourceTree = "<group>"; };
+		AB00000020 /* HTTPResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPResponse.swift; sourceTree = "<group>"; };
+		AB00000021 /* HTTPConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPConnection.swift; sourceTree = "<group>"; };
+		AB00000022 /* WebRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRouter.swift; sourceTree = "<group>"; };
+		AB00000023 /* WebAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthManager.swift; sourceTree = "<group>"; };
+		AB00000024 /* AuditLogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditLogManager.swift; sourceTree = "<group>"; };
+		AB00000025 /* HTTPServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPServer.swift; sourceTree = "<group>"; };
+		AB00000026 /* WebServerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebServerManager.swift; sourceTree = "<group>"; };
+		AB00000027 /* APIAuthHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIAuthHandler.swift; sourceTree = "<group>"; };
+		AB00000028 /* APIStatusHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIStatusHandler.swift; sourceTree = "<group>"; };
+		AB00000029 /* APICameraHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APICameraHandler.swift; sourceTree = "<group>"; };
+		AB0000002A /* APIMediaHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIMediaHandler.swift; sourceTree = "<group>"; };
+		AB0000002B /* APITaskHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APITaskHandler.swift; sourceTree = "<group>"; };
+		AB0000002C /* APILogHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APILogHandler.swift; sourceTree = "<group>"; };
+		AB0000002D /* APIHealthHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIHealthHandler.swift; sourceTree = "<group>"; };
+		AB0000002E /* UploadJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadJob.swift; sourceTree = "<group>"; };
+		AB0000002F /* UploadJobStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadJobStatus.swift; sourceTree = "<group>"; };
+		AB00000030 /* UploadQueueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadQueueStore.swift; sourceTree = "<group>"; };
+		AB00000031 /* UploadQueueManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadQueueManager.swift; sourceTree = "<group>"; };
+		AB00000032 /* RetentionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetentionManager.swift; sourceTree = "<group>"; };
+		AB00000033 /* EventRecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventRecordingManager.swift; sourceTree = "<group>"; };
+		AB00000034 /* DailyReportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReportManager.swift; sourceTree = "<group>"; };
+		AB00000035 /* TimelapseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelapseManager.swift; sourceTree = "<group>"; };
 		AC00000001 /* CameraApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CameraApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -77,6 +134,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA00000010 /* Assets.xcassets in Resources */,
+				AA00001001 /* Resources/Web in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,6 +174,11 @@
 				AB00000017 /* MediaIndexStore.swift */,
 				AB00000018 /* HealthMonitor.swift */,
 				AB00000019 /* NotificationManager.swift */,
+				AE00000010 /* Storage */,
+				AE00000011 /* WebServer */,
+				AE00000013 /* Upload */,
+				AE00000014 /* Features */,
+				AE00000020 /* Resources */,
 				AB00000005 /* Info.plist */,
 				AB00000006 /* CameraApp.entitlements */,
 				AB00000012 /* Assets.xcassets */,
@@ -123,6 +186,71 @@
 			path = CameraApp;
 			sourceTree = "<group>";
 		};
+		AE00000010 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000001A /* StorageProvider.swift */,
+				AB0000001B /* StorageProviderType.swift */,
+				AB0000001C /* StorageProviderConfig.swift */,
+				AB0000001D /* LocalFolderProvider.swift */,
+				AB0000001E /* StorageManager.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+		AE00000011 /* WebServer */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000001F /* HTTPRequest.swift */,
+				AB00000020 /* HTTPResponse.swift */,
+				AB00000021 /* HTTPConnection.swift */,
+				AB00000022 /* WebRouter.swift */,
+				AB00000023 /* WebAuthManager.swift */,
+				AB00000024 /* AuditLogManager.swift */,
+				AB00000025 /* HTTPServer.swift */,
+				AB00000026 /* WebServerManager.swift */,
+				AE00000012 /* API */,
+			);
+			path = WebServer;
+			sourceTree = "<group>";
+		};
+		AE00000012 /* API */ = {
+			isa = PBXGroup;
+			children = (
+				AB00000027 /* APIAuthHandler.swift */,
+				AB00000028 /* APIStatusHandler.swift */,
+				AB00000029 /* APICameraHandler.swift */,
+				AB0000002A /* APIMediaHandler.swift */,
+				AB0000002B /* APITaskHandler.swift */,
+				AB0000002C /* APILogHandler.swift */,
+				AB0000002D /* APIHealthHandler.swift */,
+			);
+			path = API;
+			sourceTree = "<group>";
+		};
+		AE00000013 /* Upload */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000002E /* UploadJob.swift */,
+				AB0000002F /* UploadJobStatus.swift */,
+				AB00000030 /* UploadQueueStore.swift */,
+				AB00000031 /* UploadQueueManager.swift */,
+			);
+			path = Upload;
+			sourceTree = "<group>";
+		};
+		AE00000014 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				AB00000032 /* RetentionManager.swift */,
+				AB00000033 /* EventRecordingManager.swift */,
+				AB00000034 /* DailyReportManager.swift */,
+				AB00000035 /* TimelapseManager.swift */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		AE00000020 /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = "<group>"; };
 		AE00000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -206,6 +334,34 @@
 				AA00000015 /* MediaIndexStore.swift in Sources */,
 				AA00000016 /* HealthMonitor.swift in Sources */,
 				AA00000017 /* NotificationManager.swift in Sources */,
+				AA00000018 /* StorageProvider.swift in Sources */,
+				AA00000019 /* StorageProviderType.swift in Sources */,
+				AA0000001A /* StorageProviderConfig.swift in Sources */,
+				AA0000001B /* LocalFolderProvider.swift in Sources */,
+				AA0000001C /* StorageManager.swift in Sources */,
+				AA0000001D /* HTTPRequest.swift in Sources */,
+				AA0000001E /* HTTPResponse.swift in Sources */,
+				AA0000001F /* HTTPConnection.swift in Sources */,
+				AA00000020 /* WebRouter.swift in Sources */,
+				AA00000021 /* WebAuthManager.swift in Sources */,
+				AA00000022 /* AuditLogManager.swift in Sources */,
+				AA00000023 /* HTTPServer.swift in Sources */,
+				AA00000024 /* WebServerManager.swift in Sources */,
+				AA00000025 /* APIAuthHandler.swift in Sources */,
+				AA00000026 /* APIStatusHandler.swift in Sources */,
+				AA00000027 /* APICameraHandler.swift in Sources */,
+				AA00000028 /* APIMediaHandler.swift in Sources */,
+				AA00000029 /* APITaskHandler.swift in Sources */,
+				AA0000002A /* APILogHandler.swift in Sources */,
+				AA0000002B /* APIHealthHandler.swift in Sources */,
+				AA0000002C /* UploadJob.swift in Sources */,
+				AA0000002D /* UploadJobStatus.swift in Sources */,
+				AA0000002E /* UploadQueueStore.swift in Sources */,
+				AA0000002F /* UploadQueueManager.swift in Sources */,
+				AA00000030 /* RetentionManager.swift in Sources */,
+				AA00000031 /* EventRecordingManager.swift in Sources */,
+				AA00000032 /* DailyReportManager.swift in Sources */,
+				AA00000033 /* TimelapseManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -271,14 +427,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -293,14 +449,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

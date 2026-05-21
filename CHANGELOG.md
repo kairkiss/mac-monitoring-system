@@ -1,5 +1,34 @@
 # Changelog
 
+## v2.0.0 (2026-05-21)
+
+Major release. Transforms the local camera tool into a Mac-resident camera node with web dashboard, storage providers, upload queue, cloud archival, and automated retention.
+
+### New Features
+
+- **Local Web Server**: NWListener-based HTTP server on 127.0.0.1:8765 (disabled by default); token authentication with role-based access (admin/operator/viewer); audit logging for all web operations
+- **Web Dashboard**: Responsive HTML/CSS/JS dashboard with live camera view, media library, automation management, upload queue, health monitoring, and settings
+- **REST API**: Full API for camera control, media management, task CRUD, activity logs, health status, and upload queue operations
+- **StorageProvider Abstraction**: Protocol-based storage backend system; supports Local Folder, Mounted Folder, Google Drive (OAuth + resumable upload), and WebDAV
+- **Upload Queue**: Persistent upload queue with retry, exponential backoff, progress tracking, and bandwidth limiting
+- **Retention Manager**: Automatic deletion of local originals after verified upload; configurable grace period; protects favorites and recent files
+- **Event Recording**: Motion-triggered short video clips with configurable duration
+- **Daily Report**: Automated daily summary of captures, uploads, alerts, and storage usage
+- **Timelapse**: Interval-based photo capture with AVAssetWriter video compilation
+- **Multi-User Web Access**: Three roles (admin, operator, viewer) with granular permissions
+- **Cloudflare Tunnel Guide**: Documentation for secure remote access via Cloudflare Tunnel + Cloudflare Access
+
+### Technical
+
+- Version: 2.0.0 (build 8)
+- ~40 new Swift files across WebServer/, Storage/, Upload/, Features/, Settings/ directories
+- Embedded web assets in Resources/Web/
+- Added NSLocalNetworkUsageDescription to Info.plist
+- Extended MediaIndexEntry with upload tracking fields (backward compatible)
+- Extended KeychainService with web auth, WebDAV, and Google Drive token storage
+- Extended LogCategory and HealthAlertType with new cases
+- All v1.2.3 data formats backward compatible
+
 ## v1.2.3 (2026-05-19)
 
 Final v1.2 stability release. Resolves residual issues from v1.2.2, refactors multi-camera selection to respect user preference, and improves motion detection and automation reliability.

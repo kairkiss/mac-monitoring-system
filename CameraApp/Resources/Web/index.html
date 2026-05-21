@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mac监控系统 - Dashboard</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="sidebar">
+    <div class="sidebar-header">Mac监控系统</div>
+    <a href="/" class="nav-item active">Dashboard</a>
+    <a href="/live.html" class="nav-item">Live View</a>
+    <a href="/media.html" class="nav-item">Media Library</a>
+    <a href="/tasks.html" class="nav-item">Automation</a>
+    <a href="/uploads.html" class="nav-item">Upload Queue</a>
+    <a href="/health.html" class="nav-item">Health</a>
+    <a href="/logs.html" class="nav-item">Activity Log</a>
+    <a href="/settings.html" class="nav-item">Settings</a>
+    <div class="sidebar-footer">
+        <span id="userInfo"></span>
+        <a href="#" id="logoutBtn" class="logout">Logout</a>
+    </div>
+</nav>
+<main class="content">
+    <h1>Dashboard</h1>
+    <div class="grid" id="statusGrid">
+        <div class="card" id="cameraCard">
+            <h3>Camera</h3>
+            <p id="cameraStatus">Loading...</p>
+        </div>
+        <div class="card" id="automationCard">
+            <h3>Automation</h3>
+            <p id="automationStatus">Loading...</p>
+        </div>
+        <div class="card" id="storageCard">
+            <h3>Storage</h3>
+            <p id="storageStatus">Loading...</p>
+        </div>
+        <div class="card" id="uploadCard">
+            <h3>Upload Queue</h3>
+            <p id="uploadStatus">Loading...</p>
+        </div>
+    </div>
+</main>
+<script src="/js/app.js"></script>
+<script>
+async function refreshStatus() {
+    const data = await api('/api/status');
+    if (!data) return;
+    document.getElementById('cameraStatus').textContent =
+        data.camera.isRunning ? `Running: ${data.camera.deviceName}` : 'Stopped';
+    document.getElementById('automationStatus').textContent =
+        data.automation.isEnabled ? `Enabled (${data.automation.taskCount} tasks)` : 'Disabled';
+    document.getElementById('storageStatus').textContent =
+        data.storage.provider === 'none' ? 'No provider' : data.storage.provider;
+    document.getElementById('uploadStatus').textContent =
+        `${data.uploadQueue.pending} pending`;
+}
+refreshStatus();
+setInterval(refreshStatus, 5000);
+</script>
+</body>
+</html>

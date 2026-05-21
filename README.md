@@ -1,8 +1,10 @@
 # Mac监控系统
 
-A macOS camera monitoring app with automation scheduling and Telegram push notifications.
+MacMonitor 2.0 turns the app into a local camera node with a web dashboard, storage providers, upload queue, cloud archival, and automated retention.
 
-> **v1.2.3** — Final v1.2 stability release. Fixes notification permission pop-on-launch, improves multi-camera selection to respect user preference, fixes motion detection cooldown baseline issue. See [CHANGELOG.md](CHANGELOG.md) for details.
+Mac监控系统 2.0 将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
+
+> **v2.0.0** — Major release. Adds local web server, web dashboard, storage providers, upload queue, cloud archival, event recording, daily reports, timelapse, and multi-user access. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 
@@ -11,11 +13,20 @@ A macOS camera monitoring app with automation scheduling and Telegram push notif
 - **Automation** — Schedule automatic captures: daily, weekly, countdown, or interval-based, with timeline visualization and execution history
 - **Telegram Push** — Send captured photos to your Telegram chat via Bot API
 - **Motion Detection** — Frame-diff based motion detection with configurable sensitivity; optional auto-capture and Telegram push on motion
-- **Health Monitor** — Camera disconnect detection, low disk space alerts, Telegram failure tracking
+- **Event Recording** — Motion-triggered short video clips with configurable duration
+- **Health Monitor** — Camera disconnect, low disk, upload failure, and storage provider alerts
 - **Activity Log** — JSONL-based logging with search, filter, and export
 - **Multi-Camera** — Supports multiple cameras with preferred camera persistence and graceful fallback
+- **Web Dashboard** — Browser-based control panel for remote monitoring, camera control, media browsing, and task management
+- **REST API** — Full API for camera, media, tasks, logs, health, uploads, and storage
+- **Storage Providers** — Local folder, mounted folder, Google Drive, and WebDAV backends
+- **Upload Queue** — Persistent queue with retry, progress tracking, and bandwidth limiting
+- **Retention Policy** — Automatic cleanup of local originals after verified cloud upload
+- **Daily Reports** — Automated daily summary of activity, uploads, and health
+- **Timelapse** — Interval-based photo capture compiled into video
+- **Multi-User Access** — Role-based web access (admin/operator/viewer)
 - **Menu Bar** — Runs in the background with a menu bar icon; quick capture and control panel access
-- **Bilingual UI** — Chinese and English, switchable in Settings
+- **Bilingual UI** — Chinese and English, switchable in Settings (web dashboard too)
 
 ## Screenshots
 

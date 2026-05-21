@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mac监控系统 - Health</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="sidebar">
+    <div class="sidebar-header">Mac监控系统</div>
+    <a href="/" class="nav-item">Dashboard</a>
+    <a href="/live.html" class="nav-item">Live View</a>
+    <a href="/media.html" class="nav-item">Media Library</a>
+    <a href="/tasks.html" class="nav-item">Automation</a>
+    <a href="/uploads.html" class="nav-item">Upload Queue</a>
+    <a href="/health.html" class="nav-item active">Health</a>
+    <a href="/logs.html" class="nav-item">Activity Log</a>
+    <a href="/settings.html" class="nav-item">Settings</a>
+    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout">Logout</a></div>
+</nav>
+<main class="content">
+    <h1>Health Monitor</h1>
+    <div class="grid" id="healthGrid"></div>
+    <h2 style="margin-top:24px;font-size:18px;">Recent Alerts</h2>
+    <table>
+        <thead><tr><th>Type</th><th>Message</th><th>Time</th><th>Resolved</th></tr></thead>
+        <tbody id="alertList"></tbody>
+    </table>
+</main>
+<script src="/js/app.js"></script>
+<script>
+async function loadHealth() {
+    const h = await api('/api/health');
+    if (!h) return;
+    document.getElementById('healthGrid').innerHTML = `
+        <div class="card"><h3>Monitoring</h3><p>${h.isMonitoring ? 'Active' : 'Inactive'}</p></div>
+        <div class="card"><h3>Disk Free</h3><p>${h.diskFreeMB} MB</p></div>
+        <div class="card"><h3>Telegram Failures</h3><p>${h.consecutiveTelegramFailures}</p></div>
+    `;
+    const alerts = await api('/api/health/alerts');
+    if (alerts) {
+        document.getElementById('alertList').innerHTML = alerts.alerts.map(a =>
+            `<tr><td>${a.type}</td><td>${a.message}</td><td>${a.timestamp}</td>
+            <td>${a.isResolved ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-orange">No</span>'}</td></tr>`
+        ).join('');
+    }
+}
+loadHealth();
+setInterval(loadHealth, 10000);
+</script>
+</body>
+</html>

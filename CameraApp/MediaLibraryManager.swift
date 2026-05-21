@@ -42,6 +42,38 @@ final class MediaLibraryManager: ObservableObject {
         photos.reduce(0) { $0 + $1.fileSize } + videos.reduce(0) { $0 + $1.fileSize }
     }
 
+    var photoFileNames: [String] { photos.map { $0.fileName } }
+    var videoFileNames: [String] { videos.map { $0.fileName } }
+
+    func photoURL(for fileName: String) -> URL? {
+        let url = photosDirectory.appendingPathComponent(fileName)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    func videoURL(for fileName: String) -> URL? {
+        let url = videosDirectory.appendingPathComponent(fileName)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    func thumbnailURL(for fileName: String) -> URL? {
+        // Check for a cached thumbnail file
+        let thumbDir = baseDirectory.appendingPathComponent("Thumbnails")
+        let thumbURL = thumbDir.appendingPathComponent(fileName)
+        return FileManager.default.fileExists(atPath: thumbURL.path) ? thumbURL : nil
+    }
+
+    func deleteItem(fileName: String) -> Bool {
+        if let item = photos.first(where: { $0.fileName == fileName }) {
+            deleteItem(item)
+            return true
+        }
+        if let item = videos.first(where: { $0.fileName == fileName }) {
+            deleteItem(item)
+            return true
+        }
+        return false
+    }
+
     private init() {
         thumbnailCache.totalCostLimit = 50 * 1024 * 1024
         ensureDirectoriesExist()

@@ -8,6 +8,28 @@ final class HealthMonitor: ObservableObject {
     @Published var alerts: [HealthAlert] = []
 
     private var checkTimer: Timer?
+    private var monitoringActive = false
+
+    var isMonitoring: Bool { monitoringActive }
+    var lastFrameReceived: Date? { lastFrameTime }
+    var consecutiveTelegramFailures: Int { telegramFailureCount }
+
+    var diskFreeMB: Int64 {
+        let url = MediaLibraryManager.shared.baseDirectory
+        guard let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]),
+              let capacity = values.volumeAvailableCapacityForImportantUsage else { return 0 }
+        return capacity / (1024 * 1024)
+    }
+
+    func recentAlerts(limit: Int = 50) -> [HealthAlert] {
+        Array(alerts.prefix(limit))
+    }
+
+    func recordAlert(type: HealthAlertType, message: String) {
+        let alert = HealthAlert(type: type, message: message, timestamp: Date(), isResolved: false)
+        alerts.insert(alert, at: 0)
+        if alerts.count > 200 { alerts = Array(alerts.prefix(200)) }
+    }
     private var telegramFailureCount = 0
     private var lastFrameTime: Date = Date()
     private var frameWatchdogTimer: Timer?
@@ -25,6 +47,7 @@ final class HealthMonitor: ObservableObject {
 
     func startMonitoring() {
         guard SettingsStore.shared.enableHealthMonitor else { return }
+        monitoringActive = true
         checkTimer?.invalidate()
         checkTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.performHealthCheck()
@@ -34,6 +57,7 @@ final class HealthMonitor: ObservableObject {
     }
 
     func stopMonitoring() {
+        monitoringActive = false
         checkTimer?.invalidate()
         checkTimer = nil
         frameWatchdogTimer?.invalidate()
@@ -176,6 +200,7 @@ struct HealthAlert: Identifiable {
     let type: HealthAlertType
     let message: String
     let timestamp: Date
+    var isResolved: Bool = false
 }
 
 enum HealthAlertType {
@@ -183,6 +208,9 @@ enum HealthAlertType {
     case cameraDisconnected
     case telegramFailure
     case frameAnomaly
+    case webServerError
+    case uploadFailure
+    case storageProviderError
 }
 
 // MARK: - Notification Names

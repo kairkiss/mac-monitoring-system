@@ -32,6 +32,7 @@ struct ScheduledTask: Identifiable, Codable {
     let createdAt: Date
     var nextFireTime: Date?
     var lastRunAt: Date?
+    var lastFireTime: Date? { lastRunAt }
     var lastAttemptAt: Date?
 
     init(
@@ -479,6 +480,19 @@ final class AutomationScheduler: ObservableObject {
     private func persistTasks() {
         guard let data = try? JSONEncoder().encode(tasks) else { return }
         try? data.write(to: tasksFileURL)
+    }
+
+    func saveAllTasks() {
+        persistTasks()
+    }
+
+    func rescheduleAll() {
+        for task in tasks {
+            cancelTimer(for: task.id)
+            if task.isEnabled && isAutomationEnabled {
+                scheduleTimer(for: task)
+            }
+        }
     }
 
     private func loadTasks() -> [ScheduledTask] {

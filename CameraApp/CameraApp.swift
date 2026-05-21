@@ -103,6 +103,8 @@ struct CameraApp: App {
     @StateObject private var mediaLibrary = MediaLibraryManager.shared
     @StateObject private var telegramService = TelegramService.shared
     @StateObject private var automationScheduler = AutomationScheduler.shared
+    @StateObject private var storageManager = StorageManager.shared
+    @StateObject private var webServerManager = WebServerManager.shared
 
     var body: some Scene {
         WindowGroup {
@@ -112,13 +114,20 @@ struct CameraApp: App {
                 .environmentObject(mediaLibrary)
                 .environmentObject(telegramService)
                 .environmentObject(automationScheduler)
+                .environmentObject(storageManager)
+                .environmentObject(webServerManager)
                 .onAppear {
                     KeychainService.shared.migrateTokenIfNeeded()
+                    storageManager.configure()
+                    webServerManager.start()
                     mediaLibrary.scanLibrary()
                     automationScheduler.restoreAllTasks()
                     setupAutomationCapture()
                     setupMotionDetection()
                     HealthMonitor.shared.startMonitoring()
+                    UploadQueueManager.shared.startProcessing()
+                    RetentionManager.shared.start()
+                    DailyReportManager.shared.start()
                     if settingsStore.autoCleanEnabled && settingsStore.keepLastDays > 0 {
                         _ = mediaLibrary.cleanOldFiles(keepDays: settingsStore.keepLastDays)
                     }
@@ -135,6 +144,8 @@ struct CameraApp: App {
                 .environmentObject(mediaLibrary)
                 .environmentObject(telegramService)
                 .environmentObject(automationScheduler)
+                .environmentObject(storageManager)
+                .environmentObject(webServerManager)
         } label: {
             Image(systemName: automationScheduler.isAutomationEnabled ? "camera.metering.spot" : "camera")
         }
@@ -163,6 +174,10 @@ struct CameraApp: App {
         MotionDetector.shared.onMotionDetected = { [weak settingsStore] in
             guard let settingsStore else { return }
             let camera = CameraManager.shared
+
+            // Event recording on motion
+            EventRecordingManager.shared.handleMotionDetected()
+
             if settingsStore.captureOnMotion {
                 camera.capturePhoto { result in
                     if case .success(let url) = result {

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mac监控系统 - Settings</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="sidebar">
+    <div class="sidebar-header">Mac监控系统</div>
+    <a href="/" class="nav-item">Dashboard</a>
+    <a href="/live.html" class="nav-item">Live View</a>
+    <a href="/media.html" class="nav-item">Media Library</a>
+    <a href="/tasks.html" class="nav-item">Automation</a>
+    <a href="/uploads.html" class="nav-item">Upload Queue</a>
+    <a href="/health.html" class="nav-item">Health</a>
+    <a href="/logs.html" class="nav-item">Activity Log</a>
+    <a href="/settings.html" class="nav-item active">Settings</a>
+    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout">Logout</a></div>
+</nav>
+<main class="content">
+    <h1>Settings</h1>
+    <p style="color:var(--fg2);margin-bottom:16px;">Settings are managed in the macOS app. Web settings management coming soon.</p>
+    <div class="card">
+        <h3>Web Users</h3>
+        <table>
+            <thead><tr><th>Username</th><th>Role</th><th>Enabled</th></tr></thead>
+            <tbody id="userList"></tbody>
+        </table>
+    </div>
+</main>
+<script src="/js/app.js"></script>
+<script>
+async function loadUsers() {
+    const data = await api('/api/auth/users');
+    if (!data) return;
+    document.getElementById('userList').innerHTML = data.users.map(u =>
+        `<tr><td>${u.username}</td><td>${u.role}</td><td>${u.enabled ? 'Yes' : 'No'}</td></tr>`
+    ).join('');
+}
+loadUsers();
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mac监控系统 - Automation</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="sidebar">
+    <div class="sidebar-header">Mac监控系统</div>
+    <a href="/" class="nav-item">Dashboard</a>
+    <a href="/live.html" class="nav-item">Live View</a>
+    <a href="/media.html" class="nav-item">Media Library</a>
+    <a href="/tasks.html" class="nav-item active">Automation</a>
+    <a href="/uploads.html" class="nav-item">Upload Queue</a>
+    <a href="/health.html" class="nav-item">Health</a>
+    <a href="/logs.html" class="nav-item">Activity Log</a>
+    <a href="/settings.html" class="nav-item">Settings</a>
+    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout">Logout</a></div>
+</nav>
+<main class="content">
+    <h1>Automation Tasks</h1>
+    <table>
+        <thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Next Fire</th><th>Actions</th></tr></thead>
+        <tbody id="taskList"></tbody>
+    </table>
+    <h2 style="margin-top:24px;font-size:18px;">Execution History</h2>
+    <table>
+        <thead><tr><th>Task</th><th>Time</th><th>Result</th><th>Detail</th></tr></thead>
+        <tbody id="historyList"></tbody>
+    </table>
+</main>
+<script src="/js/app.js"></script>
+<script>
+async function loadTasks() {
+    const data = await api('/api/tasks');
+    if (!data) return;
+    document.getElementById('taskList').innerHTML = data.tasks.map(t =>
+        `<tr>
+            <td>${t.name}</td><td>${t.type}</td>
+            <td>${t.isEnabled ? '<span class="badge badge-green">ON</span>' : '<span class="badge badge-red">OFF</span>'}</td>
+            <td>${t.nextFireTime || '-'}</td>
+            <td><button class="secondary" onclick="toggleTask('${t.id}')">Toggle</button></td>
+        </tr>`
+    ).join('');
+    const hist = await api('/api/tasks/history');
+    if (hist) {
+        document.getElementById('historyList').innerHTML = hist.history.map(h =>
+            `<tr><td>${h.taskName}</td><td>${h.executedAt}</td>
+            <td>${h.success ? '<span class="badge badge-green">OK</span>' : '<span class="badge badge-red">FAIL</span>'}</td>
+            <td>${h.detail}</td></tr>`
+        ).join('');
+    }
+}
+async function toggleTask(id) { await api(`/api/tasks/${id}/toggle`, { method: 'POST', body: {} }); loadTasks(); }
+loadTasks();
+</script>
+</body>
+</html>

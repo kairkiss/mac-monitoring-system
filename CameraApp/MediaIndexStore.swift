@@ -5,6 +5,17 @@ enum MediaSource: String, Codable {
     case automation
     case motion
     case imported
+    case event
+}
+
+enum UploadEntryStatus: String, Codable {
+    case notQueued
+    case queued
+    case uploading
+    case completed
+    case verified
+    case failed
+    case localDeleted
 }
 
 struct MediaIndexEntry: Codable {
@@ -12,6 +23,26 @@ struct MediaIndexEntry: Codable {
     var source: MediaSource = .manual
     var telegramSent: Bool = false
     var tags: [String] = []
+
+    // v2.0.0 upload tracking
+    var uploadStatus: UploadEntryStatus = .notQueued
+    var uploadProvider: String?
+    var uploadRemotePath: String?
+    var uploadDate: Date?
+    var uploadJobID: String?
+    var uploadAttempts: Int = 0
+    var uploadLastError: String?
+    var remoteFileID: String?
+    var remoteURL: String?
+    var verified: Bool = false
+    var verifiedAt: Date?
+    var protected: Bool = false
+    var localOriginalExists: Bool = true
+    var localDeletedAt: Date?
+    var thumbnailPath: String?
+    var cameraName: String?
+    var duration: TimeInterval?
+    var fileSize: Int64 = 0
 }
 
 final class MediaIndexStore: ObservableObject {
@@ -86,6 +117,67 @@ final class MediaIndexStore: ObservableObject {
 
     func telegramSentItems() -> [String] {
         entries.filter { $0.value.telegramSent }.map { $0.key }
+    }
+
+    // MARK: - Upload Tracking
+
+    func setUploadStatus(_ status: UploadEntryStatus, for fileName: String, provider: String? = nil, remotePath: String? = nil, jobID: String? = nil) {
+        var e = entry(for: fileName)
+        e.uploadStatus = status
+        if let provider { e.uploadProvider = provider }
+        if let remotePath { e.uploadRemotePath = remotePath }
+        if let jobID { e.uploadJobID = jobID }
+        if status == .completed || status == .verified {
+            e.uploadDate = Date()
+        }
+        entries[fileName] = e
+        persist()
+    }
+
+    func markUploadVerified(_ fileName: String, remoteFileID: String?, remoteURL: String?) {
+        var e = entry(for: fileName)
+        e.uploadStatus = .verified
+        e.verified = true
+        e.verifiedAt = Date()
+        if let remoteFileID { e.remoteFileID = remoteFileID }
+        if let remoteURL { e.remoteURL = remoteURL }
+        entries[fileName] = e
+        persist()
+    }
+
+    func markLocalDeleted(_ fileName: String) {
+        var e = entry(for: fileName)
+        e.localOriginalExists = false
+        e.localDeletedAt = Date()
+        e.uploadStatus = .localDeleted
+        entries[fileName] = e
+        persist()
+    }
+
+    func setProtected(_ protected: Bool, for fileName: String) {
+        var e = entry(for: fileName)
+        e.protected = protected
+        entries[fileName] = e
+        persist()
+    }
+
+    func setThumbnailPath(_ path: String, for fileName: String) {
+        var e = entry(for: fileName)
+        e.thumbnailPath = path
+        entries[fileName] = e
+        persist()
+    }
+
+    func pendingUploadItems() -> [String] {
+        entries.filter { $0.value.uploadStatus == .queued || $0.value.uploadStatus == .uploading }.map { $0.key }
+    }
+
+    func verifiedItems() -> [String] {
+        entries.filter { $0.value.verified }.map { $0.key }
+    }
+
+    func localDeletedItems() -> [String] {
+        entries.filter { !$0.value.localOriginalExists }.map { $0.key }
     }
 
     // MARK: - Cleanup

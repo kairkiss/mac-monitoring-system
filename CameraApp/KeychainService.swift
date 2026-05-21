@@ -22,6 +22,9 @@ final class KeychainService {
 
     let service = "com.kairkiss.MacMonitor"
     let tokenAccount = "telegramBotToken"
+    let webAuthSecretAccount = "webAuthSecret"
+    let webdavPasswordAccount = "webdavPassword"
+    let googleDriveTokensAccount = "googleDriveOAuthTokens"
 
     private init() {}
 
@@ -108,9 +111,7 @@ final class KeychainService {
     // MARK: - Token Access
 
     var telegramBotToken: String {
-        get {
-            (try? read(service: service, account: tokenAccount)) ?? ""
-        }
+        get { (try? read(service: service, account: tokenAccount)) ?? "" }
         set {
             if newValue.isEmpty {
                 try? delete(service: service, account: tokenAccount)
@@ -120,6 +121,39 @@ final class KeychainService {
                 } catch {
                     ActivityLogManager.shared.error(.security, "Failed to save token to Keychain", detail: error.localizedDescription)
                 }
+            }
+        }
+    }
+
+    var webAuthSecret: String {
+        get { (try? read(service: service, account: webAuthSecretAccount)) ?? "" }
+        set {
+            if newValue.isEmpty {
+                try? delete(service: service, account: webAuthSecretAccount)
+            } else {
+                try? save(newValue, service: service, account: webAuthSecretAccount)
+            }
+        }
+    }
+
+    var webdavPassword: String {
+        get { (try? read(service: service, account: webdavPasswordAccount)) ?? "" }
+        set {
+            if newValue.isEmpty {
+                try? delete(service: service, account: webdavPasswordAccount)
+            } else {
+                try? save(newValue, service: service, account: webdavPasswordAccount)
+            }
+        }
+    }
+
+    var googleDriveTokens: String {
+        get { (try? read(service: service, account: googleDriveTokensAccount)) ?? "" }
+        set {
+            if newValue.isEmpty {
+                try? delete(service: service, account: googleDriveTokensAccount)
+            } else {
+                try? save(newValue, service: service, account: googleDriveTokensAccount)
             }
         }
     }
