@@ -12,16 +12,20 @@
 }
 .detail-card {
     background: var(--bg2); border: 1px solid var(--bg3); border-radius: 12px;
-    width: 90vw; max-width: 800px; max-height: 90vh; overflow: auto; padding: 0;
+    width: 90vw; max-width: 800px; max-height: 90vh; overflow: auto; position: relative;
 }
-.detail-card img { max-width: 100%; display: block; border-radius: 12px 12px 0 0; }
+.detail-card .preview-area { min-height: 200px; display: flex; align-items: center; justify-content: center; background: #000; border-radius: 12px 12px 0 0; }
+.detail-card .preview-area img, .detail-card .preview-area video { max-width: 100%; max-height: 60vh; display: block; border-radius: 12px 12px 0 0; }
 .detail-body { padding: 16px 20px; }
 .detail-body h2 { font-size: 14px; word-break: break-all; margin-bottom: 12px; }
 .detail-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color: var(--fg2); margin-bottom: 16px; }
 .detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .detail-actions button { font-size: 13px; padding: 6px 14px; }
-.close-btn { position: absolute; top: 12px; right: 16px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer; }
+.close-btn { position: absolute; top: 12px; right: 16px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer; z-index: 2; }
 .archived-badge { background: rgba(255,152,0,0.15); color: var(--orange); font-size: 11px; padding: 2px 6px; border-radius: 8px; margin-left: 6px; }
+.thumb-placeholder { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; color: var(--fg2); font-size: 12px; background: var(--bg3); }
+.media-item img { width: 100%; height: 100%; object-fit: cover; }
+.media-item img.loading { display: none; }
 </style>
 </head>
 <body>
@@ -56,6 +60,30 @@
 <script>
 let currentPage = 1;
 const perPage = 30;
+const blobURLs = new Set();
+
+function revokeBlobURLs() {
+    for (const u of blobURLs) URL.revokeObjectURL(u);
+    blobURLs.clear();
+}
+
+async function authFetch(url) {
+    const token = getToken();
+    const res = await fetch(url, {
+        headers: { 'Authorization': 'Bearer ' + token },
+        cache: 'no-cache'
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res;
+}
+
+async function fetchBlobURL(url) {
+    const res = await authFetch(url);
+    const blob = await res.blob();
+    const blobURL = URL.createObjectURL(blob);
+    blobURLs.add(blobURL);
+    return blobURL;
+}
 
 function buildURL() {
     let url = '/api/media?page=' + currentPage + '&perPage=' + perPage;
@@ -73,6 +101,7 @@ function buildURL() {
 }
 
 async function loadMedia() {
+    revokeBlobURLs();
     const data = await api(buildURL());
     if (!data) return;
     document.getElementById('totalCount').textContent = '(' + data.total + ')';
@@ -87,11 +116,37 @@ async function loadMedia() {
             if (item.protected) badges.push('<span style="color:var(--accent);">&#128274;</span>');
             if (archived) badges.push('<span class="archived-badge">Archived</span>');
             return '<div class="media-item" onclick="showDetail(\'' + item.fileName + '\')">' +
-                '<img src="/api/media/' + item.fileName + '/thumbnail" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+                '<div class="thumb-placeholder">No preview</div>' +
+                '<img class="loading" data-file="' + item.fileName + '" alt="">' +
                 '<div class="overlay"><span>' + item.type + '</span> ' + badges.join(' ') + '</div></div>';
         }).join('');
+        loadVisibleThumbnails(data.items);
     }
     renderPagination(data.page, data.totalPages);
+}
+
+async function loadVisibleThumbnails(items) {
+    const concurrency = 4;
+    let idx = 0;
+    async function next() {
+        while (idx < items.length) {
+            const item = items[idx++];
+            const img = document.querySelector('img[data-file="' + item.fileName + '"]');
+            if (!img) continue;
+            try {
+                const url = await fetchBlobURL('/api/media/' + encodeURIComponent(item.fileName) + '/thumbnail');
+                img.src = url;
+                img.classList.remove('loading');
+            } catch {
+                img.style.display = 'none';
+                const ph = img.parentElement.querySelector('.thumb-placeholder');
+                if (ph) ph.style.display = 'flex';
+            }
+        }
+    }
+    const workers = [];
+    for (let i = 0; i < concurrency; i++) workers.push(next());
+    await Promise.all(workers);
 }
 
 function renderPagination(page, totalPages) {
@@ -111,6 +166,7 @@ async function showDetail(fileName) {
     const archived = !data.localOriginalExists && data.verified;
     const statusColors = { notQueued:'var(--fg2)', queued:'var(--accent)', uploading:'var(--orange)', completed:'var(--green)', failed:'var(--red)', retrying:'var(--orange)' };
     const statusColor = statusColors[data.uploadStatus] || 'var(--fg2)';
+
     let actions = '';
     if (data.localOriginalExists) {
         actions += '<button onclick="downloadFile(\'' + fileName + '\')">Download</button>';
@@ -123,10 +179,13 @@ async function showDetail(fileName) {
     if (!data.protected) {
         actions += '<button class="danger" onclick="deleteMedia(\'' + fileName + '\')">Delete</button>';
     }
+
+    const previewHTML = '<div class="preview-area" id="detailPreview"><span style="color:var(--fg2);">Loading preview...</span></div>';
     const modal = document.getElementById('detailModal');
     modal.innerHTML = '<div class="detail-overlay" onclick="closeDetail(event)">' +
         '<div class="detail-card" onclick="event.stopPropagation()">' +
-        (data.localOriginalExists ? '<img src="/api/media/' + fileName + '/file" alt="">' : '<div style="padding:60px;text-align:center;color:var(--fg2);">Original file not locally available</div>') +
+        '<button class="close-btn" onclick="document.getElementById(\'detailModal\').innerHTML=\'\'">&times;</button>' +
+        previewHTML +
         '<div class="detail-body">' +
         '<h2>' + fileName + (archived ? ' <span class="archived-badge">Archived</span>' : '') + '</h2>' +
         '<div class="detail-meta">' +
@@ -136,12 +195,53 @@ async function showDetail(fileName) {
         '<span>Status: <span style="color:' + statusColor + ';">' + data.uploadStatus + '</span></span>' +
         '<span>Provider: ' + (data.uploadProvider || '-') + '</span>' +
         '<span>Verified: ' + (data.verified ? 'Yes' : 'No') + '</span>' +
-        (data.remoteURL ? '<span style="grid-column:span 2;word-break:break-all;">Remote: ' + data.remoteURL + '</span>' : '') +
+        (data.remoteURL ? '<span style="grid-column:span 2;word-break:break-all;">Remote: <a href="' + data.remoteURL + '" target="_blank" style="color:var(--accent);">' + data.remoteURL + '</a></span>' : '') +
         (data.uploadDate ? '<span>Uploaded: ' + new Date(data.uploadDate).toLocaleString() + '</span>' : '') +
         (data.localDeletedAt ? '<span>Local deleted: ' + new Date(data.localDeletedAt).toLocaleString() + '</span>' : '') +
         '</div>' +
         '<div class="detail-actions">' + actions + '</div>' +
         '</div></div>';
+
+    loadDetailPreview(fileName, data);
+}
+
+async function loadDetailPreview(fileName, data) {
+    const el = document.getElementById('detailPreview');
+    if (!el) return;
+
+    if (!data.localOriginalExists) {
+        el.innerHTML = '<div style="padding:60px 20px;text-align:center;color:var(--fg2);">' +
+            '<p style="margin-bottom:8px;">Original file is archived / 本地原文件已归档</p>' +
+            (data.remoteURL ? '<a href="' + data.remoteURL + '" target="_blank" style="color:var(--accent);">Open Remote</a>' : '') +
+            '</div>';
+        return;
+    }
+
+    const maxPreviewBytes = 50 * 1024 * 1024;
+    const fileSize = data.fileSize || 0;
+
+    try {
+        if (data.type === 'photo') {
+            const url = await fetchBlobURL('/api/media/' + encodeURIComponent(fileName) + '/file');
+            el.innerHTML = '<img src="' + url + '" alt="' + fileName + '">';
+        } else if (data.type === 'video') {
+            if (fileSize > maxPreviewBytes) {
+                // Large video: show thumbnail instead
+                try {
+                    const thumbURL = await fetchBlobURL('/api/media/' + encodeURIComponent(fileName) + '/thumbnail');
+                    el.innerHTML = '<img src="' + thumbURL + '" alt="' + fileName + '" style="max-height:400px;">' +
+                        '<div style="padding:12px;text-align:center;color:var(--fg2);">Large video preview disabled (' + formatSize(fileSize) + '). Use Download.</div>';
+                } catch {
+                    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--fg2);">Large video (' + formatSize(fileSize) + '). Preview disabled.</div>';
+                }
+            } else {
+                const url = await fetchBlobURL('/api/media/' + encodeURIComponent(fileName) + '/file');
+                el.innerHTML = '<video controls src="' + url + '" style="max-width:100%;max-height:60vh;"></video>';
+            }
+        }
+    } catch (e) {
+        el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--red);">Preview failed: ' + e.message + '</div>';
+    }
 }
 
 function closeDetail(e) {
@@ -149,11 +249,20 @@ function closeDetail(e) {
 }
 
 async function downloadFile(fileName) {
-    const token = getToken();
-    const a = document.createElement('a');
-    a.href = '/api/media/' + encodeURIComponent(fileName) + '/file?token=' + token;
-    a.download = fileName;
-    a.click();
+    try {
+        const res = await authFetch('/api/media/' + encodeURIComponent(fileName) + '/file');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+        toast('Download failed: ' + e.message, 'error');
+    }
 }
 
 async function toggleFav(fileName) {

@@ -19,9 +19,10 @@ final class RetentionManager {
         timer = nil
     }
 
-    func runCleanup() {
+    @discardableResult
+    func runCleanup() -> Int {
         let settings = SettingsStore.shared
-        guard settings.retentionDeleteAfterUpload else { return }
+        guard settings.retentionDeleteAfterUpload else { return 0 }
 
         let index = MediaIndexStore.shared
         let media = MediaLibraryManager.shared
@@ -35,6 +36,9 @@ final class RetentionManager {
 
             // Protect favorites if configured
             if settings.retentionProtectFavorites && entry.isFavorite { continue }
+
+            // Protect protected items
+            if entry.protected { continue }
 
             // Protect recent files
             if let uploadDate = entry.uploadDate, now.timeIntervalSince(uploadDate) < graceHours { continue }
@@ -52,6 +56,9 @@ final class RetentionManager {
 
         if deleted > 0 {
             ActivityLogManager.shared.info(.retention, "Cleaned \(deleted) local originals after verified upload")
+        } else {
+            ActivityLogManager.shared.info(.retention, "Manual cleanup: no eligible files")
         }
+        return deleted
     }
 }

@@ -1,5 +1,27 @@
 # Changelog
 
+## v2.1.1 (2026-05-22)
+
+Web Media Auth Hotfix — fixes 401 errors on thumbnails, previews, and downloads.
+
+### Fixes
+
+- Fixed Web Media Library thumbnails failing with 401 (now uses fetch + Authorization header)
+- Fixed media detail preview failing with 401 (now uses fetch + Authorization header)
+- Fixed media download to use authenticated fetch instead of insecure token query string
+- Added large-file guard for web media file endpoint (> 200MB returns 413)
+- Improved Content-Type detection for media file downloads
+- Added Retention "Run Cleanup Now" button in Settings
+- Retention cleanup now also protects `protected` items
+- Corrected README wording: upload bandwidth limiting is planned, not implemented
+
+### Technical
+
+- Version: 2.1.1
+- Build: 12
+- No data migration required
+- No existing user data is deleted
+
 ## v2.1.0 (2026-05-21)
 
 Web Usability Release — makes web features truly usable with real camera snapshots, complete media library, and improved upload chain.

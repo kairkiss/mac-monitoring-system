@@ -129,33 +129,37 @@ struct APIMediaHandler {
             guard !fileName.isEmpty else { return HTTPResponse.error("Missing id") }
 
             let media = MediaLibraryManager.shared
-            if let url = media.photoURL(for: fileName) {
-                guard let data = try? Data(contentsOf: url) else {
-                    return HTTPResponse.error("File not found", status: 404)
-                }
-                return HTTPResponse(
-                    status: 200, statusText: "OK",
-                    headers: [
-                        "Content-Type": "image/jpeg",
-                        "Content-Disposition": "attachment; filename=\"\(fileName)\""
-                    ],
-                    body: data
-                )
+            let fm = FileManager.default
+
+            // Find file URL
+            let fileURL: URL? = media.photoURL(for: fileName) ?? media.videoURL(for: fileName)
+            guard let url = fileURL, fm.fileExists(atPath: url.path) else {
+                return HTTPResponse.error("File not found or archived", status: 404)
             }
-            if let url = media.videoURL(for: fileName) {
-                guard let data = try? Data(contentsOf: url) else {
-                    return HTTPResponse.error("File not found", status: 404)
-                }
-                return HTTPResponse(
-                    status: 200, statusText: "OK",
-                    headers: [
-                        "Content-Type": "video/mp4",
-                        "Content-Disposition": "attachment; filename=\"\(fileName)\""
-                    ],
-                    body: data
-                )
+
+            // Size guard: reject files > 200MB to protect server memory
+            let maxBytes: Int64 = 200 * 1024 * 1024
+            let attrs = try? fm.attributesOfItem(atPath: url.path)
+            let fileSize = (attrs?[.size] as? Int64) ?? 0
+            if fileSize > maxBytes {
+                ActivityLogManager.shared.warning(.webServer, "Rejected large file download: \(fileName) (\(fileSize) bytes)")
+                return HTTPResponse.error("File too large for web download (\(fileSize / 1024 / 1024)MB). Large file streaming is planned.", status: 413)
             }
-            return HTTPResponse.error("File not found or archived", status: 404)
+
+            guard let data = try? Data(contentsOf: url) else {
+                return HTTPResponse.error("Failed to read file", status: 500)
+            }
+
+            let contentType = mimeType(for: fileName)
+            return HTTPResponse(
+                status: 200, statusText: "OK",
+                headers: [
+                    "Content-Type": contentType,
+                    "Content-Length": "\(data.count)",
+                    "Content-Disposition": "attachment; filename=\"\(fileName)\""
+                ],
+                body: data
+            )
         }
 
         // Get thumbnail
@@ -251,5 +255,21 @@ struct APIMediaHandler {
         let safe = (name as NSString).lastPathComponent
         if safe.contains("..") || safe.isEmpty { return "" }
         return safe
+    }
+
+    /// MIME type from file extension
+    private static func mimeType(for fileName: String) -> String {
+        let ext = (fileName as NSString).pathExtension.lowercased()
+        switch ext {
+        case "jpg", "jpeg": return "image/jpeg"
+        case "png": return "image/png"
+        case "gif": return "image/gif"
+        case "heic": return "image/heic"
+        case "mp4": return "video/mp4"
+        case "mov": return "video/quicktime"
+        case "m4v": return "video/x-m4v"
+        case "avi": return "video/x-msvideo"
+        default: return "application/octet-stream"
+        }
     }
 }

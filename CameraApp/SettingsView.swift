@@ -612,6 +612,19 @@ struct SettingsView: View {
                         Text(Strings.protectFavorites)
                     }
                     .padding(.leading, 32)
+
+                    Button("Run Cleanup Now / 立即执行清理") {
+                        let count = RetentionManager.shared.runCleanup()
+                        cleanResult = count
+                    }
+                    .padding(.leading, 32)
+
+                    if let result = cleanResult {
+                        Text("Cleaned \(result) local original(s)")
+                            .font(.caption)
+                            .foregroundStyle(result > 0 ? .orange : .secondary)
+                            .padding(.leading, 32)
+                    }
                 }
             } header: {
                 Label(Strings.retentionPolicy, systemImage: "trash.slash")
@@ -742,7 +755,7 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", "2.1.0")
+                aboutRow("Version", "2.1.1")
                 aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")
