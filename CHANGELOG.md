@@ -6,6 +6,7 @@ Web Media Auth Hotfix — fixes 401 errors on thumbnails, previews, and download
 
 ### Fixes
 
+- **Fixed web server not serving static files** — Resources folder was nested as `Resources/Resources/Web/` in app bundle; server now checks both paths
 - Fixed Web Media Library thumbnails failing with 401 (now uses fetch + Authorization header)
 - Fixed media detail preview failing with 401 (now uses fetch + Authorization header)
 - Fixed media download to use authenticated fetch instead of insecure token query string
@@ -13,6 +14,7 @@ Web Media Auth Hotfix — fixes 401 errors on thumbnails, previews, and download
 - Improved Content-Type detection for media file downloads
 - Added Retention "Run Cleanup Now" button in Settings
 - Retention cleanup now also protects `protected` items
+- Fixed login page hardcoded version string
 - Corrected README wording: upload bandwidth limiting is planned, not implemented
 
 ### Technical

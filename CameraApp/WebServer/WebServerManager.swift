@@ -21,7 +21,19 @@ final class WebServerManager: ObservableObject {
         let bindAddr = settings.webServerBindAddress
 
         // Configure static file root
-        if let webRoot = Bundle.main.resourceURL?.appendingPathComponent("Web") {
+        // Web assets are at Contents/Resources/Resources/Web/ (Resources folder is copied as folder reference)
+        let fm = FileManager.default
+        let directPath = Bundle.main.resourceURL?.appendingPathComponent("Web")
+        let nestedPath = Bundle.main.resourceURL?.appendingPathComponent("Resources/Web")
+        let webRoot: URL?
+        if let nested = nestedPath, fm.fileExists(atPath: nested.path) {
+            webRoot = nested
+        } else if let direct = directPath, fm.fileExists(atPath: direct.path) {
+            webRoot = direct
+        } else {
+            webRoot = nil
+        }
+        if let webRoot {
             router.setStaticFileRoot(webRoot)
         }
 
