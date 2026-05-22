@@ -84,8 +84,10 @@ Enable Cloudflare Access to add an authentication layer before the tunnel:
 
 ### Additional Security
 
+- **Even behind Cloudflare Access, keep the app's web login enabled** — use double protection: Cloudflare Access + app-level authentication
 - **Keep the web server bound to 127.0.0.1** (default) — never bind to 0.0.0.0
-- **Use strong passwords** for web admin accounts (v2.0.1 uses salted SHA256)
+- **Use strong passwords** for web admin accounts (salted SHA256, customizable since v2.2.0)
+- **Change the default admin username** — customize via Settings > Web Server or the web Settings page
 - **Enable Cloudflare's WAF** rules for your domain
 - **Monitor access logs** in the app's Activity Log and Cloudflare's analytics
 - **Rotate passwords** periodically

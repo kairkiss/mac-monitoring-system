@@ -3,28 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mac监控系统 - Live View</title>
+<title data-i18n="macMonitorSystem">Mac监控系统 - Live View</title>
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <nav class="sidebar">
-    <div class="sidebar-header">Mac监控系统</div>
-    <a href="/" class="nav-item">Dashboard</a>
-    <a href="/live.html" class="nav-item active">Live View</a>
-    <a href="/media.html" class="nav-item">Media Library</a>
-    <a href="/tasks.html" class="nav-item">Automation</a>
-    <a href="/uploads.html" class="nav-item">Upload Queue</a>
-    <a href="/health.html" class="nav-item">Health</a>
-    <a href="/logs.html" class="nav-item">Activity Log</a>
-    <a href="/settings.html" class="nav-item">Settings</a>
-    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout">Logout</a></div>
+    <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
+    <a href="/" class="nav-item" data-i18n="dashboard">Dashboard</a>
+    <a href="/live.html" class="nav-item active" data-i18n="liveView">Live View</a>
+    <a href="/media.html" class="nav-item" data-i18n="mediaLibrary">Media Library</a>
+    <a href="/tasks.html" class="nav-item" data-i18n="automation">Automation</a>
+    <a href="/uploads.html" class="nav-item" data-i18n="uploadQueue">Upload Queue</a>
+    <a href="/health.html" class="nav-item" data-i18n="health">Health</a>
+    <a href="/logs.html" class="nav-item" data-i18n="activityLog">Activity Log</a>
+    <a href="/settings.html" class="nav-item" data-i18n="settings">Settings</a>
+    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
 </nav>
 <main class="content">
-    <h1>Live View</h1>
+    <h1 data-i18n="liveView">Live View</h1>
     <div class="card" style="max-width:640px;padding:16px;">
         <div id="snapshotWrap" style="text-align:center;min-height:360px;display:flex;align-items:center;justify-content:center;">
             <img id="snapshot" src="" alt="Live snapshot" style="max-width:100%;border-radius:var(--radius);display:none;">
-            <p id="snapshotPlaceholder" style="color:var(--fg2);">Connecting to camera...</p>
+            <p id="snapshotPlaceholder" style="color:var(--fg2);" data-i18n="connectingCamera">Connecting to camera...</p>
         </div>
         <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
             <span id="deviceName" style="color:var(--fg2);font-size:13px;"></span>
@@ -32,13 +32,18 @@
         </div>
     </div>
     <div style="margin-top:16px;display:flex;gap:8px;align-items:center;">
-        <button id="captureBtn">Capture Photo</button>
-        <button id="recordBtn" style="background:#e53935;">Start Recording</button>
+        <button id="captureBtn" data-i18n="capturePhoto">Capture Photo</button>
+        <button id="recordBtn" style="background:#e53935;" data-i18n="startRecording">Start Recording</button>
         <span id="recordStatus" style="color:#a0a0a0;font-size:13px;"></span>
     </div>
 </main>
+<script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.title = t('macMonitorSystem') + ' - ' + t('liveView');
+});
+
 let isRecording = false;
 let refreshInterval = 2000;
 let timer = null;
@@ -80,7 +85,7 @@ async function refreshSnapshot() {
     } catch (e) {
         consecutiveErrors++;
         if (consecutiveErrors >= 3) {
-            placeholder.textContent = 'Camera not available';
+            placeholder.textContent = t('cameraNotAvailable');
             placeholder.style.display = 'block';
             img.style.display = 'none';
             // Slow down polling on persistent errors
@@ -101,12 +106,12 @@ async function refreshStatus() {
         const btn = document.getElementById('recordBtn');
         const status = document.getElementById('recordStatus');
         if (isRecording) {
-            btn.textContent = 'Stop Recording';
+            btn.textContent = t('stopRecording');
             btn.style.background = '#666';
-            status.textContent = 'Recording...';
+            status.textContent = t('recording') + '...';
             status.style.color = '#f44336';
         } else {
-            btn.textContent = 'Start Recording';
+            btn.textContent = t('startRecording');
             btn.style.background = '#e53935';
             status.textContent = '';
         }
@@ -116,7 +121,7 @@ async function refreshStatus() {
 document.getElementById('captureBtn').addEventListener('click', async () => {
     try {
         const data = await api('/api/camera/capture', { method: 'POST', body: {} });
-        if (data) toast('Captured: ' + data.fileName);
+        if (data) toast(t('captured') + ': ' + data.fileName);
     } catch (e) {}
 });
 
@@ -125,7 +130,7 @@ document.getElementById('recordBtn').addEventListener('click', async () => {
     try {
         const data = await api(url, { method: 'POST', body: {} });
         if (data) {
-            toast(data.status === 'recording' ? 'Recording started' : 'Recording saved: ' + data.fileName);
+            toast(data.status === 'recording' ? t('recordingStarted') : t('recordingSaved') + ': ' + data.fileName);
             refreshStatus();
         }
     } catch (e) {}

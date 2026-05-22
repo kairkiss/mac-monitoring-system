@@ -3,22 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mac监控系统 - Login</title>
+<title data-i18n="macMonitorSystem">Mac监控系统 - Login</title>
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="login-page">
 <div class="login-card">
-    <h1>Mac监控系统</h1>
-    <p class="subtitle">Web Dashboard</p>
+    <h1 data-i18n="macMonitorSystem">Mac监控系统</h1>
+    <p class="subtitle" data-i18n="webDashboard">Web Dashboard</p>
     <form id="loginForm">
-        <input type="text" id="username" placeholder="Username" autocomplete="username" required>
-        <input type="password" id="password" placeholder="Password" autocomplete="current-password" required>
-        <button type="submit">Login</button>
+        <input type="text" id="username" placeholder="Username" data-i18n="username" autocomplete="username" required>
+        <input type="password" id="password" placeholder="Password" data-i18n="password" autocomplete="current-password" required>
+        <button type="submit" data-i18n="login">Login</button>
         <p id="error" class="error-msg"></p>
     </form>
 </div>
+<script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.title = t('macMonitorSystem') + ' - ' + t('login');
+});
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('username').value;
@@ -38,10 +42,10 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             localStorage.setItem('role', data.role);
             window.location.href = '/';
         } else {
-            errorEl.textContent = data.error || 'Login failed';
+            errorEl.textContent = data.error || t('loginFailed');
         }
     } catch (err) {
-        errorEl.textContent = 'Connection error';
+        errorEl.textContent = t('connectionError');
     }
 });
 </script>

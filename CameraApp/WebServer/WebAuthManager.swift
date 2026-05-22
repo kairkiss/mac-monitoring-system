@@ -214,4 +214,60 @@ final class WebAuthManager {
         saveUsers()
         return true
     }
+
+    // MARK: - v2.2.0 Credential Management
+
+    func currentAdminUsername() -> String {
+        return users.first(where: { $0.role == .admin })?.username ?? "admin"
+    }
+
+    func changeAdminUsername(from oldUsername: String, to newUsername: String) -> Bool {
+        // Validate username
+        guard newUsername.count >= 3 && newUsername.count <= 32 else { return false }
+        let allowed = CharacterSet.alphanumerics
+            .union(CharacterSet(charactersIn: "_-"))
+        guard newUsername.unicodeScalars.allSatisfy({ allowed.contains($0) }) else { return false }
+        guard !users.contains(where: { $0.username == newUsername }) else { return false }
+
+        guard let index = users.firstIndex(where: { $0.username == oldUsername && $0.role == .admin }) else { return false }
+        users[index] = WebUser(
+            username: newUsername,
+            passwordHash: users[index].passwordHash,
+            passwordSalt: users[index].passwordSalt,
+            role: users[index].role,
+            enabled: users[index].enabled
+        )
+        saveUsers()
+        invalidateAllSessions()
+        return true
+    }
+
+    func changeAdminPassword(newPassword: String) -> Bool {
+        guard newPassword.count >= 8 else { return false }
+        guard let index = users.firstIndex(where: { $0.role == .admin }) else { return false }
+        let salt = WebAuthManager.generateSalt()
+        users[index] = WebUser(
+            username: users[index].username,
+            passwordHash: WebAuthManager.hashPassword(newPassword, salt: salt),
+            passwordSalt: salt,
+            role: users[index].role,
+            enabled: users[index].enabled
+        )
+        saveUsers()
+        // Update Keychain
+        KeychainService.shared.webAuthSecret = newPassword
+        invalidateAllSessions()
+        return true
+    }
+
+    func invalidateAllSessions() {
+        sessions.removeAll()
+    }
+
+    func validateUsername(_ username: String) -> Bool {
+        guard username.count >= 3 && username.count <= 32 else { return false }
+        let allowed = CharacterSet.alphanumerics
+            .union(CharacterSet(charactersIn: "_-"))
+        return username.unicodeScalars.allSatisfy({ allowed.contains($0) })
+    }
 }

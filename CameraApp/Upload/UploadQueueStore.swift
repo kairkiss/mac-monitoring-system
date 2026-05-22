@@ -29,7 +29,15 @@ final class UploadQueueStore: ObservableObject {
     }
 
     func pendingJobs() -> [UploadJob] {
-        jobs.filter { $0.status == .pending || $0.status == .retrying }
+        let now = Date()
+        return jobs.filter { job in
+            if job.status == .pending { return true }
+            if job.status == .retrying {
+                guard let nextRetry = job.nextRetryAt else { return true }
+                return now >= nextRetry
+            }
+            return false
+        }
     }
 
     func activeJobs() -> [UploadJob] {

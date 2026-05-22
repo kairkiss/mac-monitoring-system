@@ -21,6 +21,10 @@ struct HTTPRequest {
         headers["Content-Length"].flatMap(Int.init) ?? 0
     }
 
+    var rangeHeader: String? {
+        headers["Range"]
+    }
+
     static func parse(from data: String, bodyData: Data?, remoteAddress: String) -> HTTPRequest? {
         let lines = data.components(separatedBy: "\r\n")
         guard let firstLine = lines.first else { return nil }

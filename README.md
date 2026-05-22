@@ -1,10 +1,10 @@
 # Mac监控系统
 
-MacMonitor 2.0 turns the app into a local camera node with a web dashboard, storage providers, upload queue, cloud archival, and automated retention.
+MacMonitor turns the app into a local camera node with a web dashboard, storage providers, upload queue, cloud archival, and automated retention.
 
-Mac监控系统 2.0 将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
+Mac监控系统将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
 
-> **v2.1.1** — Web Media Auth Hotfix. Fixes 401 errors on web media thumbnails, previews, and downloads; adds large-file protection and Retention manual cleanup. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **v2.2.0** — Web Console Maturity Release. Bilingual Web UI (Chinese/English), customizable web admin credentials, HTTP Range support for large media, upload retry backoff, and web server connectivity fixes. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 
@@ -17,10 +17,11 @@ Mac监控系统 2.0 将本地摄像头工具升级为 Mac 常驻采集节点，�
 - **Health Monitor** — Camera disconnect, low disk, upload failure, and storage provider alerts
 - **Activity Log** — JSONL-based logging with search, filter, and export
 - **Multi-Camera** — Supports multiple cameras with preferred camera persistence and graceful fallback
-- **Web Dashboard** — Browser-based control panel with live camera snapshots, media library with thumbnails, task management, and upload queue monitoring
-- **REST API** — Full API for camera, media, tasks, logs, health, uploads, and storage
+- **Web Dashboard** — Browser-based control panel with bilingual UI (Chinese/English), live camera snapshots, media library with thumbnails, task management, and upload queue monitoring
+- **REST API** — Full API for camera, media, tasks, logs, health, uploads, and storage; HTTP Range support for large media file downloads
 - **Storage Providers** — Local folder and mounted folder backends (available); Google Drive and WebDAV (planned, not fully implemented)
-- **Upload Queue** — Persistent queue with retry, progress tracking, pause/resume, and local/mounted-folder verification. Bandwidth limiting is planned.
+- **Upload Queue** — Persistent queue with exponential backoff retry, progress tracking, pause/resume, and local/mounted-folder verification. Bandwidth limiting is planned.
+- **Customizable Web Credentials** — Change web admin username and password from macOS Settings or web interface; salted SHA256 password hashing
 - **Retention Policy** — Automatic cleanup of local originals after verified cloud upload
 - **Daily Reports** — Automated daily summary of activity, uploads, and health
 - **Timelapse** — Interval-based photo capture compiled into video

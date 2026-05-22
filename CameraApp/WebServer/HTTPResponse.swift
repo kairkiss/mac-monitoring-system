@@ -65,12 +65,43 @@ struct HTTPResponse {
         )
     }
 
-    static func data(_ data: Data, contentType: String) -> HTTPResponse {
+    static func data(_ data: Data, contentType: String, extraHeaders: [String: String] = [:]) -> HTTPResponse {
+        var hdrs = [
+            "Content-Type": contentType,
+            "Content-Length": "\(data.count)"
+        ]
+        for (k, v) in extraHeaders { hdrs[k] = v }
         return HTTPResponse(
             status: 200,
             statusText: "OK",
-            headers: ["Content-Type": contentType, "Content-Length": "\(data.count)"],
+            headers: hdrs,
             body: data
+        )
+    }
+
+    static func partialContent(_ data: Data, contentType: String, totalSize: Int64, rangeStart: Int64, rangeEnd: Int64) -> HTTPResponse {
+        let contentRange = "bytes \(rangeStart)-\(rangeEnd)/\(totalSize)"
+        return HTTPResponse(
+            status: 206,
+            statusText: "Partial Content",
+            headers: [
+                "Content-Type": contentType,
+                "Content-Length": "\(data.count)",
+                "Content-Range": contentRange,
+                "Accept-Ranges": "bytes"
+            ],
+            body: data
+        )
+    }
+
+    static func rangeNotSatisfiable(totalSize: Int64) -> HTTPResponse {
+        return HTTPResponse(
+            status: 416,
+            statusText: "Range Not Satisfiable",
+            headers: [
+                "Content-Range": "bytes */\(totalSize)"
+            ],
+            body: Data()
         )
     }
 
@@ -97,6 +128,7 @@ struct HTTPResponse {
         case 200: return "OK"
         case 201: return "Created"
         case 204: return "No Content"
+        case 206: return "Partial Content"
         case 301: return "Moved Permanently"
         case 302: return "Found"
         case 304: return "Not Modified"
@@ -105,6 +137,7 @@ struct HTTPResponse {
         case 403: return "Forbidden"
         case 404: return "Not Found"
         case 405: return "Method Not Allowed"
+        case 416: return "Range Not Satisfiable"
         case 500: return "Internal Server Error"
         case 503: return "Service Unavailable"
         default: return "Unknown"

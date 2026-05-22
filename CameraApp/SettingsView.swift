@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var storageTestResult: Bool?
     @State private var webPassword: String = ""
     @State private var showWebPassword: Bool = false
+    @State private var webUsername: String = ""
 
     var body: some View {
         Form {
@@ -561,35 +562,42 @@ struct SettingsView: View {
                     .padding(.leading, 32)
 
                     // Web login credentials
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Web Login / 网页登录")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        // Username
                         HStack {
-                            Text("Web Login / 网页登录")
+                            Text("Username / 用户名:")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            Spacer()
-                            Button("Reset Password / 重置密码") {
-                                let newPwd = String((0..<12).map { _ in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
-                                KeychainService.shared.webAuthSecret = newPwd
-                                WebAuthManager.shared.changePassword(username: "admin", newPassword: newPwd)
-                                webPassword = newPwd
-                                showWebPassword = true
+                            TextField("admin", text: $webUsername)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(maxWidth: 160)
+                            Button("Save / 保存") {
+                                let old = WebAuthManager.shared.currentAdminUsername()
+                                let new = webUsername.trimmingCharacters(in: .whitespaces)
+                                guard !new.isEmpty else { return }
+                                if WebAuthManager.shared.changeAdminUsername(from: old, to: new) {
+                                    print("Username changed to \(new)")
+                                } else {
+                                    print("Invalid username")
+                                    webUsername = old
+                                }
                             }
                             .font(.caption)
                         }
-                        HStack {
-                            Text("Username: admin")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                        }
+
+                        // Password
                         HStack {
                             if showWebPassword {
-                                Text("Password: \(webPassword)")
+                                Text("Password / 密码: \(webPassword)")
                                     .font(.caption)
                                     .foregroundStyle(.orange)
                                     .textSelection(.enabled)
                             } else {
-                                Text("Password: ••••••••")
+                                Text("Password / 密码: ••••••••")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -602,10 +610,26 @@ struct SettingsView: View {
                             }
                             .font(.caption)
                         }
+
+                        // Reset / Generate
+                        HStack {
+                            Button("Reset Password / 重置密码") {
+                                let newPwd = String((0..<12).map { _ in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
+                                if WebAuthManager.shared.changeAdminPassword(newPassword: newPwd) {
+                                    webPassword = newPwd
+                                    showWebPassword = true
+                                    print("Password reset")
+                                } else {
+                                    print("Failed to reset password")
+                                }
+                            }
+                            .font(.caption)
+                        }
                     }
                     .padding(.leading, 32)
                     .onAppear {
                         webPassword = KeychainService.shared.webAuthSecret
+                        webUsername = WebAuthManager.shared.currentAdminUsername()
                     }
                 }
             } header: {
@@ -805,7 +829,7 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", "2.1.1")
+                aboutRow("Version", "2.2.0")
                 aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")

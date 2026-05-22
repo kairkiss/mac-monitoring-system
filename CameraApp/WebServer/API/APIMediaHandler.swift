@@ -123,7 +123,7 @@ struct APIMediaHandler {
             ] as [String: Any])
         }
 
-        // Get media file (download)
+        // Get media file (download) — with Range support
         router.addRoute(method: "GET", path: "/api/media/:id/file") { request in
             let fileName = sanitizeFileName(router.extractParam("id", from: request, pattern: "/api/media/:id/file") ?? "")
             guard !fileName.isEmpty else { return HTTPResponse.error("Missing id") }
@@ -137,25 +137,91 @@ struct APIMediaHandler {
                 return HTTPResponse.error("File not found or archived", status: 404)
             }
 
-            // Size guard: reject files > 200MB to protect server memory
-            let maxBytes: Int64 = 200 * 1024 * 1024
+            let contentType = mimeType(for: fileName)
             let attrs = try? fm.attributesOfItem(atPath: url.path)
-            let fileSize = (attrs?[.size] as? Int64) ?? 0
-            if fileSize > maxBytes {
-                ActivityLogManager.shared.warning(.webServer, "Rejected large file download: \(fileName) (\(fileSize) bytes)")
-                return HTTPResponse.error("File too large for web download (\(fileSize / 1024 / 1024)MB). Large file streaming is planned.", status: 413)
+            let totalSize = (attrs?[.size] as? Int64) ?? 0
+
+            // Parse Range header
+            if let rangeHeader = request.rangeHeader, rangeHeader.hasPrefix("bytes=") {
+                let rangeSpec = String(rangeHeader.dropFirst(6))
+                let parts = rangeSpec.split(separator: "-")
+
+                var rangeStart: Int64 = 0
+                var rangeEnd: Int64 = totalSize - 1
+
+                if parts.count == 2 {
+                    let startStr = String(parts[0])
+                    let endStr = String(parts[1])
+
+                    if startStr.isEmpty {
+                        // Suffix range: bytes=-500
+                        if let suffix = Int64(endStr), suffix > 0 {
+                            rangeStart = max(0, totalSize - suffix)
+                            rangeEnd = totalSize - 1
+                        } else {
+                            return HTTPResponse.rangeNotSatisfiable(totalSize: totalSize)
+                        }
+                    } else if endStr.isEmpty {
+                        // Open range: bytes=500-
+                        if let start = Int64(startStr), start < totalSize {
+                            rangeStart = start
+                            rangeEnd = totalSize - 1
+                        } else {
+                            return HTTPResponse.rangeNotSatisfiable(totalSize: totalSize)
+                        }
+                    } else {
+                        // Full range: bytes=500-999
+                        if let start = Int64(startStr), let end = Int64(endStr),
+                           start <= end, start < totalSize {
+                            rangeStart = start
+                            rangeEnd = min(end, totalSize - 1)
+                        } else {
+                            return HTTPResponse.rangeNotSatisfiable(totalSize: totalSize)
+                        }
+                    }
+                } else {
+                    return HTTPResponse.rangeNotSatisfiable(totalSize: totalSize)
+                }
+
+                // Read the requested range using FileHandle
+                let length = Int(rangeEnd - rangeStart + 1)
+                guard length > 0 else {
+                    return HTTPResponse.rangeNotSatisfiable(totalSize: totalSize)
+                }
+
+                guard let fh = try? FileHandle(forReadingFrom: url) else {
+                    return HTTPResponse.error("Failed to read file", status: 500)
+                }
+                fh.seek(toFileOffset: UInt64(rangeStart))
+                let data = fh.readData(ofLength: length)
+                fh.closeFile()
+
+                return HTTPResponse.partialContent(
+                    data,
+                    contentType: contentType,
+                    totalSize: totalSize,
+                    rangeStart: rangeStart,
+                    rangeEnd: rangeEnd
+                )
+            }
+
+            // No Range header — serve whole file for small files, reject large files
+            let maxBytes: Int64 = 200 * 1024 * 1024
+            if totalSize > maxBytes {
+                ActivityLogManager.shared.warning(.webServer, "Rejected large file download without Range: \(fileName) (\(totalSize) bytes)")
+                return HTTPResponse.error("File too large for non-Range request (\(totalSize / 1024 / 1024)MB). Use Range header.", status: 413)
             }
 
             guard let data = try? Data(contentsOf: url) else {
                 return HTTPResponse.error("Failed to read file", status: 500)
             }
 
-            let contentType = mimeType(for: fileName)
             return HTTPResponse(
                 status: 200, statusText: "OK",
                 headers: [
                     "Content-Type": contentType,
                     "Content-Length": "\(data.count)",
+                    "Accept-Ranges": "bytes",
                     "Content-Disposition": "attachment; filename=\"\(fileName)\""
                 ],
                 body: data

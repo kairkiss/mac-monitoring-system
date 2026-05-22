@@ -63,6 +63,8 @@ final class UploadQueueManager: ObservableObject {
         guard var job = store.jobs.first(where: { $0.id == jobID }) else { return }
         job.status = .pending
         job.lastError = nil
+        job.nextRetryAt = nil
+        job.retryDelaySeconds = nil
         store.updateJob(job)
         if !isPaused { processNext() }
     }
@@ -78,6 +80,8 @@ final class UploadQueueManager: ObservableObject {
         for var job in store.jobs where job.status == .failed {
             job.status = .pending
             job.lastError = nil
+            job.nextRetryAt = nil
+            job.retryDelaySeconds = nil
             store.updateJob(job)
         }
         if !isPaused { processNext() }
@@ -137,7 +141,11 @@ final class UploadQueueManager: ObservableObject {
 
                 if failed.attempts < failed.maxRetries {
                     failed.status = .retrying
-                    ActivityLogManager.shared.warning(.upload, "Retrying \(job.fileName) (attempt \(failed.attempts))")
+                    let delay = min(300, Int(pow(2.0, Double(failed.attempts))) * 5)
+                    failed.retryDelaySeconds = delay
+                    failed.nextRetryAt = Date().addingTimeInterval(TimeInterval(delay))
+                    failed.lastAttemptAt = Date()
+                    ActivityLogManager.shared.warning(.upload, "Retrying \(job.fileName) in \(delay)s (attempt \(failed.attempts))")
                 } else {
                     failed.status = .failed
                     ActivityLogManager.shared.error(.upload, "Upload failed: \(job.fileName)", detail: error.localizedDescription)

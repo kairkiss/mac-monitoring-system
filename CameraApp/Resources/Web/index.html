@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mac监控系统 - Dashboard</title>
+<title data-i18n="macMonitorSystem">Mac监控系统 - Dashboard</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
 .stat-value { font-size: 28px; font-weight: 700; }
@@ -17,55 +17,55 @@
 </head>
 <body>
 <nav class="sidebar">
-    <div class="sidebar-header">Mac监控系统</div>
-    <a href="/" class="nav-item active">Dashboard</a>
-    <a href="/live.html" class="nav-item">Live View</a>
-    <a href="/media.html" class="nav-item">Media Library</a>
-    <a href="/tasks.html" class="nav-item">Automation</a>
-    <a href="/uploads.html" class="nav-item">Upload Queue</a>
-    <a href="/health.html" class="nav-item">Health</a>
-    <a href="/logs.html" class="nav-item">Activity Log</a>
-    <a href="/settings.html" class="nav-item">Settings</a>
+    <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
+    <a href="/" class="nav-item active" data-i18n="dashboard">Dashboard</a>
+    <a href="/live.html" class="nav-item" data-i18n="liveView">Live View</a>
+    <a href="/media.html" class="nav-item" data-i18n="mediaLibrary">Media Library</a>
+    <a href="/tasks.html" class="nav-item" data-i18n="automation">Automation</a>
+    <a href="/uploads.html" class="nav-item" data-i18n="uploadQueue">Upload Queue</a>
+    <a href="/health.html" class="nav-item" data-i18n="health">Health</a>
+    <a href="/logs.html" class="nav-item" data-i18n="activityLog">Activity Log</a>
+    <a href="/settings.html" class="nav-item" data-i18n="settings">Settings</a>
     <div class="sidebar-footer">
         <span id="userInfo"></span>
-        <a href="#" id="logoutBtn" class="logout">Logout</a>
+        <a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a>
     </div>
 </nav>
 <main class="content">
-    <h1>Dashboard</h1>
+    <h1 data-i18n="dashboard">Dashboard</h1>
     <div class="grid">
         <div class="card">
-            <h3>Camera</h3>
+            <h3 data-i18n="camera">Camera</h3>
             <p class="stat-value" id="cameraStatus">-</p>
             <p class="stat-sub" id="cameraSub"></p>
         </div>
         <div class="card">
-            <h3>Recording</h3>
+            <h3 data-i18n="recording">Recording</h3>
             <p class="stat-value" id="recordStatus">-</p>
             <p class="stat-sub" id="recordSub"></p>
         </div>
         <div class="card">
-            <h3>Automation</h3>
+            <h3 data-i18n="automation">Automation</h3>
             <p class="stat-value" id="automationStatus">-</p>
             <p class="stat-sub" id="automationSub"></p>
         </div>
         <div class="card">
-            <h3>Storage Provider</h3>
+            <h3 data-i18n="storage">Storage Provider</h3>
             <p class="stat-value" id="storageStatus">-</p>
             <p class="stat-sub" id="storageSub"></p>
         </div>
         <div class="card">
-            <h3>Upload Queue</h3>
+            <h3 data-i18n="uploadQueue">Upload Queue</h3>
             <p class="stat-value" id="uploadStatus">-</p>
             <p class="stat-sub" id="uploadSub"></p>
         </div>
         <div class="card">
-            <h3>Media Library</h3>
+            <h3 data-i18n="mediaLibrary">Media Library</h3>
             <p class="stat-value" id="mediaStatus">-</p>
             <p class="stat-sub" id="mediaSub"></p>
         </div>
         <div class="card">
-            <h3>Health</h3>
+            <h3 data-i18n="health">Health</h3>
             <p class="stat-value" id="healthStatus">-</p>
             <p class="stat-sub" id="healthSub"></p>
         </div>
@@ -76,8 +76,13 @@
         </div>
     </div>
 </main>
+<script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.title = t('macMonitorSystem') + ' - ' + t('dashboard');
+});
+
 function dot(color) { return '<span class="status-dot dot-' + color + '"></span>'; }
 
 async function refreshStatus() {
@@ -88,10 +93,10 @@ async function refreshStatus() {
     const camEl = document.getElementById('cameraStatus');
     const camSub = document.getElementById('cameraSub');
     if (data.camera.isRunning) {
-        camEl.innerHTML = dot('green') + 'Running';
+        camEl.innerHTML = dot('green') + t('running');
         camSub.textContent = data.camera.deviceName || '';
     } else {
-        camEl.innerHTML = dot('red') + 'Stopped';
+        camEl.innerHTML = dot('red') + t('stopped');
         camSub.textContent = '';
     }
 
@@ -99,10 +104,10 @@ async function refreshStatus() {
     const recEl = document.getElementById('recordStatus');
     const recSub = document.getElementById('recordSub');
     if (data.camera.isRecording) {
-        recEl.innerHTML = dot('red') + 'Recording';
-        recSub.textContent = 'In progress';
+        recEl.innerHTML = dot('red') + t('recording');
+        recSub.textContent = t('inProgress');
     } else {
-        recEl.innerHTML = dot('gray') + 'Idle';
+        recEl.innerHTML = dot('gray') + t('idle');
         recSub.textContent = '';
     }
 
@@ -110,10 +115,10 @@ async function refreshStatus() {
     const autoEl = document.getElementById('automationStatus');
     const autoSub = document.getElementById('automationSub');
     if (data.automation.isEnabled) {
-        autoEl.innerHTML = dot('green') + 'Enabled';
-        autoSub.textContent = data.automation.taskCount + ' task(s)';
+        autoEl.innerHTML = dot('green') + t('enabled');
+        autoSub.textContent = data.automation.taskCount + ' ' + t('tasks');
     } else {
-        autoEl.innerHTML = dot('gray') + 'Disabled';
+        autoEl.innerHTML = dot('gray') + t('disabled');
         autoSub.textContent = '';
     }
 
@@ -121,8 +126,8 @@ async function refreshStatus() {
     const storEl = document.getElementById('storageStatus');
     const storSub = document.getElementById('storageSub');
     if (data.storage.provider === 'none' || !data.storage.provider) {
-        storEl.innerHTML = dot('gray') + 'None';
-        storSub.textContent = 'Not configured';
+        storEl.innerHTML = dot('gray') + t('none');
+        storSub.textContent = t('notConfigured');
     } else {
         storEl.innerHTML = dot('green') + data.storage.provider;
         storSub.textContent = '';
@@ -135,13 +140,13 @@ async function refreshStatus() {
     const active = data.uploadQueue.active || 0;
     const failed = data.uploadQueue.failed || 0;
     if (failed > 0) {
-        upEl.innerHTML = dot('orange') + pending + ' queued';
-        upSub.textContent = failed + ' failed, ' + active + ' uploading';
+        upEl.innerHTML = dot('orange') + pending + ' ' + t('queued2');
+        upSub.textContent = failed + ' ' + t('failed') + ', ' + active + ' ' + t('uploading2');
     } else if (active > 0) {
-        upEl.innerHTML = dot('green') + active + ' uploading';
-        upSub.textContent = pending + ' queued';
+        upEl.innerHTML = dot('green') + active + ' ' + t('uploading2');
+        upSub.textContent = pending + ' ' + t('queued2');
     } else {
-        upEl.innerHTML = dot('gray') + pending + ' queued';
+        upEl.innerHTML = dot('gray') + pending + ' ' + t('queued2');
         upSub.textContent = '';
     }
 
@@ -156,11 +161,11 @@ async function refreshHealth() {
         const el = document.getElementById('healthStatus');
         const sub = document.getElementById('healthSub');
         if (data.alerts && data.alerts.length > 0) {
-            el.innerHTML = dot('orange') + data.alerts.length + ' alert(s)';
+            el.innerHTML = dot('orange') + data.alerts.length + ' ' + t('alert');
             sub.textContent = data.alerts[0].message || '';
         } else {
-            el.innerHTML = dot('green') + 'OK';
-            sub.textContent = 'No issues';
+            el.innerHTML = dot('green') + t('ok');
+            sub.textContent = t('noIssues');
         }
     } catch (e) {}
 }
@@ -170,7 +175,7 @@ async function refreshMediaCount() {
         const data = await api('/api/media?perPage=1');
         if (!data) return;
         document.getElementById('mediaStatus').textContent = data.total || 0;
-        document.getElementById('mediaSub').textContent = 'Total items';
+        document.getElementById('mediaSub').textContent = t('totalItems');
     } catch (e) {}
 }
 

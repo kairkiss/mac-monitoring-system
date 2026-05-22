@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mac监控系统 - Media Library</title>
+<title data-i18n="macMonitorSystem">Mac监控系统 - Media Library</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
 .detail-overlay {
@@ -30,34 +30,39 @@
 </head>
 <body>
 <nav class="sidebar">
-    <div class="sidebar-header">Mac监控系统</div>
-    <a href="/" class="nav-item">Dashboard</a>
-    <a href="/live.html" class="nav-item">Live View</a>
-    <a href="/media.html" class="nav-item active">Media Library</a>
-    <a href="/tasks.html" class="nav-item">Automation</a>
-    <a href="/uploads.html" class="nav-item">Upload Queue</a>
-    <a href="/health.html" class="nav-item">Health</a>
-    <a href="/logs.html" class="nav-item">Activity Log</a>
-    <a href="/settings.html" class="nav-item">Settings</a>
-    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout">Logout</a></div>
+    <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
+    <a href="/" class="nav-item" data-i18n="dashboard">Dashboard</a>
+    <a href="/live.html" class="nav-item" data-i18n="liveView">Live View</a>
+    <a href="/media.html" class="nav-item active" data-i18n="mediaLibrary">Media Library</a>
+    <a href="/tasks.html" class="nav-item" data-i18n="automation">Automation</a>
+    <a href="/uploads.html" class="nav-item" data-i18n="uploadQueue">Upload Queue</a>
+    <a href="/health.html" class="nav-item" data-i18n="health">Health</a>
+    <a href="/logs.html" class="nav-item" data-i18n="activityLog">Activity Log</a>
+    <a href="/settings.html" class="nav-item" data-i18n="settings">Settings</a>
+    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
 </nav>
 <main class="content">
-    <h1>Media Library <span id="totalCount" style="font-size:14px;color:var(--fg2);font-weight:400;"></span></h1>
+    <h1><span data-i18n="mediaLibrary">Media Library</span> <span id="totalCount" style="font-size:14px;color:var(--fg2);font-weight:400;"></span></h1>
     <div class="toolbar">
-        <input type="text" id="searchInput" placeholder="Search filename..." style="width:180px;">
-        <select id="typeFilter"><option value="">All Types</option><option value="photo">Photos</option><option value="video">Videos</option></select>
-        <select id="sourceFilter"><option value="">All Sources</option><option value="manual">Manual</option><option value="automation">Automation</option><option value="motion">Motion</option></select>
-        <select id="statusFilter"><option value="">All Status</option><option value="notQueued">Not uploaded</option><option value="queued">Queued</option><option value="uploading">Uploading</option><option value="completed">Uploaded</option><option value="failed">Failed</option></select>
+        <input type="text" id="searchInput" placeholder="Search filename..." data-i18n="search" style="width:180px;">
+        <select id="typeFilter"><option value="" data-i18n="allTypes">All Types</option><option value="photo" data-i18n="photos">Photos</option><option value="video" data-i18n="videos">Videos</option></select>
+        <select id="sourceFilter"><option value="" data-i18n="allSources">All Sources</option><option value="manual" data-i18n="manual">Manual</option><option value="automation" data-i18n="automationSrc">Automation</option><option value="motion" data-i18n="motion">Motion</option></select>
+        <select id="statusFilter"><option value="" data-i18n="allStatus">All Status</option><option value="notQueued" data-i18n="notUploaded">Not uploaded</option><option value="queued" data-i18n="queued">Queued</option><option value="uploading" data-i18n="uploading">Uploading</option><option value="completed" data-i18n="uploaded">Uploaded</option><option value="failed" data-i18n="failed">Failed</option></select>
         <label style="display:flex;align-items:center;gap:4px;font-size:13px;color:var(--fg2);cursor:pointer;">
-            <input type="checkbox" id="favFilter" style="width:auto;margin:0;"> Favorites
+            <input type="checkbox" id="favFilter" style="width:auto;margin:0;"> <span data-i18n="favorites">Favorites</span>
         </label>
     </div>
     <div class="media-grid" id="mediaGrid"></div>
     <div class="pagination" id="pagination"></div>
 </main>
 <div id="detailModal"></div>
+<script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.title = t('macMonitorSystem') + ' - ' + t('mediaLibrary');
+});
+
 let currentPage = 1;
 const perPage = 30;
 const blobURLs = new Set();
@@ -107,16 +112,16 @@ async function loadMedia() {
     document.getElementById('totalCount').textContent = '(' + data.total + ')';
     const grid = document.getElementById('mediaGrid');
     if (data.items.length === 0) {
-        grid.innerHTML = '<p style="color:var(--fg2);padding:40px 0;text-align:center;">No media found</p>';
+        grid.innerHTML = '<p style="color:var(--fg2);padding:40px 0;text-align:center;">' + t('noMediaFound') + '</p>';
     } else {
         grid.innerHTML = data.items.map(item => {
             const archived = !item.localOriginalExists && item.verified;
             const badges = [];
             if (item.isFavorite) badges.push('<span style="color:#f44336;">&#9829;</span>');
             if (item.protected) badges.push('<span style="color:var(--accent);">&#128274;</span>');
-            if (archived) badges.push('<span class="archived-badge">Archived</span>');
+            if (archived) badges.push('<span class="archived-badge">' + t('archivedBadge') + '</span>');
             return '<div class="media-item" onclick="showDetail(\'' + item.fileName + '\')">' +
-                '<div class="thumb-placeholder">No preview</div>' +
+                '<div class="thumb-placeholder">' + t('noPreview') + '</div>' +
                 '<img class="loading" data-file="' + item.fileName + '" alt="">' +
                 '<div class="overlay"><span>' + item.type + '</span> ' + badges.join(' ') + '</div></div>';
         }).join('');
@@ -152,9 +157,9 @@ async function loadVisibleThumbnails(items) {
 function renderPagination(page, totalPages) {
     const el = document.getElementById('pagination');
     if (totalPages <= 1) { el.innerHTML = ''; return; }
-    let html = '<span style="font-size:13px;color:var(--fg2);">Page ' + page + ' / ' + totalPages + '</span>';
-    if (page > 1) html += '<button class="secondary" onclick="goPage(' + (page-1) + ')">Prev</button>';
-    if (page < totalPages) html += '<button class="secondary" onclick="goPage(' + (page+1) + ')">Next</button>';
+    let html = '<span style="font-size:13px;color:var(--fg2);">' + t('page') + ' ' + page + ' / ' + totalPages + '</span>';
+    if (page > 1) html += '<button class="secondary" onclick="goPage(' + (page-1) + ')">' + t('prev') + '</button>';
+    if (page < totalPages) html += '<button class="secondary" onclick="goPage(' + (page+1) + ')">' + t('next') + '</button>';
     el.innerHTML = html;
 }
 
@@ -169,35 +174,35 @@ async function showDetail(fileName) {
 
     let actions = '';
     if (data.localOriginalExists) {
-        actions += '<button onclick="downloadFile(\'' + fileName + '\')">Download</button>';
+        actions += '<button onclick="downloadFile(\'' + fileName + '\')">' + t('download') + '</button>';
     }
-    actions += '<button class="secondary" onclick="toggleFav(\'' + fileName + '\')">' + (data.isFavorite ? 'Unfavorite' : 'Favorite') + '</button>';
-    actions += '<button class="secondary" onclick="toggleProtect(\'' + fileName + '\')">' + (data.protected ? 'Unprotect' : 'Protect') + '</button>';
+    actions += '<button class="secondary" onclick="toggleFav(\'' + fileName + '\')">' + (data.isFavorite ? t('unfavorite') : t('favorite')) + '</button>';
+    actions += '<button class="secondary" onclick="toggleProtect(\'' + fileName + '\')">' + (data.protected ? t('unprotect') : t('protect')) + '</button>';
     if (data.uploadStatus === 'notQueued' && data.localOriginalExists) {
-        actions += '<button class="secondary" onclick="queueUpload(\'' + fileName + '\')">Upload Now</button>';
+        actions += '<button class="secondary" onclick="queueUpload(\'' + fileName + '\')">' + t('uploadNow') + '</button>';
     }
     if (!data.protected) {
-        actions += '<button class="danger" onclick="deleteMedia(\'' + fileName + '\')">Delete</button>';
+        actions += '<button class="danger" onclick="deleteMedia(\'' + fileName + '\')">' + t('delete') + '</button>';
     }
 
-    const previewHTML = '<div class="preview-area" id="detailPreview"><span style="color:var(--fg2);">Loading preview...</span></div>';
+    const previewHTML = '<div class="preview-area" id="detailPreview"><span style="color:var(--fg2);">' + t('loadingPreview') + '</span></div>';
     const modal = document.getElementById('detailModal');
     modal.innerHTML = '<div class="detail-overlay" onclick="closeDetail(event)">' +
         '<div class="detail-card" onclick="event.stopPropagation()">' +
         '<button class="close-btn" onclick="document.getElementById(\'detailModal\').innerHTML=\'\'">&times;</button>' +
         previewHTML +
         '<div class="detail-body">' +
-        '<h2>' + fileName + (archived ? ' <span class="archived-badge">Archived</span>' : '') + '</h2>' +
+        '<h2>' + fileName + (archived ? ' <span class="archived-badge">' + t('archivedBadge') + '</span>' : '') + '</h2>' +
         '<div class="detail-meta">' +
-        '<span>Type: ' + data.type + '</span>' +
-        '<span>Source: ' + data.source + '</span>' +
-        '<span>Size: ' + formatSize(data.fileSize) + '</span>' +
-        '<span>Status: <span style="color:' + statusColor + ';">' + data.uploadStatus + '</span></span>' +
-        '<span>Provider: ' + (data.uploadProvider || '-') + '</span>' +
-        '<span>Verified: ' + (data.verified ? 'Yes' : 'No') + '</span>' +
-        (data.remoteURL ? '<span style="grid-column:span 2;word-break:break-all;">Remote: <a href="' + data.remoteURL + '" target="_blank" style="color:var(--accent);">' + data.remoteURL + '</a></span>' : '') +
-        (data.uploadDate ? '<span>Uploaded: ' + new Date(data.uploadDate).toLocaleString() + '</span>' : '') +
-        (data.localDeletedAt ? '<span>Local deleted: ' + new Date(data.localDeletedAt).toLocaleString() + '</span>' : '') +
+        '<span>' + t('type') + ': ' + data.type + '</span>' +
+        '<span>' + t('source') + ': ' + data.source + '</span>' +
+        '<span>' + t('size') + ': ' + formatSize(data.fileSize) + '</span>' +
+        '<span>' + t('status') + ': <span style="color:' + statusColor + ';">' + data.uploadStatus + '</span></span>' +
+        '<span>' + t('provider') + ': ' + (data.uploadProvider || '-') + '</span>' +
+        '<span>' + t('verified') + ': ' + (data.verified ? t('yes') : t('no')) + '</span>' +
+        (data.remoteURL ? '<span style="grid-column:span 2;word-break:break-all;">' + t('remote') + ': <a href="' + data.remoteURL + '" target="_blank" style="color:var(--accent);">' + data.remoteURL + '</a></span>' : '') +
+        (data.uploadDate ? '<span>' + t('uploadedAt') + ': ' + new Date(data.uploadDate).toLocaleString() + '</span>' : '') +
+        (data.localDeletedAt ? '<span>' + t('localDeleted') + ': ' + new Date(data.localDeletedAt).toLocaleString() + '</span>' : '') +
         '</div>' +
         '<div class="detail-actions">' + actions + '</div>' +
         '</div></div>';
@@ -211,8 +216,8 @@ async function loadDetailPreview(fileName, data) {
 
     if (!data.localOriginalExists) {
         el.innerHTML = '<div style="padding:60px 20px;text-align:center;color:var(--fg2);">' +
-            '<p style="margin-bottom:8px;">Original file is archived / 本地原文件已归档</p>' +
-            (data.remoteURL ? '<a href="' + data.remoteURL + '" target="_blank" style="color:var(--accent);">Open Remote</a>' : '') +
+            '<p style="margin-bottom:8px;">' + t('originalArchived') + '</p>' +
+            (data.remoteURL ? '<a href="' + data.remoteURL + '" target="_blank" style="color:var(--accent);">' + t('openRemote') + '</a>' : '') +
             '</div>';
         return;
     }
@@ -230,9 +235,9 @@ async function loadDetailPreview(fileName, data) {
                 try {
                     const thumbURL = await fetchBlobURL('/api/media/' + encodeURIComponent(fileName) + '/thumbnail');
                     el.innerHTML = '<img src="' + thumbURL + '" alt="' + fileName + '" style="max-height:400px;">' +
-                        '<div style="padding:12px;text-align:center;color:var(--fg2);">Large video preview disabled (' + formatSize(fileSize) + '). Use Download.</div>';
+                        '<div style="padding:12px;text-align:center;color:var(--fg2);">' + t('largeVideoPreviewDisabled') + ' (' + formatSize(fileSize) + ')</div>';
                 } catch {
-                    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--fg2);">Large video (' + formatSize(fileSize) + '). Preview disabled.</div>';
+                    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--fg2);">' + t('videoPreviewLimited') + ' (' + formatSize(fileSize) + ')</div>';
                 }
             } else {
                 const url = await fetchBlobURL('/api/media/' + encodeURIComponent(fileName) + '/file');
@@ -240,7 +245,7 @@ async function loadDetailPreview(fileName, data) {
             }
         }
     } catch (e) {
-        el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--red);">Preview failed: ' + e.message + '</div>';
+        el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--red);">' + t('previewFailed') + ': ' + e.message + '</div>';
     }
 }
 
@@ -261,7 +266,7 @@ async function downloadFile(fileName) {
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (e) {
-        toast('Download failed: ' + e.message, 'error');
+        toast(t('downloadFailed') + ': ' + e.message, 'error');
     }
 }
 
@@ -280,17 +285,17 @@ async function toggleProtect(fileName) {
 async function queueUpload(fileName) {
     try {
         await api('/api/media/' + encodeURIComponent(fileName) + '/upload', { method: 'POST', body: {} });
-        toast('Queued for upload');
+        toast(t('queuedForUpload'));
         showDetail(fileName);
     } catch (e) {}
 }
 
 async function deleteMedia(fileName) {
-    if (!confirm('Delete ' + fileName + '?')) return;
+    if (!confirm(t('deleteConfirm'))) return;
     try {
         await api('/api/media/' + encodeURIComponent(fileName), { method: 'DELETE' });
         document.getElementById('detailModal').innerHTML = '';
-        toast('Deleted');
+        toast(t('deletedSuccess'));
         loadMedia();
     } catch (e) {}
 }

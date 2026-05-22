@@ -51,6 +51,9 @@ function toast(message, type = 'info') {
 
 // Init navigation
 document.addEventListener('DOMContentLoaded', () => {
+    // Apply i18n first
+    if (typeof applyI18N === 'function') applyI18N();
+
     // Highlight active nav item
     const path = window.location.pathname.split('/').pop() || 'index.html';
     document.querySelectorAll('.nav-item').forEach(el => {

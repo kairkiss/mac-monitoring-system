@@ -1,5 +1,34 @@
 # Changelog
 
+## v2.2.0 (2026-05-22)
+
+Web Console Maturity Release — bilingual Web UI, customizable credentials, Range support, upload backoff.
+
+### New Features
+
+- **Web UI bilingual support** — Chinese / English with language switcher in Web Settings; auto-detects browser language
+- **Customizable Web admin username and password** — change via macOS Settings or Web Settings page; all sessions invalidated on change
+- **HTTP Range support** — `GET /api/media/:id/file` supports `bytes=start-end`, `bytes=start-`, `bytes=-suffix` for large media downloads
+- **UploadQueue retry backoff** — exponential delay (10s, 20s, 40s... max 300s) between retries; respects `nextRetryAt`; manual retry bypasses delay
+- **Web Settings page** — change password, change username (admin), language switcher
+- **Web login improvements** — i18n support, clearer error messages, token expiry redirect
+
+### Fixes
+
+- Included web server static resource path fix for nested Resources/Web bundle (from v2.1.1 hotfix on main)
+- Fixed HTTPConnection lifecycle retention and initial read race (from v2.1.1 hotfix on main)
+- Improved Web Server connectivity and login usability
+- Improved docs accuracy around planned Google Drive/WebDAV providers
+
+### Technical
+
+- Version: 2.2.0
+- Build: 13
+- No data migration required except optional web user credential update
+- No existing media/task/upload data is deleted
+- New files: `Resources/Web/js/i18n.js`
+- Modified: `WebAuthManager.swift`, `APIAuthHandler.swift`, `HTTPRequest.swift`, `HTTPResponse.swift`, `APIMediaHandler.swift`, `UploadJob.swift`, `UploadQueueManager.swift`, `UploadQueueStore.swift`, `SettingsView.swift`, all 9 HTML pages, `js/app.js`
+
 ## v2.1.1 (2026-05-22)
 
 Web Media Auth Hotfix — fixes 401 errors on thumbnails, previews, and downloads; fixes critical web server connectivity issues.

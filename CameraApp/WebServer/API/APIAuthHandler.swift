@@ -97,5 +97,54 @@ struct APIAuthHandler {
             }
             return HTTPResponse.error("Cannot delete user", status: 400)
         }
+
+        // Change current user's password (any authenticated user)
+        router.addRoute(method: "POST", path: "/api/auth/change-password") { request in
+            guard let token = request.bearerToken,
+                  let session = WebAuthManager.shared.validateSession(token) else {
+                return HTTPResponse.error("Unauthorized", status: 401)
+            }
+            guard let body = request.body,
+                  let json = try? JSONSerialization.jsonObject(with: body) as? [String: String],
+                  let currentPwd = json["currentPassword"],
+                  let newPwd = json["newPassword"] else {
+                return HTTPResponse.error("Missing currentPassword or newPassword")
+            }
+            guard newPwd.count >= 8 else {
+                return HTTPResponse.error("Password must be at least 8 characters", status: 400)
+            }
+            // Verify current password
+            guard let userSession = WebAuthManager.shared.authenticate(username: session.username, password: currentPwd) else {
+                return HTTPResponse.error("Current password is incorrect", status: 403)
+            }
+            if WebAuthManager.shared.changePassword(username: session.username, newPassword: newPwd) {
+                // If admin, also update Keychain
+                if session.role == .admin {
+                    KeychainService.shared.webAuthSecret = newPwd
+                }
+                WebAuthManager.shared.invalidateAllSessions()
+                ActivityLogManager.shared.info(.webServer, "Password changed for user: \(session.username)")
+                return HTTPResponse.json(["status": "ok", "message": "Password changed. Please log in again."])
+            }
+            return HTTPResponse.error("Failed to change password", status: 500)
+        }
+
+        // Change admin username (admin only)
+        router.addRoute(method: "POST", path: "/api/auth/change-username", requiredRole: .admin) { request in
+            guard let body = request.body,
+                  let json = try? JSONSerialization.jsonObject(with: body) as? [String: String],
+                  let newUsername = json["newUsername"] else {
+                return HTTPResponse.error("Missing newUsername")
+            }
+            let currentUsername = WebAuthManager.shared.currentAdminUsername()
+            guard WebAuthManager.shared.validateUsername(newUsername) else {
+                return HTTPResponse.error("Invalid username: 3-32 chars, letters/numbers/_/- only", status: 400)
+            }
+            if WebAuthManager.shared.changeAdminUsername(from: currentUsername, to: newUsername) {
+                ActivityLogManager.shared.info(.webServer, "Admin username changed to: \(newUsername)")
+                return HTTPResponse.json(["status": "ok", "message": "Username changed. Please log in again."])
+            }
+            return HTTPResponse.error("Failed to change username", status: 400)
+        }
     }
 }
