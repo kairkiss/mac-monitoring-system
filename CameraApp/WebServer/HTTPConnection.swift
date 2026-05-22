@@ -10,6 +10,7 @@ final class HTTPConnection {
     private var contentLength = 0
     private var headerData = ""
     private var handled = false
+    private var selfRef: HTTPConnection?  // prevent deallocation while active
 
     init(connection: NWConnection, router: WebRouter, auditLogger: AuditLogManager?) {
         self.connection = connection
@@ -18,18 +19,22 @@ final class HTTPConnection {
     }
 
     func start() {
+        selfRef = self  // keep alive until connection closes
         connection.stateUpdateHandler = { [weak self] state in
             switch state {
             case .ready:
                 self?.readData()
             case .failed(let error):
-                NSLog("[HTTPConnection] connection failed: \(error)")
+                NSLog("[HTTPConnection] failed: \(error)")
+                self?.selfRef = nil
+            case .cancelled:
+                self?.selfRef = nil
             default:
                 break
             }
         }
         connection.start(queue: .global(qos: .userInitiated))
-        // Also try to read immediately in case connection is already ready
+        // In case connection is already ready before handler is assigned
         readData()
     }
 
@@ -39,17 +44,16 @@ final class HTTPConnection {
 
             if let error {
                 NSLog("[HTTPConnection] receive error: \(error)")
-                self.connection.cancel()
+                self.cleanup()
                 return
             }
 
             guard let data, !data.isEmpty else {
-                // Connection closed or no data — send whatever we have if headers are complete
                 if self.headerParsed && !self.handled {
                     let body = Data(self.buffer.prefix(self.contentLength))
                     self.handleRequest(bodyData: body)
-                } else if !self.handled {
-                    self.connection.cancel()
+                } else {
+                    self.cleanup()
                 }
                 return
             }
@@ -124,11 +128,8 @@ final class HTTPConnection {
 
     private func sendResponse(_ response: HTTPResponse) {
         let data = response.serialized()
-        connection.send(content: data, completion: .contentProcessed { [weak self] error in
-            if let error {
-                NSLog("[HTTPConnection] send error: \(error)")
-            }
-            self?.connection.cancel()
+        connection.send(content: data, completion: .contentProcessed { [weak self] _ in
+            self?.cleanup()
         })
     }
 
@@ -137,5 +138,10 @@ final class HTTPConnection {
         handled = true
         let response = HTTPResponse.error(message, status: status)
         sendResponse(response)
+    }
+
+    private func cleanup() {
+        connection.cancel()
+        selfRef = nil
     }
 }
