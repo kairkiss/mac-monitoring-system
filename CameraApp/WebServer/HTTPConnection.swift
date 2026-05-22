@@ -9,6 +9,7 @@ final class HTTPConnection {
     private var headerParsed = false
     private var contentLength = 0
     private var headerData = ""
+    private var handled = false
 
     init(connection: NWConnection, router: WebRouter, auditLogger: AuditLogManager?) {
         self.connection = connection
@@ -21,32 +22,46 @@ final class HTTPConnection {
             switch state {
             case .ready:
                 self?.readData()
-            case .failed, .cancelled:
-                break
+            case .failed(let error):
+                NSLog("[HTTPConnection] connection failed: \(error)")
             default:
                 break
             }
         }
         connection.start(queue: .global(qos: .userInitiated))
+        // Also try to read immediately in case connection is already ready
+        readData()
     }
 
     private func readData() {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
-            guard let self, let data, !data.isEmpty else {
-                self?.connection.cancel()
+            guard let self else { return }
+
+            if let error {
+                NSLog("[HTTPConnection] receive error: \(error)")
+                self.connection.cancel()
+                return
+            }
+
+            guard let data, !data.isEmpty else {
+                // Connection closed or no data — send whatever we have if headers are complete
+                if self.headerParsed && !self.handled {
+                    let body = Data(self.buffer.prefix(self.contentLength))
+                    self.handleRequest(bodyData: body)
+                } else if !self.handled {
+                    self.connection.cancel()
+                }
                 return
             }
 
             self.buffer.append(data)
 
             if !self.headerParsed {
-                // Look for end of headers
                 if let range = self.buffer.range(of: Data("\r\n\r\n".utf8)) {
                     self.headerParsed = true
                     self.headerData = String(data: self.buffer[self.buffer.startIndex..<range.lowerBound], encoding: .utf8) ?? ""
                     let bodyStart = range.upperBound
 
-                    // Parse content-length from headers
                     let headerLines = self.headerData.components(separatedBy: "\r\n")
                     for line in headerLines {
                         if line.lowercased().hasPrefix("content-length:") {
@@ -55,26 +70,21 @@ final class HTTPConnection {
                         }
                     }
 
-                    // Check if we have all body data
                     let bodyData = self.buffer[bodyStart...]
                     if bodyData.count >= self.contentLength {
                         let body = Data(bodyData.prefix(self.contentLength))
                         self.handleRequest(bodyData: body)
                     } else {
-                        // Need more body data
                         self.readData()
                     }
                 } else {
-                    // Headers not complete yet
                     if self.buffer.count > 8192 {
-                        // Header too large
                         self.sendError(status: 413, message: "Header Too Large")
                         return
                     }
                     self.readData()
                 }
             } else {
-                // Already parsed headers, waiting for body
                 let bodyData = self.buffer
                 if bodyData.count >= self.contentLength {
                     let body = Data(bodyData.prefix(self.contentLength))
@@ -83,14 +93,13 @@ final class HTTPConnection {
                     self.readData()
                 }
             }
-
-            if isComplete {
-                self.connection.cancel()
-            }
         }
     }
 
     private func handleRequest(bodyData: Data) {
+        guard !handled else { return }
+        handled = true
+
         let remoteAddr = connection.endpoint.debugDescription
         guard let request = HTTPRequest.parse(from: headerData, bodyData: bodyData, remoteAddress: remoteAddr) else {
             sendError(status: 400, message: "Bad Request")
@@ -103,7 +112,6 @@ final class HTTPConnection {
 
         sendResponse(response)
 
-        // Audit log
         auditLogger?.log(
             method: request.method,
             path: request.path,
@@ -116,12 +124,17 @@ final class HTTPConnection {
 
     private func sendResponse(_ response: HTTPResponse) {
         let data = response.serialized()
-        connection.send(content: data, completion: .contentProcessed { [weak self] _ in
+        connection.send(content: data, completion: .contentProcessed { [weak self] error in
+            if let error {
+                NSLog("[HTTPConnection] send error: \(error)")
+            }
             self?.connection.cancel()
         })
     }
 
     private func sendError(status: Int, message: String) {
+        guard !handled else { return }
+        handled = true
         let response = HTTPResponse.error(message, status: status)
         sendResponse(response)
     }
