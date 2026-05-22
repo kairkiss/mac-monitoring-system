@@ -7,6 +7,8 @@ struct SettingsView: View {
     @EnvironmentObject var mediaLibrary: MediaLibraryManager
     @State private var cleanResult: Int?
     @State private var storageTestResult: Bool?
+    @State private var webPassword: String = ""
+    @State private var showWebPassword: Bool = false
 
     var body: some View {
         Form {
@@ -557,6 +559,54 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(.leading, 32)
+
+                    // Web login credentials
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Web Login / 网页登录")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Reset Password / 重置密码") {
+                                let newPwd = String((0..<12).map { _ in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
+                                KeychainService.shared.webAuthSecret = newPwd
+                                WebAuthManager.shared.changePassword(username: "admin", newPassword: newPwd)
+                                webPassword = newPwd
+                                showWebPassword = true
+                            }
+                            .font(.caption)
+                        }
+                        HStack {
+                            Text("Username: admin")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                        }
+                        HStack {
+                            if showWebPassword {
+                                Text("Password: \(webPassword)")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                                    .textSelection(.enabled)
+                            } else {
+                                Text("Password: ••••••••")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button(showWebPassword ? "Hide / 隐藏" : "Show / 显示") {
+                                if webPassword.isEmpty {
+                                    webPassword = KeychainService.shared.webAuthSecret
+                                }
+                                showWebPassword.toggle()
+                            }
+                            .font(.caption)
+                        }
+                    }
+                    .padding(.leading, 32)
+                    .onAppear {
+                        webPassword = KeychainService.shared.webAuthSecret
+                    }
                 }
             } header: {
                 Label(Strings.webServer, systemImage: "globe")

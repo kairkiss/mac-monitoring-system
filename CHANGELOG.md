@@ -2,11 +2,13 @@
 
 ## v2.1.1 (2026-05-22)
 
-Web Media Auth Hotfix — fixes 401 errors on thumbnails, previews, and downloads.
+Web Media Auth Hotfix — fixes 401 errors on thumbnails, previews, and downloads; fixes critical web server connectivity issues.
 
 ### Fixes
 
 - **Fixed web server not serving static files** — Resources folder was nested as `Resources/Resources/Web/` in app bundle; server now checks both paths
+- **Fixed HTTPConnection race condition** — `readData()` now called directly after `connection.start()` to handle connections that reach `.ready` before `stateUpdateHandler` fires
+- **Fixed HTTPConnection premature deallocation** — Added `selfRef` self-reference to prevent ARC from releasing connection objects before async handlers complete
 - Fixed Web Media Library thumbnails failing with 401 (now uses fetch + Authorization header)
 - Fixed media detail preview failing with 401 (now uses fetch + Authorization header)
 - Fixed media download to use authenticated fetch instead of insecure token query string
@@ -15,6 +17,7 @@ Web Media Auth Hotfix — fixes 401 errors on thumbnails, previews, and download
 - Added Retention "Run Cleanup Now" button in Settings
 - Retention cleanup now also protects `protected` items
 - Fixed login page hardcoded version string
+- Added web admin password display and reset UI in Settings
 - Corrected README wording: upload bandwidth limiting is planned, not implemented
 
 ### Technical
