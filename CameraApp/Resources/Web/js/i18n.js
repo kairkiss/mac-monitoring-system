@@ -172,7 +172,22 @@ const I18N = {
     largeFile: "Large file",
     rangeRequest: "Range request",
     maxRetries: "Max Retries",
-    fileSize: "File Size"
+    fileSize: "File Size",
+    remoteAccess: "Remote Access",
+    remoteAccessDesc: "Securely access your monitoring system from the internet via Cloudflare Tunnel.",
+    cloudflareDoubleProtection: "Double protection: Cloudflare Access + App Login",
+    cloudflareSetupWizard: "Cloudflare Setup Wizard",
+    cloudflareStep1: "Install cloudflared",
+    cloudflareStep2: "Login to Cloudflare",
+    cloudflareStep3: "Create Tunnel",
+    cloudflareStep4: "Configure DNS",
+    cloudflareStep5: "Start Tunnel",
+    copyCommand: "Copy",
+    copiedToClipboard: "Copied!",
+    googleDrive: "Google Drive",
+    googleDriveAuthenticated: "Authenticated",
+    webdav: "WebDAV",
+    webdavPlanned: "WebDAV (Planned)"
   },
   zh: {
     appName: "Mac监控系统",
@@ -346,7 +361,22 @@ const I18N = {
     largeFile: "大文件",
     rangeRequest: "Range 请求",
     maxRetries: "最大重试",
-    fileSize: "文件大小"
+    fileSize: "文件大小",
+    remoteAccess: "远程访问",
+    remoteAccessDesc: "通过 Cloudflare Tunnel 从外网安全访问您的监控系统。",
+    cloudflareDoubleProtection: "双重保护：Cloudflare Access + 应用登录",
+    cloudflareSetupWizard: "Cloudflare 配置向导",
+    cloudflareStep1: "安装 cloudflared",
+    cloudflareStep2: "登录 Cloudflare",
+    cloudflareStep3: "创建 Tunnel",
+    cloudflareStep4: "配置 DNS",
+    cloudflareStep5: "启动 Tunnel",
+    copyCommand: "复制命令",
+    copiedToClipboard: "已复制！",
+    googleDrive: "Google Drive",
+    googleDriveAuthenticated: "已登录",
+    webdav: "WebDAV",
+    webdavPlanned: "WebDAV（计划中）"
   }
 };
 

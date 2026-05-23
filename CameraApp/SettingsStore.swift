@@ -100,6 +100,12 @@ final class SettingsStore: ObservableObject {
     @Published var googleDriveFolderID: String {
         didSet { UserDefaults.standard.set(googleDriveFolderID, forKey: "googleDriveFolderID") }
     }
+    @Published var googleDriveClientID: String {
+        didSet { UserDefaults.standard.set(googleDriveClientID, forKey: "googleDriveClientID") }
+    }
+    @Published var googleDriveClientSecret: String {
+        didSet { UserDefaults.standard.set(googleDriveClientSecret, forKey: "googleDriveClientSecret") }
+    }
     @Published var webdavURL: String {
         didSet { UserDefaults.standard.set(webdavURL, forKey: "webdavURL") }
     }
@@ -219,6 +225,8 @@ final class SettingsStore: ObservableObject {
         localFolderPath = UserDefaults.standard.string(forKey: "localFolderPath") ?? ""
         mountedFolderPath = UserDefaults.standard.string(forKey: "mountedFolderPath") ?? ""
         googleDriveFolderID = UserDefaults.standard.string(forKey: "googleDriveFolderID") ?? ""
+        googleDriveClientID = UserDefaults.standard.string(forKey: "googleDriveClientID") ?? ""
+        googleDriveClientSecret = UserDefaults.standard.string(forKey: "googleDriveClientSecret") ?? ""
         webdavURL = UserDefaults.standard.string(forKey: "webdavURL") ?? ""
         webdavUsername = UserDefaults.standard.string(forKey: "webdavUsername") ?? ""
         webdavBasePath = UserDefaults.standard.string(forKey: "webdavBasePath") ?? "/"

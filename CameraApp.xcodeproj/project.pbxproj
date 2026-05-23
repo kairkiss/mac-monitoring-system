@@ -63,6 +63,8 @@
 		AA00000032 /* DailyReportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000034; };
 		AA00000033 /* TimelapseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000035; };
 		AA00000037 /* ThumbnailGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000039; };
+		AA00000038 /* GoogleDriveAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000003A; };
+		AA00000039 /* GoogleDriveProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000003B; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -123,6 +125,8 @@
 		AB00000034 /* DailyReportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReportManager.swift; sourceTree = "<group>"; };
 		AB00000035 /* TimelapseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelapseManager.swift; sourceTree = "<group>"; };
 		AB00000039 /* ThumbnailGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailGenerator.swift; sourceTree = "<group>"; };
+		AB0000003A /* GoogleDriveAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleDriveAuthManager.swift; sourceTree = "<group>"; };
+		AB0000003B /* GoogleDriveProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleDriveProvider.swift; sourceTree = "<group>"; };
 		AC00000001 /* CameraApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CameraApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -202,6 +206,8 @@
 				AB0000001C /* StorageProviderConfig.swift */,
 				AB0000001D /* LocalFolderProvider.swift */,
 				AB0000001E /* StorageManager.swift */,
+				AB0000003A /* GoogleDriveAuthManager.swift */,
+				AB0000003B /* GoogleDriveProvider.swift */,
 			);
 			path = Storage;
 			sourceTree = "<group>";
@@ -378,6 +384,8 @@
 				AA00000032 /* DailyReportManager.swift in Sources */,
 				AA00000033 /* TimelapseManager.swift in Sources */,
 				AA00000037 /* ThumbnailGenerator.swift in Sources */,
+				AA00000038 /* GoogleDriveAuthManager.swift in Sources */,
+				AA00000039 /* GoogleDriveProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -443,14 +451,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.2.1;
+				MARKETING_VERSION = 2.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -465,14 +473,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.2.1;
+				MARKETING_VERSION = 2.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

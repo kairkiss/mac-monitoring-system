@@ -4,7 +4,7 @@ MacMonitor turns the app into a local camera node with a web dashboard, storage 
 
 Mac监控系统将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
 
-> **v2.2.1** — Range & Polish Hotfix. Fixed HTTP Range parsing, enhanced Upload Queue backoff display, added Settings credential feedback, improved Web i18n coverage. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **v2.3.0** — Google Drive Cloud Storage + Cloudflare Public Access Wizard. Real Google Drive provider with OAuth + resumable upload; Cloudflare Tunnel setup wizard in Settings and Web UI. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 
@@ -19,7 +19,7 @@ Mac监控系统将本地摄像头工具升级为 Mac 常驻采集节点，支持
 - **Multi-Camera** — Supports multiple cameras with preferred camera persistence and graceful fallback
 - **Web Dashboard** — Browser-based control panel with bilingual UI (Chinese/English), live camera snapshots, media library with thumbnails, task management, and upload queue monitoring
 - **REST API** — Full API for camera, media, tasks, logs, health, uploads, and storage; HTTP Range support for large media file downloads
-- **Storage Providers** — Local folder and mounted folder backends (available); Google Drive and WebDAV (planned, not fully implemented)
+- **Storage Providers** — Local folder, mounted folder, and Google Drive backends (available); WebDAV (planned, not fully implemented)
 - **Upload Queue** — Persistent queue with exponential backoff retry, progress tracking, pause/resume, and local/mounted-folder verification. Bandwidth limiting is planned.
 - **Customizable Web Credentials** — Change web admin username and password from macOS Settings or web interface; salted SHA256 password hashing
 - **Retention Policy** — Automatic cleanup of local originals after verified cloud upload

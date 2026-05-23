@@ -12,6 +12,9 @@ struct SettingsView: View {
     @State private var webUsername: String = ""
     @State private var webCredentialMessage: String?
     @State private var webCredentialIsError: Bool = false
+    @State private var gdAuthMessage: String?
+    @State private var gdAuthIsError: Bool = false
+    @State private var cfCopiedMessage: String?
 
     var body: some View {
         Form {
@@ -223,7 +226,7 @@ struct SettingsView: View {
                     Text(Strings.none).tag("none")
                     Text(Strings.localFolder).tag("localFolder")
                     Text(Strings.mountedFolder).tag("mountedFolder")
-                    Text("\(Strings.googleDrive) (Planned)").tag("googleDrive")
+                    Text(Strings.googleDrive).tag("googleDrive")
                     Text("\(Strings.webdav) (Planned)").tag("webdav")
                 }
                 .onChange(of: settings.activeStorageProviderType) { _, _ in
@@ -344,13 +347,144 @@ struct SettingsView: View {
                 }
 
                 if settings.activeStorageProviderType == "googleDrive" {
+                    // Google Drive Configuration
                     HStack(spacing: 12) {
                         Image(systemName: "cloud")
                             .foregroundStyle(.orange)
                             .frame(width: 20)
-                        Text("Google Drive provider is planned and not fully implemented in v2.0.2.")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Strings.googleDriveAccount)
+                            Text(GoogleDriveAuthManager.shared.isAuthenticated ? GoogleDriveAuthManager.shared.userEmail : Strings.googleDriveNotAuthenticated)
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+
+                    if !GoogleDriveAuthManager.shared.isAuthenticated {
+                        // Client ID
+                        HStack(spacing: 12) {
+                            Image(systemName: "key")
+                                .foregroundStyle(.blue)
+                                .frame(width: 20)
+                            TextField(Strings.googleDriveClientID, text: $settings.googleDriveClientID)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        // Client Secret
+                        HStack(spacing: 12) {
+                            Image(systemName: "lock")
+                                .foregroundStyle(.blue)
+                                .frame(width: 20)
+                            SecureField(Strings.googleDriveClientSecret, text: $settings.googleDriveClientSecret)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        Text(Strings.googleDriveSetupDesc)
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .padding(.leading, 32)
+
+                        Button {
+                            Task {
+                                guard !settings.googleDriveClientID.isEmpty, !settings.googleDriveClientSecret.isEmpty else {
+                                    gdAuthMessage = Strings.googleDriveCredentialsRequired
+                                    gdAuthIsError = true
+                                    return
+                                }
+                                do {
+                                    try await GoogleDriveAuthManager.shared.authenticate(
+                                        clientID: settings.googleDriveClientID,
+                                        clientSecret: settings.googleDriveClientSecret
+                                    )
+                                    gdAuthMessage = Strings.googleDriveAuthenticated
+                                    gdAuthIsError = false
+                                    StorageManager.shared.configure()
+                                } catch {
+                                    gdAuthMessage = error.localizedDescription
+                                    gdAuthIsError = true
+                                }
+                            }
+                        } label: {
+                            Label(Strings.googleDriveSignIn, systemImage: "person.crop.circle.badge.checkmark")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                        .padding(.leading, 32)
+                    } else {
+                        // Authenticated state
+                        HStack(spacing: 12) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundStyle(.green)
+                                .frame(width: 20)
+                            Text(Strings.googleDriveAuthenticated)
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        }
+
+                        HStack(spacing: 12) {
+                            Image(systemName: "folder")
+                                .foregroundStyle(.blue)
+                                .frame(width: 20)
+                            TextField(Strings.googleDriveRootFolder, text: $settings.googleDriveFolderID)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        Text(Strings.googleDriveRootFolderDesc)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.leading, 32)
+
+                        HStack(spacing: 12) {
+                            Image(systemName: "arrow.triangle.branch")
+                                .foregroundStyle(.blue)
+                                .frame(width: 20)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(Strings.googleDriveFolderStructure)
+                                Text(Strings.googleDriveFolderStructureDesc)
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+
+                        HStack(spacing: 12) {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundStyle(.blue)
+                                .frame(width: 20)
+                            Text(Strings.googleDriveResumable)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack(spacing: 8) {
+                            Button {
+                                Task {
+                                    storageTestResult = await StorageManager.shared.testConnection()
+                                }
+                            } label: {
+                                Label(Strings.testConnection, systemImage: "network")
+                            }
+
+                            Button(role: .destructive) {
+                                GoogleDriveAuthManager.shared.signOut()
+                                StorageManager.shared.configure()
+                            } label: {
+                                Label(Strings.googleDriveSignOut, systemImage: "rectangle.portrait.and.arrow.right")
+                            }
+                        }
+                        .padding(.leading, 32)
+                    }
+
+                    if let result = storageTestResult {
+                        Label(result ? Strings.providerConnected : Strings.providerDisconnected, systemImage: result ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(result ? .green : .red)
+                            .padding(.leading, 32)
+                    }
+
+                    if let msg = gdAuthMessage {
+                        Text(msg)
+                            .font(.caption)
+                            .foregroundStyle(gdAuthIsError ? .red : .green)
+                            .padding(.leading, 32)
                     }
                 }
 
@@ -827,6 +961,83 @@ struct SettingsView: View {
                 Label(Strings.privacySecurity, systemImage: "lock.shield.fill")
             }
 
+            // Cloudflare Tunnel
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: "network.badge.shield.half.filled")
+                        .foregroundStyle(.orange)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(Strings.cloudflareTunnel)
+                        Text(Strings.remoteAccessDesc)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    Image(systemName: "lock.rectangle.stack")
+                        .foregroundStyle(.green)
+                        .frame(width: 20)
+                    Text(Strings.cloudflareDoubleProtection)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                DisclosureGroup(Strings.cloudflareSetupWizard) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Step 1: Install
+                        cfWizardStep(
+                            step: 1,
+                            title: Strings.cloudflareStep1,
+                            command: "brew install cloudflared",
+                            description: "Install the Cloudflare Tunnel client"
+                        )
+
+                        // Step 2: Login
+                        cfWizardStep(
+                            step: 2,
+                            title: Strings.cloudflareStep2,
+                            command: "cloudflared tunnel login",
+                            description: "Authenticate with your Cloudflare account"
+                        )
+
+                        // Step 3: Create Tunnel
+                        cfWizardStep(
+                            step: 3,
+                            title: Strings.cloudflareStep3,
+                            command: "cloudflared tunnel create mac-monitor",
+                            description: "Create a named tunnel"
+                        )
+
+                        // Step 4: DNS
+                        cfWizardStep(
+                            step: 4,
+                            title: Strings.cloudflareStep4,
+                            command: "cloudflared tunnel route dns mac-monitor monitor.yourdomain.com",
+                            description: "Point your domain to the tunnel"
+                        )
+
+                        // Step 5: Start
+                        let port = settings.webServerPort
+                        cfWizardStep(
+                            step: 5,
+                            title: Strings.cloudflareStep5,
+                            command: "cloudflared tunnel run --url http://127.0.0.1:\(port) mac-monitor",
+                            description: "Start tunneling traffic to local web server"
+                        )
+
+                        Text(Strings.cloudflareDoubleProtection)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .padding(.top, 4)
+                    }
+                    .padding(.vertical, 8)
+                }
+            } header: {
+                Label(Strings.remoteAccess, systemImage: "network.badge.shield.half.filled")
+            }
+
             // Language
             Section {
                 Picker(Strings.language, selection: Binding(
@@ -845,7 +1056,7 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", "2.2.1")
+                aboutRow("Version", "2.3.0")
                 aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")
@@ -875,6 +1086,49 @@ struct SettingsView: View {
             Text(value)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    private func cfWizardStep(step: Int, title: String, command: String, description: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text("\(step)")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                    .frame(width: 20, height: 20)
+                    .background(Circle().fill(.orange))
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            Text(description)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 28)
+            HStack(spacing: 8) {
+                Text(command)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.blue)
+                    .textSelection(.enabled)
+                Spacer()
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(command, forType: .string)
+                    cfCopiedMessage = Strings.copiedToClipboard
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        cfCopiedMessage = nil
+                    }
+                } label: {
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(8)
+            .background(Color.blue.opacity(0.08))
+            .cornerRadius(6)
+            .padding(.leading, 28)
         }
     }
 }

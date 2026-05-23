@@ -25,6 +25,11 @@ final class KeychainService {
     let webAuthSecretAccount = "webAuthSecret"
     let webdavPasswordAccount = "webdavPassword"
     let googleDriveTokensAccount = "googleDriveOAuthTokens"
+    let googleDriveAccessTokenAccount = "googleDriveAccessToken"
+    let googleDriveRefreshTokenAccount = "googleDriveRefreshToken"
+    let googleDriveTokenExpiryAccount = "googleDriveTokenExpiry"
+    let googleDriveUserEmailAccount = "googleDriveUserEmail"
+    let googleDriveRootFolderIDAccount = "googleDriveRootFolderID"
 
     private init() {}
 
@@ -154,6 +159,63 @@ final class KeychainService {
                 try? delete(service: service, account: googleDriveTokensAccount)
             } else {
                 try? save(newValue, service: service, account: googleDriveTokensAccount)
+            }
+        }
+    }
+
+    var googleDriveAccessToken: String {
+        get { (try? read(service: service, account: googleDriveAccessTokenAccount)) ?? "" }
+        set {
+            if newValue.isEmpty {
+                try? delete(service: service, account: googleDriveAccessTokenAccount)
+            } else {
+                do { try save(newValue, service: service, account: googleDriveAccessTokenAccount) }
+                catch { ActivityLogManager.shared.error(.security, "Failed to save Google Drive access token", detail: error.localizedDescription) }
+            }
+        }
+    }
+
+    var googleDriveRefreshToken: String {
+        get { (try? read(service: service, account: googleDriveRefreshTokenAccount)) ?? "" }
+        set {
+            if newValue.isEmpty {
+                try? delete(service: service, account: googleDriveRefreshTokenAccount)
+            } else {
+                do { try save(newValue, service: service, account: googleDriveRefreshTokenAccount) }
+                catch { ActivityLogManager.shared.error(.security, "Failed to save Google Drive refresh token", detail: error.localizedDescription) }
+            }
+        }
+    }
+
+    var googleDriveTokenExpiry: String {
+        get { (try? read(service: service, account: googleDriveTokenExpiryAccount)) ?? "" }
+        set {
+            if newValue.isEmpty {
+                try? delete(service: service, account: googleDriveTokenExpiryAccount)
+            } else {
+                try? save(newValue, service: service, account: googleDriveTokenExpiryAccount)
+            }
+        }
+    }
+
+    var googleDriveUserEmail: String {
+        get { (try? read(service: service, account: googleDriveUserEmailAccount)) ?? "" }
+        set {
+            if newValue.isEmpty {
+                try? delete(service: service, account: googleDriveUserEmailAccount)
+            } else {
+                try? save(newValue, service: service, account: googleDriveUserEmailAccount)
+            }
+        }
+    }
+
+    var googleDriveRootFolderID: String {
+        get { (try? read(service: service, account: googleDriveRootFolderIDAccount)) ?? "" }
+        set {
+            if newValue.isEmpty {
+                try? delete(service: service, account: googleDriveRootFolderIDAccount)
+            } else {
+                try? save(newValue, service: service, account: googleDriveRootFolderIDAccount)
             }
         }
     }

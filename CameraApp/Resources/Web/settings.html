@@ -37,8 +37,61 @@
 
     <div class="card">
         <h3 data-i18n="storageProviders">Storage Providers</h3>
-        <p style="color:var(--fg2);font-size:13px;margin-bottom:12px;" data-i18n="storageProviderNote">Google Drive and WebDAV are planned features. Configure storage providers in the macOS app.</p>
         <div id="providerList"></div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="remoteAccess">Remote Access</h3>
+        <p style="color:var(--fg2);font-size:13px;margin-bottom:8px;" data-i18n="remoteAccessDesc">Securely access your monitoring system from the internet via Cloudflare Tunnel.</p>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="color:#4caf50;font-size:20px;">&#128274;</span>
+            <span style="font-size:13px;color:var(--fg2);" data-i18n="cloudflareDoubleProtection">Double protection: Cloudflare Access + App Login</span>
+        </div>
+        <details>
+            <summary style="cursor:pointer;color:var(--fg);font-weight:500;" data-i18n="cloudflareSetupWizard">Cloudflare Setup Wizard</summary>
+            <div style="padding:12px 0;">
+                <div class="cf-step">
+                    <div class="cf-step-num">1</div>
+                    <div>
+                        <div class="cf-step-title" data-i18n="cloudflareStep1">Install cloudflared</div>
+                        <div class="cf-step-desc">Install the Cloudflare Tunnel client</div>
+                        <div class="cf-cmd"><code>brew install cloudflared</code> <button onclick="copyCmd(this)" class="copy-btn" data-i18n="copyCommand">Copy</button></div>
+                    </div>
+                </div>
+                <div class="cf-step">
+                    <div class="cf-step-num">2</div>
+                    <div>
+                        <div class="cf-step-title" data-i18n="cloudflareStep2">Login to Cloudflare</div>
+                        <div class="cf-step-desc">Authenticate with your Cloudflare account</div>
+                        <div class="cf-cmd"><code>cloudflared tunnel login</code> <button onclick="copyCmd(this)" class="copy-btn" data-i18n="copyCommand">Copy</button></div>
+                    </div>
+                </div>
+                <div class="cf-step">
+                    <div class="cf-step-num">3</div>
+                    <div>
+                        <div class="cf-step-title" data-i18n="cloudflareStep3">Create Tunnel</div>
+                        <div class="cf-step-desc">Create a named tunnel</div>
+                        <div class="cf-cmd"><code>cloudflared tunnel create mac-monitor</code> <button onclick="copyCmd(this)" class="copy-btn" data-i18n="copyCommand">Copy</button></div>
+                    </div>
+                </div>
+                <div class="cf-step">
+                    <div class="cf-step-num">4</div>
+                    <div>
+                        <div class="cf-step-title" data-i18n="cloudflareStep4">Configure DNS</div>
+                        <div class="cf-step-desc">Point your domain to the tunnel</div>
+                        <div class="cf-cmd"><code>cloudflared tunnel route dns mac-monitor monitor.yourdomain.com</code> <button onclick="copyCmd(this)" class="copy-btn" data-i18n="copyCommand">Copy</button></div>
+                    </div>
+                </div>
+                <div class="cf-step">
+                    <div class="cf-step-num">5</div>
+                    <div>
+                        <div class="cf-step-title" data-i18n="cloudflareStep5">Start Tunnel</div>
+                        <div class="cf-step-desc">Start tunneling traffic to local web server</div>
+                        <div class="cf-cmd"><code>cloudflared tunnel run --url http://127.0.0.1:<span id="cfPort">8765</span> mac-monitor</code> <button onclick="copyCmd(this)" class="copy-btn" data-i18n="copyCommand">Copy</button></div>
+                    </div>
+                </div>
+            </div>
+        </details>
     </div>
 
     <div class="card">
@@ -169,16 +222,42 @@ async function loadProviders() {
     const data = await api('/api/storage/providers');
     if (!data) return;
     document.getElementById('providerList').innerHTML = data.providers.map(p => {
-        const badge = p.isPlanned ? '<span style="color:#ff9800;font-size:12px;">' + t('planned') + '</span>' :
-                      p.isAvailable ? '<span style="color:#4caf50;font-size:12px;">' + t('available') + '</span>' : '';
-        return `<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">` +
-               `<span>${p.displayName}</span>${badge}</div>`;
+        let badge = '';
+        if (p.isPlanned) {
+            badge = '<span style="color:#ff9800;font-size:12px;">' + t('planned') + '</span>';
+        } else if (p.isActive) {
+            badge = '<span style="color:#4caf50;font-size:12px;">' + t('active') + '</span>';
+        } else if (p.isAvailable) {
+            badge = '<span style="color:#4caf50;font-size:12px;">' + t('available') + '</span>';
+        }
+        const detail = p.detail ? `<span style="color:var(--fg2);font-size:12px;margin-left:8px;">${p.detail}</span>` : '';
+        return `<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">` +
+               `<div><span>${p.displayName}</span>${detail}</div>${badge}</div>`;
     }).join('');
+}
+
+async function loadStatus() {
+    const data = await api('/api/status');
+    if (data && data.storage && data.storage.port) {
+        const portEl = document.getElementById('cfPort');
+        if (portEl) portEl.textContent = data.storage.port;
+    }
+}
+
+function copyCmd(btn) {
+    const code = btn.parentElement.querySelector('code');
+    if (code) {
+        navigator.clipboard.writeText(code.textContent).then(() => {
+            btn.textContent = t('copiedToClipboard') || 'Copied';
+            setTimeout(() => { btn.textContent = t('copyCommand') || 'Copy'; }, 2000);
+        });
+    }
 }
 
 loadStorage();
 loadUsers();
 loadProviders();
+loadStatus();
 </script>
 </body>
 </html>

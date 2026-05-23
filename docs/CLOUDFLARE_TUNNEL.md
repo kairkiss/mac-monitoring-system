@@ -2,11 +2,13 @@
 
 This guide explains how to securely expose your Mac监控系统 web dashboard to the internet using Cloudflare Tunnel (formerly Argo Tunnel).
 
+> **Tip:** As of v2.3.0, a built-in setup wizard is available in **Settings > Remote Access** (both macOS app and web dashboard). It provides copy-to-clipboard commands for each step.
+
 ## Prerequisites
 
 - A Cloudflare account (free tier works)
 - A domain managed by Cloudflare
-- Mac监控系统 v2.0.1+ installed and running with Web Server enabled
+- Mac监控系统 v2.3.0+ installed and running with Web Server enabled
 
 ## Step 1: Install cloudflared
 

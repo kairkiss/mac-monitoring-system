@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.3.0 (2026-05-22)
+
+Google Drive Cloud Storage + Cloudflare Public Access Wizard.
+
+### New Features
+
+- **Google Drive Provider** — Real Google Drive API integration with OAuth 2.0 login (ASWebAuthenticationSession), resumable chunked upload (8MB chunks), automatic folder creation (MacMonitor/YYYY/MM/DD/category/), post-upload file verification, and file management (delete, exists)
+- **Google Drive OAuth** — Access token + refresh token stored securely in macOS Keychain; automatic token refresh when expired; user email display
+- **Cloudflare Tunnel Wizard** — 5-step interactive setup guide in macOS Settings with copy-to-clipboard commands; covers cloudflared install, login, tunnel creation, DNS routing, and start
+- **Web Remote Access Section** — Cloudflare Tunnel setup wizard on web Settings page with step-by-step commands and double-protection info (Cloudflare Access + App Login)
+- **Google Drive Settings UI** — Sign in/out, Client ID/Secret configuration, root folder ID, folder structure preview, connection test in macOS Settings
+- **Web Storage Providers** — Storage provider list now shows Google Drive as available when authenticated, with user email detail; WebDAV remains planned
+
+### Technical
+
+- Version: 2.3.0
+- Build: 15
+- New files: `GoogleDriveAuthManager.swift`, `GoogleDriveProvider.swift`
+- Modified: `KeychainService.swift` (5 new accounts), `SettingsStore.swift` (2 new properties), `StorageManager.swift`, `APIStorageHandler.swift`, `SettingsView.swift`, `settings.html`, `i18n.js`, `style.css`, `Strings.swift`
+- Google Drive tokens stored in Keychain (never exposed to Web UI or logs)
+- No data migration required
+- No existing user data is deleted
+
 ## v2.2.1 (2026-05-22)
 
 Range & Polish Hotfix — fixes HTTP Range parsing, enhances upload queue display, improves Settings feedback.

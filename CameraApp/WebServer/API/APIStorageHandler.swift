@@ -36,12 +36,34 @@ struct APIStorageHandler {
 
         // List available provider types
         router.addRoute(method: "GET", path: "/api/storage/providers") { _ in
-            let providers: [[String: Any]] = StorageProviderType.allCases.map { type in
-                [
+            let activeType = StorageManager.shared.activeProviderType
+            let gdAuth = GoogleDriveAuthManager.shared
+            let providers: [[String: Any]] = StorageProviderType.allCases.compactMap { type in
+                guard type != .none else { return nil }
+                var isAvailable = false
+                var isPlanned = false
+                var detail = ""
+
+                switch type {
+                case .localFolder, .mountedFolder:
+                    isAvailable = true
+                case .googleDrive:
+                    isAvailable = gdAuth.isAuthenticated
+                    detail = gdAuth.isAuthenticated ? gdAuth.userEmail : "Not signed in"
+                case .webdav:
+                    isPlanned = true
+                    detail = "Planned — not yet implemented"
+                default:
+                    break
+                }
+
+                return [
                     "type": type.rawValue,
                     "displayName": type.displayName,
-                    "isAvailable": type == .localFolder || type == .mountedFolder,
-                    "isPlanned": type == .googleDrive || type == .webdav
+                    "isAvailable": isAvailable,
+                    "isPlanned": isPlanned,
+                    "isActive": type == activeType,
+                    "detail": detail
                 ] as [String: Any]
             }
             return HTTPResponse.json(["providers": providers])

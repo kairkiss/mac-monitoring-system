@@ -343,4 +343,31 @@ struct Strings {
     // MARK: - Cloudflare
     static var cloudflareTunnel: String { lang == .chinese ? "Cloudflare Tunnel" : "Cloudflare Tunnel" }
     static var cloudflareGuide: String { lang == .chinese ? "远程访问配置指南" : "Remote Access Setup Guide" }
+
+    // MARK: - Google Drive
+    static var googleDriveSignIn: String { lang == .chinese ? "登录 Google Drive" : "Sign In to Google Drive" }
+    static var googleDriveSignOut: String { lang == .chinese ? "退出 Google Drive" : "Sign Out" }
+    static var googleDriveAuthenticated: String { lang == .chinese ? "已登录" : "Authenticated" }
+    static var googleDriveNotAuthenticated: String { lang == .chinese ? "未登录" : "Not Authenticated" }
+    static var googleDriveClientID: String { lang == .chinese ? "Google API Client ID" : "Google API Client ID" }
+    static var googleDriveClientSecret: String { lang == .chinese ? "Google API Client Secret" : "Google API Client Secret" }
+    static var googleDriveRootFolder: String { lang == .chinese ? "根文件夹 ID" : "Root Folder ID" }
+    static var googleDriveRootFolderDesc: String { lang == .chinese ? "留空使用 My Drive 根目录" : "Leave empty to use My Drive root" }
+    static var googleDriveAccount: String { lang == .chinese ? "Google 账户" : "Google Account" }
+    static var googleDriveFolderStructure: String { lang == .chinese ? "文件夹结构" : "Folder Structure" }
+    static var googleDriveFolderStructureDesc: String { lang == .chinese ? "自动创建 MacMonitor/年/月/日/分类 目录" : "Auto-creates MacMonitor/year/month/day/category directories" }
+    static var googleDriveSetupDesc: String { lang == .chinese ? "在 Google Cloud Console 创建 OAuth 2.0 凭据，然后在此输入 Client ID 和 Secret" : "Create OAuth 2.0 credentials in Google Cloud Console, then enter Client ID and Secret here" }
+    static var googleDriveResumable: String { lang == .chinese ? "支持断点续传" : "Resumable upload supported" }
+    static var googleDriveCredentialsRequired: String { lang == .chinese ? "请先输入 Google API Client ID 和 Secret" : "Please enter Google API Client ID and Secret first" }
+    static var cloudflareSetupWizard: String { lang == .chinese ? "Cloudflare 配置向导" : "Cloudflare Setup Wizard" }
+    static var cloudflareStep1: String { lang == .chinese ? "步骤 1: 安装 cloudflared" : "Step 1: Install cloudflared" }
+    static var cloudflareStep2: String { lang == .chinese ? "步骤 2: 登录 Cloudflare" : "Step 2: Login to Cloudflare" }
+    static var cloudflareStep3: String { lang == .chinese ? "步骤 3: 创建 Tunnel" : "Step 3: Create Tunnel" }
+    static var cloudflareStep4: String { lang == .chinese ? "步骤 4: 配置 DNS" : "Step 4: Configure DNS" }
+    static var cloudflareStep5: String { lang == .chinese ? "步骤 5: 启动 Tunnel" : "Step 5: Start Tunnel" }
+    static var copyCommand: String { lang == .chinese ? "复制命令" : "Copy Command" }
+    static var copiedToClipboard: String { lang == .chinese ? "已复制到剪贴板" : "Copied to clipboard" }
+    static var cloudflareDoubleProtection: String { lang == .chinese ? "双重保护：Cloudflare Access + 应用登录" : "Double protection: Cloudflare Access + App Login" }
+    static var remoteAccess: String { lang == .chinese ? "远程访问" : "Remote Access" }
+    static var remoteAccessDesc: String { lang == .chinese ? "通过 Cloudflare Tunnel 从外网安全访问您的监控系统" : "Securely access your monitoring system from the internet via Cloudflare Tunnel" }
 }

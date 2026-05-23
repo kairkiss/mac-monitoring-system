@@ -321,3 +321,71 @@ input:focus, select:focus {
     width: auto;
     margin-bottom: 0;
 }
+
+/* Cloudflare Setup Wizard */
+.cf-step {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+.cf-step:last-child { border-bottom: none; }
+
+.cf-step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--orange);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cf-step-title {
+    font-weight: 500;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.cf-step-desc {
+    font-size: 12px;
+    color: var(--fg2);
+    margin-bottom: 6px;
+}
+
+.cf-cmd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+.cf-cmd code {
+    flex: 1;
+    font-family: "SF Mono", "Fira Code", monospace;
+    color: var(--accent);
+    user-select: all;
+}
+
+.copy-btn {
+    padding: 2px 8px;
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--fg2);
+    cursor: pointer;
+}
+.copy-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}

@@ -32,9 +32,12 @@ final class StorageManager: ObservableObject {
                 activeProvider = nil
             }
         case .googleDrive:
-            // TODO: GoogleDriveProvider — requires OAuth setup
-            activeProvider = nil
-            ActivityLogManager.shared.warning(.upload, "Google Drive provider not yet configured")
+            if GoogleDriveAuthManager.shared.isAuthenticated {
+                activeProvider = GoogleDriveProvider()
+            } else {
+                activeProvider = nil
+                ActivityLogManager.shared.info(.upload, "Google Drive not authenticated — sign in via Settings")
+            }
         case .webdav:
             // TODO: WebDAVProvider — requires URL + credentials
             activeProvider = nil
