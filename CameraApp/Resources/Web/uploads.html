@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title data-i18n="macMonitorSystem">Mac监控系统 - Upload Queue</title>
 <link rel="stylesheet" href="/css/style.css">
+<style>
+.progress-bar { width: 100%; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+.retry-countdown { color: var(--orange); font-size: 12px; }
+</style>
 </head>
 <body>
 <nav class="sidebar">
@@ -24,6 +29,7 @@
     <div class="stats-bar">
         <div class="stat"><span class="stat-value" id="totalCount">0</span><span class="stat-label" data-i18n="total">Total</span></div>
         <div class="stat"><span class="stat-value" id="pendingCount">0</span><span class="stat-label" data-i18n="pending">Pending</span></div>
+        <div class="stat"><span class="stat-value" id="retryingCount">0</span><span class="stat-label" data-i18n="retrying">Retrying</span></div>
         <div class="stat"><span class="stat-value" id="failedCount">0</span><span class="stat-label" data-i18n="failed">Failed</span></div>
         <div class="stat"><span class="stat-value" id="pauseStatus" data-i18n="active">Active</span><span class="stat-label" data-i18n="status">Status</span></div>
     </div>
@@ -33,7 +39,16 @@
     </div>
     <div class="card">
         <table>
-            <thead><tr><th data-i18n="taskName">File</th><th data-i18n="status">Status</th><th data-i18n="provider">Provider</th><th data-i18n="attempts">Attempts</th><th data-i18n="error">Error</th><th data-i18n="actions">Actions</th></tr></thead>
+            <thead><tr>
+                <th data-i18n="taskName">File</th>
+                <th data-i18n="status">Status</th>
+                <th data-i18n="provider">Provider</th>
+                <th data-i18n="progress">Progress</th>
+                <th data-i18n="attempts">Attempts</th>
+                <th data-i18n="retryAt">Retry At</th>
+                <th data-i18n="error">Error</th>
+                <th data-i18n="actions">Actions</th>
+            </tr></thead>
             <tbody id="queueList"></tbody>
         </table>
         <p id="emptyMsg" style="color:var(--fg2);display:none;text-align:center;padding:20px;" data-i18n="noUploadJobs">No upload jobs in queue.</p>
@@ -48,12 +63,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let isPaused = false;
 
+function formatTime(isoStr) {
+    if (!isoStr) return '-';
+    try {
+        const d = new Date(isoStr);
+        return d.toLocaleTimeString();
+    } catch { return '-'; }
+}
+
+function retryCountdown(nextRetryAt) {
+    if (!nextRetryAt) return '';
+    const now = new Date();
+    const retry = new Date(nextRetryAt);
+    const diff = Math.max(0, Math.round((retry - now) / 1000));
+    if (diff <= 0) return t('retrying') + '...';
+    return formatTime(nextRetryAt) + ' (' + diff + 's)';
+}
+
+function progressDisplay(progress, status) {
+    if (status === 'completed') return '100%';
+    if (status !== 'uploading' && status !== 'retrying') return '-';
+    const pct = Math.round((progress || 0) * 100);
+    if (pct > 0) {
+        return '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div><span style="font-size:11px;color:var(--fg2);">' + pct + '%</span>';
+    }
+    return '0%';
+}
+
 async function loadQueue() {
     const data = await api('/api/upload/queue');
     if (!data) return;
     isPaused = data.isPaused;
     document.getElementById('totalCount').textContent = data.totalJobs;
     document.getElementById('pendingCount').textContent = data.pendingCount;
+    document.getElementById('retryingCount').textContent = data.retryingCount || 0;
     document.getElementById('failedCount').textContent = data.failedCount;
     document.getElementById('pauseStatus').textContent = isPaused ? t('paused') : t('active');
     document.getElementById('pauseBtn').textContent = isPaused ? t('resume') : t('pause');
@@ -67,10 +110,36 @@ async function loadQueue() {
     }
     empty.style.display = 'none';
     tbody.innerHTML = data.jobs.map(j => {
-        const statusClass = j.status === 'failed' ? 'color:#f44336' : j.status === 'completed' ? 'color:#4caf50' : '';
-        const actions = j.status === 'failed' ? `<button onclick="retryJob('${j.id}')">${t('retry')}</button>` :
-                        j.status !== 'completed' && j.status !== 'cancelled' ? `<button onclick="cancelJob('${j.id}')">${t('cancel')}</button>` : '';
-        return `<tr><td>${j.fileName}</td><td style="${statusClass}">${j.status}</td><td>${j.provider}</td><td>${j.attempts}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${j.lastError || '-'}</td><td>${actions}</td></tr>`;
+        const statusColors = {
+            failed: 'color:#f44336', completed: 'color:#4caf50',
+            uploading: 'color:var(--accent)', retrying: 'color:var(--orange)',
+            cancelled: 'color:var(--fg2)'
+        };
+        const statusClass = statusColors[j.status] || '';
+        const statusText = t(j.status) || j.status;
+
+        let actions = '';
+        if (j.status === 'failed' || j.status === 'retrying') {
+            actions += '<button onclick="retryJob(\'' + j.id + '\')">' + t('retry') + '</button>';
+        }
+        if (j.status !== 'completed' && j.status !== 'cancelled') {
+            actions += ' <button class="secondary" onclick="cancelJob(\'' + j.id + '\')">' + t('cancel') + '</button>';
+        }
+
+        const retryInfo = j.status === 'retrying' && j.nextRetryAt
+            ? '<div class="retry-countdown">' + t('retryAt') + ' ' + retryCountdown(j.nextRetryAt) + '</div>'
+            : '';
+
+        return '<tr>' +
+            '<td>' + j.fileName + '</td>' +
+            '<td style="' + statusClass + '">' + statusText + '</td>' +
+            '<td>' + j.provider + '</td>' +
+            '<td>' + progressDisplay(j.progress, j.status) + '</td>' +
+            '<td>' + j.attempts + '/' + j.maxRetries + '</td>' +
+            '<td>' + retryInfo + '</td>' +
+            '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">' + (j.lastError || '-') + '</td>' +
+            '<td>' + actions + '</td>' +
+            '</tr>';
     }).join('');
 }
 

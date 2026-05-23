@@ -143,45 +143,11 @@ struct APIMediaHandler {
 
             // Parse Range header
             if let rangeHeader = request.rangeHeader, rangeHeader.hasPrefix("bytes=") {
-                let rangeSpec = String(rangeHeader.dropFirst(6))
-                let parts = rangeSpec.split(separator: "-")
-
-                var rangeStart: Int64 = 0
-                var rangeEnd: Int64 = totalSize - 1
-
-                if parts.count == 2 {
-                    let startStr = String(parts[0])
-                    let endStr = String(parts[1])
-
-                    if startStr.isEmpty {
-                        // Suffix range: bytes=-500
-                        if let suffix = Int64(endStr), suffix > 0 {
-                            rangeStart = max(0, totalSize - suffix)
-                            rangeEnd = totalSize - 1
-                        } else {
-                            return HTTPResponse.rangeNotSatisfiable(totalSize: totalSize)
-                        }
-                    } else if endStr.isEmpty {
-                        // Open range: bytes=500-
-                        if let start = Int64(startStr), start < totalSize {
-                            rangeStart = start
-                            rangeEnd = totalSize - 1
-                        } else {
-                            return HTTPResponse.rangeNotSatisfiable(totalSize: totalSize)
-                        }
-                    } else {
-                        // Full range: bytes=500-999
-                        if let start = Int64(startStr), let end = Int64(endStr),
-                           start <= end, start < totalSize {
-                            rangeStart = start
-                            rangeEnd = min(end, totalSize - 1)
-                        } else {
-                            return HTTPResponse.rangeNotSatisfiable(totalSize: totalSize)
-                        }
-                    }
-                } else {
+                guard let parsed = APIMediaHandler.parseRange(rangeHeader, totalSize: totalSize) else {
                     return HTTPResponse.rangeNotSatisfiable(totalSize: totalSize)
                 }
+                let rangeStart = parsed.start
+                let rangeEnd = parsed.end
 
                 // Read the requested range using FileHandle
                 let length = Int(rangeEnd - rangeStart + 1)
@@ -314,6 +280,33 @@ struct APIMediaHandler {
             MediaIndexStore.shared.setProtected(!current, for: fileName)
             return HTTPResponse.json(["protected": !current])
         }
+    }
+
+    /// Parse Range header value. Supports bytes=start-end, bytes=start-, bytes=-suffix.
+    private static func parseRange(_ header: String, totalSize: Int64) -> (start: Int64, end: Int64)? {
+        guard header.hasPrefix("bytes="), totalSize > 0 else { return nil }
+        let rangeSpec = String(header.dropFirst(6))
+        let parts = rangeSpec.split(separator: "-", omittingEmptySubsequences: false)
+        guard parts.count == 2 else { return nil }
+
+        let startStr = String(parts[0]).trimmingCharacters(in: .whitespaces)
+        let endStr = String(parts[1]).trimmingCharacters(in: .whitespaces)
+
+        if startStr.isEmpty {
+            // Suffix range: bytes=-500
+            guard let suffix = Int64(endStr), suffix > 0 else { return nil }
+            return (max(0, totalSize - suffix), totalSize - 1)
+        }
+
+        guard let start = Int64(startStr), start >= 0, start < totalSize else { return nil }
+
+        if endStr.isEmpty {
+            // Open range: bytes=500-
+            return (start, totalSize - 1)
+        }
+
+        guard let end = Int64(endStr), end >= start else { return nil }
+        return (start, min(end, totalSize - 1))
     }
 
     /// Sanitize fileName to prevent path traversal

@@ -1,5 +1,27 @@
 # Changelog
 
+## v2.2.1 (2026-05-22)
+
+Range & Polish Hotfix — fixes HTTP Range parsing, enhances upload queue display, improves Settings feedback.
+
+### Fixes
+
+- **Fixed HTTP Range parsing** — `bytes=0-` and `bytes=-500` now correctly parsed using `split(separator: "-", omittingEmptySubsequences: false)`
+- Added `parseRange()` helper with full validation: open ranges, suffix ranges, explicit ranges, invalid range rejection
+- Added 413 Payload Too Large status text to HTTPResponse
+- Upload Queue API now returns `nextRetryAt`, `retryDelaySeconds`, `lastAttemptAt`, `progress`, `completedAt`, `fileSize`, `maxRetries`
+- Upload Queue API returns additional counts: `retryingCount`, `uploadingCount`, `completedCount`
+- Upload Queue Web UI shows progress bar, retry countdown, attempts/max display
+- macOS Settings now shows success/failure feedback for Web username and password changes (not just print)
+- Added missing i18n keys: progress, retrying, completed, cancelled, retryDelay, file, save, and more
+
+### Technical
+
+- Version: 2.2.1
+- Build: 14
+- No data migration required
+- No existing user data is deleted
+
 ## v2.2.0 (2026-05-22)
 
 Web Console Maturity Release — bilingual Web UI, customizable credentials, Range support, upload backoff.

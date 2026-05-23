@@ -4,7 +4,7 @@ MacMonitor turns the app into a local camera node with a web dashboard, storage 
 
 Mac监控系统将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
 
-> **v2.2.0** — Web Console Maturity Release. Bilingual Web UI (Chinese/English), customizable web admin credentials, HTTP Range support for large media, upload retry backoff, and web server connectivity fixes. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **v2.2.1** — Range & Polish Hotfix. Fixed HTTP Range parsing, enhanced Upload Queue backoff display, added Settings credential feedback, improved Web i18n coverage. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 

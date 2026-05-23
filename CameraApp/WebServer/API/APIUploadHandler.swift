@@ -5,22 +5,34 @@ struct APIUploadHandler {
         // Get upload queue
         router.addRoute(method: "GET", path: "/api/upload/queue") { _ in
             let queue = UploadQueueManager.shared
-            let jobs = queue.jobs.map { job in
+            let fmt = ISO8601DateFormatter()
+            let jobs = queue.jobs.map { job -> [String: Any] in
                 [
                     "id": job.id,
                     "fileName": job.fileName,
                     "status": job.status.rawValue,
                     "provider": job.providerType,
                     "attempts": job.attempts,
+                    "maxRetries": job.maxRetries,
+                    "progress": job.progress,
                     "lastError": job.lastError ?? "",
-                    "createdAt": ISO8601DateFormatter().string(from: job.createdAt)
+                    "createdAt": fmt.string(from: job.createdAt),
+                    "startedAt": job.startedAt.map { fmt.string(from: $0) } ?? "",
+                    "completedAt": job.completedAt.map { fmt.string(from: $0) } ?? "",
+                    "nextRetryAt": job.nextRetryAt.map { fmt.string(from: $0) } ?? "",
+                    "lastAttemptAt": job.lastAttemptAt.map { fmt.string(from: $0) } ?? "",
+                    "retryDelaySeconds": job.retryDelaySeconds ?? 0,
+                    "fileSize": job.fileSize ?? 0
                 ] as [String: Any]
             }
             return HTTPResponse.json([
                 "jobs": jobs,
                 "isPaused": queue.isPaused,
                 "totalJobs": queue.jobs.count,
-                "pendingCount": queue.jobs.filter { $0.status == .pending || $0.status == .retrying }.count,
+                "pendingCount": queue.jobs.filter { $0.status == .pending }.count,
+                "retryingCount": queue.jobs.filter { $0.status == .retrying }.count,
+                "uploadingCount": queue.jobs.filter { $0.status == .uploading }.count,
+                "completedCount": queue.jobs.filter { $0.status == .completed }.count,
                 "failedCount": queue.jobs.filter { $0.status == .failed }.count
             ] as [String: Any])
         }

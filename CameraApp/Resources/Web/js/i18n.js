@@ -158,7 +158,21 @@ const I18N = {
     webDashboard: "Web Dashboard",
     videoPreviewLimited: "Large video — use Download for full file.",
     notImplemented: "Not implemented",
-    rangeSupportNote: "Range API available for authenticated clients."
+    rangeSupportNote: "Range API available for authenticated clients.",
+    progress: "Progress",
+    retrying: "Retrying",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    retryDelay: "Retry Delay",
+    file: "File",
+    save: "Save",
+    invalidUsername: "Invalid username",
+    failedToChangePassword: "Failed to change password",
+    failedToChangeUsername: "Failed to change username",
+    largeFile: "Large file",
+    rangeRequest: "Range request",
+    maxRetries: "Max Retries",
+    fileSize: "File Size"
   },
   zh: {
     appName: "Mac监控系统",
@@ -318,7 +332,21 @@ const I18N = {
     webDashboard: "Web 控制台",
     videoPreviewLimited: "大视频 — 请使用下载获取完整文件。",
     notImplemented: "未实现",
-    rangeSupportNote: "Range API 已支持认证客户端。"
+    rangeSupportNote: "Range API 已支持认证客户端。",
+    progress: "进度",
+    retrying: "重试中",
+    completed: "已完成",
+    cancelled: "已取消",
+    retryDelay: "重试延迟",
+    file: "文件",
+    save: "保存",
+    invalidUsername: "用户名无效",
+    failedToChangePassword: "密码修改失败",
+    failedToChangeUsername: "用户名修改失败",
+    largeFile: "大文件",
+    rangeRequest: "Range 请求",
+    maxRetries: "最大重试",
+    fileSize: "文件大小"
   }
 };
 

@@ -10,6 +10,8 @@ struct SettingsView: View {
     @State private var webPassword: String = ""
     @State private var showWebPassword: Bool = false
     @State private var webUsername: String = ""
+    @State private var webCredentialMessage: String?
+    @State private var webCredentialIsError: Bool = false
 
     var body: some View {
         Form {
@@ -580,11 +582,14 @@ struct SettingsView: View {
                                 let new = webUsername.trimmingCharacters(in: .whitespaces)
                                 guard !new.isEmpty else { return }
                                 if WebAuthManager.shared.changeAdminUsername(from: old, to: new) {
-                                    print("Username changed to \(new)")
+                                    webCredentialMessage = "Username saved / 用户名已保存"
+                                    webCredentialIsError = false
                                 } else {
-                                    print("Invalid username")
+                                    webCredentialMessage = "Invalid or duplicate username / 用户名无效或已存在"
+                                    webCredentialIsError = true
                                     webUsername = old
                                 }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 5) { webCredentialMessage = nil }
                             }
                             .font(.caption)
                         }
@@ -618,10 +623,13 @@ struct SettingsView: View {
                                 if WebAuthManager.shared.changeAdminPassword(newPassword: newPwd) {
                                     webPassword = newPwd
                                     showWebPassword = true
-                                    print("Password reset")
+                                    webCredentialMessage = "Password reset / 密码已重置"
+                                    webCredentialIsError = false
                                 } else {
-                                    print("Failed to reset password")
+                                    webCredentialMessage = "Failed to reset password / 密码重置失败"
+                                    webCredentialIsError = true
                                 }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 5) { webCredentialMessage = nil }
                             }
                             .font(.caption)
                         }
@@ -630,6 +638,14 @@ struct SettingsView: View {
                     .onAppear {
                         webPassword = KeychainService.shared.webAuthSecret
                         webUsername = WebAuthManager.shared.currentAdminUsername()
+                    }
+
+                    if let msg = webCredentialMessage {
+                        Text(msg)
+                            .font(.caption)
+                            .foregroundStyle(webCredentialIsError ? .red : .green)
+                            .padding(.leading, 32)
+                            .transition(.opacity)
                     }
                 }
             } header: {
@@ -829,7 +845,7 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", "2.2.0")
+                aboutRow("Version", "2.2.1")
                 aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")
