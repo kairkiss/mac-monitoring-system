@@ -16,6 +16,7 @@
 </style>
 </head>
 <body>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 <nav class="sidebar">
     <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
     <a href="/" class="nav-item active" data-i18n="dashboard">Dashboard</a>
@@ -32,6 +33,7 @@
     </div>
 </nav>
 <main class="content">
+    <button class="hamburger" id="menuBtn">&#9776;</button>
     <h1 data-i18n="dashboard">Dashboard</h1>
     <div class="grid">
         <div class="card">
@@ -68,6 +70,21 @@
             <h3 data-i18n="health">Health</h3>
             <p class="stat-value" id="healthStatus">-</p>
             <p class="stat-sub" id="healthSub"></p>
+        </div>
+        <div class="card">
+            <h3 data-i18n="googleDriveStatus">Google Drive</h3>
+            <p class="stat-value" id="gdStatus">-</p>
+            <p class="stat-sub" id="gdSub"></p>
+        </div>
+        <div class="card">
+            <h3 data-i18n="lastCapture">Last Capture</h3>
+            <p class="stat-value" id="lastCaptureStatus" style="font-size:18px;">-</p>
+            <p class="stat-sub" id="lastCaptureSub"></p>
+        </div>
+        <div class="card">
+            <h3 data-i18n="lastUpload">Last Upload</h3>
+            <p class="stat-value" id="lastUploadStatus" style="font-size:18px;">-</p>
+            <p class="stat-sub" id="lastUploadSub"></p>
         </div>
         <div class="card">
             <h3>System</h3>
@@ -151,6 +168,25 @@ async function refreshStatus() {
         upSub.textContent = waiting > 0 ? waiting + ' ' + t('waitingForProvider') : '';
     }
 
+    // Google Drive
+    const gdEl = document.getElementById('gdStatus');
+    const gdSub = document.getElementById('gdSub');
+    if (data.storage.provider === 'googleDrive') {
+        if (data.storage.googleDriveConnected) {
+            gdEl.innerHTML = dot('green') + t('googleDriveAuthenticated');
+            gdSub.textContent = data.storage.googleDriveEmail || '';
+        } else if (data.storage.googleDriveNeedsReconnect) {
+            gdEl.innerHTML = dot('orange') + t('needsReconnect');
+            gdSub.textContent = '';
+        } else {
+            gdEl.innerHTML = dot('red') + t('notConfigured');
+            gdSub.textContent = '';
+        }
+    } else {
+        gdEl.innerHTML = dot('gray') + t('none');
+        gdSub.textContent = '';
+    }
+
     // Version
     document.getElementById('versionInfo').textContent = 'v' + (data.version || '?') + ' (' + (data.build || '?') + ')';
 }
@@ -180,9 +216,34 @@ async function refreshMediaCount() {
     } catch (e) {}
 }
 
+async function refreshLastCapture() {
+    try {
+        const data = await api('/api/media?perPage=1&sortBy=date');
+        if (!data || !data.items || data.items.length === 0) return;
+        const item = data.items[0];
+        document.getElementById('lastCaptureStatus').textContent = item.fileName || '-';
+        document.getElementById('lastCaptureSub').textContent = item.date ? new Date(item.date).toLocaleString() : '';
+    } catch (e) {}
+}
+
+async function refreshLastUpload() {
+    try {
+        const data = await api('/api/uploads');
+        if (!data || !data.jobs) return;
+        const completed = data.jobs.filter(j => j.status === 'completed' || j.status === 'verified');
+        if (completed.length > 0) {
+            const latest = completed[0];
+            document.getElementById('lastUploadStatus').textContent = latest.fileName || '-';
+            document.getElementById('lastUploadSub').textContent = latest.completedAt ? new Date(latest.completedAt).toLocaleString() : '';
+        }
+    } catch (e) {}
+}
+
 refreshStatus();
 refreshHealth();
 refreshMediaCount();
+refreshLastCapture();
+refreshLastUpload();
 setInterval(refreshStatus, 5000);
 setInterval(refreshHealth, 30000);
 </script>

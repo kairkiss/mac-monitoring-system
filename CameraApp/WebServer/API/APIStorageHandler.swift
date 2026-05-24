@@ -166,5 +166,51 @@ struct APIStorageHandler {
             }
             return HTTPResponse.json(["providers": providers])
         }
+
+        // MARK: - Cloudflare Tunnel
+
+        // Get tunnel status
+        router.addRoute(method: "GET", path: "/api/remote/status") { _ in
+            let tunnel = CloudflareTunnelManager.shared
+            let settings = SettingsStore.shared
+            let detection = tunnel.detectCloudflared()
+
+            var result: [String: Any] = [
+                "status": tunnel.status.rawValue,
+                "tunnelName": settings.cloudflareTunnelName,
+                "hostname": settings.cloudflareHostname,
+                "cloudflaredDetected": detection.detected,
+                "isRunning": tunnel.isRunning
+            ]
+            if let pid = tunnel.pid { result["pid"] = pid }
+            if let path = detection.path { result["cloudflaredPath"] = path }
+            if let version = detection.version { result["cloudflaredVersion"] = version }
+            if !tunnel.lastError.isEmpty { result["lastError"] = tunnel.lastError }
+            if !tunnel.lastOutput.isEmpty {
+                let lines = tunnel.lastOutput.components(separatedBy: "\n")
+                result["lastOutput"] = lines.suffix(20).joined(separator: "\n")
+            }
+            return HTTPResponse.json(result)
+        }
+
+        // Start tunnel
+        router.addRoute(method: "POST", path: "/api/remote/start") { _ in
+            let tunnel = CloudflareTunnelManager.shared
+            guard !tunnel.isRunning else {
+                return HTTPResponse.json(["ok": true, "status": "already_running"] as [String: Any])
+            }
+            guard !SettingsStore.shared.cloudflareTunnelName.isEmpty else {
+                return HTTPResponse.error("Tunnel name not configured", status: 400)
+            }
+            tunnel.startTunnel()
+            return HTTPResponse.json(["ok": true, "status": tunnel.status.rawValue] as [String: Any])
+        }
+
+        // Stop tunnel
+        router.addRoute(method: "POST", path: "/api/remote/stop") { _ in
+            let tunnel = CloudflareTunnelManager.shared
+            tunnel.stopTunnel()
+            return HTTPResponse.json(["ok": true, "status": tunnel.status.rawValue] as [String: Any])
+        }
     }
 }

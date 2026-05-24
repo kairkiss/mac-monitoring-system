@@ -1,6 +1,7 @@
 import Foundation
 import Network
 import AppKit
+import CryptoKit
 
 // Thread-safe single-resume guard
 private final class Once {
@@ -56,14 +57,15 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
         defer { Task { @MainActor in isAuthenticating = false } }
 
         // Step 1: Get auth code via system browser + loopback listener
-        let (code, redirectURI) = try await getAuthorizationCode(clientID: clientID)
+        let (code, redirectURI, codeVerifier) = try await getAuthorizationCode(clientID: clientID)
 
         // Step 2: Exchange code for tokens
         let tokenResponse = try await exchangeCodeForTokens(
             code: code,
             clientID: clientID,
             clientSecret: clientSecret,
-            redirectURI: redirectURI
+            redirectURI: redirectURI,
+            codeVerifier: codeVerifier
         )
 
         // Step 3: Persist
@@ -113,9 +115,9 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
     //
     // Uses NSWorkspace.shared.open() to open the system browser (not ASWebAuthenticationSession).
     // A standalone NWListener on a random port receives the OAuth callback.
-    // No race between session and listener — only the listener delivers the code.
+    // Security: PKCE (S256) + state parameter prevent code interception and CSRF.
 
-    private func getAuthorizationCode(clientID: String) async throws -> (String, String) {
+    private func getAuthorizationCode(clientID: String) async throws -> (String, String, String) {
         for attempt in 1...5 {
             let port = UInt16.random(in: 49152...65535)
             do {
@@ -131,8 +133,13 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
         throw GoogleDriveAuthError.listenerFailed("Could not start local server after 5 attempts")
     }
 
-    private func doOAuthOnPort(port: UInt16, clientID: String, attempt: Int) async throws -> (String, String) {
+    private func doOAuthOnPort(port: UInt16, clientID: String, attempt: Int) async throws -> (String, String, String) {
         let redirectBase = "\(Self.redirectURI):\(port)"
+
+        // Generate PKCE + state
+        let codeVerifier = Self.generateCodeVerifier()
+        let codeChallenge = Self.codeChallenge(from: codeVerifier)
+        let state = Self.generateState()
 
         // Build auth URL
         guard var components = URLComponents(string: Self.authEndpoint) else {
@@ -144,7 +151,10 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
             URLQueryItem(name: "response_type", value: "code"),
             URLQueryItem(name: "scope", value: Self.scope),
             URLQueryItem(name: "access_type", value: "offline"),
-            URLQueryItem(name: "prompt", value: "consent")
+            URLQueryItem(name: "prompt", value: "consent"),
+            URLQueryItem(name: "code_challenge", value: codeChallenge),
+            URLQueryItem(name: "code_challenge_method", value: "S256"),
+            URLQueryItem(name: "state", value: state)
         ]
         guard let authURL = components.url else {
             throw GoogleDriveAuthError.invalidURL
@@ -164,7 +174,7 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
         ActivityLogManager.shared.info(.upload, "Google Drive OAuth started (attempt \(attempt), port \(port))")
 
         // Continuation: only the listener callback can resume it
-        return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<(String, String), Error>) in
+        return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<(String, String, String), Error>) in
             let once = Once()
             var listenerRef: NWListener? = listener
 
@@ -180,25 +190,38 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
 
             // Connection handler: receives the redirect from the browser
             listener.newConnectionHandler = { connection in
-                guard once.call() else { return }
-                timeout.cancel()
-
                 connection.start(queue: .global())
-                connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] data, _, _, _ in
-                    // Cancel listener immediately
+                connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { data, _, _, _ in
+                    guard let data = data, let raw = String(data: data, encoding: .utf8) else {
+                        connection.cancel()
+                        return // don't consume Once — wait for valid connection
+                    }
+
+                    // Parse HTTP request to validate it's a real OAuth callback
+                    let params = Self.extractCallbackParams(from: raw)
+                    let hasCodeAndState = params.code != nil && params.state != nil
+                    let hasErrorAndState = params.error != nil && params.state != nil
+
+                    guard hasCodeAndState || hasErrorAndState else {
+                        // Not an OAuth callback (favicon, probe, etc.) — reject silently
+                        let resp = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                        connection.send(content: resp.data(using: .utf8), completion: .contentProcessed { _ in
+                            connection.cancel()
+                        })
+                        return // don't consume Once — wait for valid OAuth callback
+                    }
+
+                    // Valid OAuth callback — consume Once
+                    guard once.call() else {
+                        connection.cancel()
+                        return
+                    }
+                    timeout.cancel()
                     listenerRef?.cancel()
                     listenerRef = nil
 
-                    guard let data = data, let raw = String(data: data, encoding: .utf8) else {
-                        connection.cancel()
-                        cont.resume(throwing: GoogleDriveAuthError.noAuthCode)
-                        return
-                    }
-
-                    let code = self?.extractCode(from: raw)
-
-                    // Send response to browser (non-critical)
-                    if let html = self?.successHTML() {
+                    // Send success response to browser
+                    if let html = Self.successHTML() {
                         let resp = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(html.utf8.count)\r\nConnection: close\r\n\r\n\(html)"
                         connection.send(content: resp.data(using: .utf8), completion: .contentProcessed { _ in
                             connection.cancel()
@@ -207,8 +230,22 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
                         connection.cancel()
                     }
 
-                    if let code = code, !code.isEmpty {
-                        cont.resume(returning: (code, redirectBase))
+                    // Handle error from Google
+                    if let error = params.error {
+                        let mapped = Self.mapOAuthError(error)
+                        cont.resume(throwing: mapped)
+                        return
+                    }
+
+                    // Validate state
+                    guard params.state == state else {
+                        cont.resume(throwing: GoogleDriveAuthError.stateMismatch)
+                        return
+                    }
+
+                    // Return code
+                    if let code = params.code, !code.isEmpty {
+                        cont.resume(returning: (code, redirectBase, codeVerifier))
                     } else {
                         cont.resume(throwing: GoogleDriveAuthError.noAuthCode)
                     }
@@ -216,10 +253,9 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
             }
 
             // State handler
-            listener.stateUpdateHandler = { state in
-                switch state {
+            listener.stateUpdateHandler = { listenerState in
+                switch listenerState {
                 case .ready:
-                    // Open system browser — must be on main thread
                     DispatchQueue.main.async {
                         NSWorkspace.shared.open(authURL)
                     }
@@ -244,26 +280,76 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - Code Extraction
+    // MARK: - PKCE
 
-    private func extractCode(from raw: String) -> String? {
-        // HTTP request: GET /?code=xxx&state=yyy HTTP/1.1
-        guard let firstLine = raw.components(separatedBy: "\r\n").first else { return nil }
-        guard let qStart = firstLine.firstIndex(of: "?"),
-              let qEnd = firstLine[firstLine.index(after: qStart)...].firstIndex(of: " ") else {
-            return nil
-        }
-        let query = String(firstLine[firstLine.index(after: qStart)..<qEnd])
-        for pair in query.components(separatedBy: "&") {
-            let kv = pair.components(separatedBy: "=")
-            if kv.count == 2 && kv[0] == "code" {
-                return kv[1].removingPercentEncoding
-            }
-        }
-        return nil
+    private static func generateCodeVerifier() -> String {
+        let charset = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        var buffer = [UInt8](repeating: 0, count: 128)
+        _ = SecRandomCopyBytes(kSecRandomDefault, buffer.count, &buffer)
+        return buffer.map { charset[Int($0) % charset.count] }.reduce(into: "") { $0.append($1) }
     }
 
-    private func successHTML() -> String {
+    private static func codeChallenge(from verifier: String) -> String {
+        let data = Data(verifier.utf8)
+        let hash = SHA256.hash(data: data)
+        return Data(hash).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    private static func generateState() -> String {
+        var buffer = [UInt8](repeating: 0, count: 32)
+        _ = SecRandomCopyBytes(kSecRandomDefault, buffer.count, &buffer)
+        return buffer.map { String(format: "%02x", $0) }.joined()
+    }
+
+    // MARK: - Callback Parameter Extraction
+
+    private struct CallbackParams {
+        let code: String?
+        let state: String?
+        let error: String?
+    }
+
+    private static func extractCallbackParams(from raw: String) -> CallbackParams {
+        guard let firstLine = raw.components(separatedBy: "\r\n").first else {
+            return CallbackParams(code: nil, state: nil, error: nil)
+        }
+        guard let qStart = firstLine.firstIndex(of: "?"),
+              let qEnd = firstLine[firstLine.index(after: qStart)...].firstIndex(of: " ") else {
+            return CallbackParams(code: nil, state: nil, error: nil)
+        }
+        let query = String(firstLine[firstLine.index(after: qStart)..<qEnd])
+        var code: String?
+        var state: String?
+        var error: String?
+        for pair in query.components(separatedBy: "&") {
+            let kv = pair.components(separatedBy: "=")
+            guard kv.count == 2 else { continue }
+            let key = kv[0]
+            let value = kv[1].removingPercentEncoding
+            switch key {
+            case "code": code = value
+            case "state": state = value
+            case "error": error = value
+            default: break
+            }
+        }
+        return CallbackParams(code: code, state: state, error: error)
+    }
+
+    private static func mapOAuthError(_ error: String) -> GoogleDriveAuthError {
+        switch error {
+        case "access_denied": return .accessDenied
+        case "redirect_uri_mismatch": return .redirectURIMismatch
+        case "invalid_client": return .invalidClient
+        case "invalid_scope": return .invalidScope
+        default: return .oauthFailed(error)
+        }
+    }
+
+    private static func successHTML() -> String? {
         return """
         <!DOCTYPE html><html><head><meta charset="utf-8"><title>MacMonitor — Google Drive</title>
         <style>body{font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#1a1a1a;color:#e0e0e0;}
@@ -275,7 +361,7 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
 
     // MARK: - Token Exchange
 
-    private func exchangeCodeForTokens(code: String, clientID: String, clientSecret: String, redirectURI: String) async throws -> GoogleDriveTokenResponse {
+    private func exchangeCodeForTokens(code: String, clientID: String, clientSecret: String, redirectURI: String, codeVerifier: String) async throws -> GoogleDriveTokenResponse {
         guard let url = URL(string: Self.tokenEndpoint) else {
             throw GoogleDriveAuthError.tokenExchangeFailed("Invalid token endpoint")
         }
@@ -287,18 +373,17 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
             "client_id": clientID,
             "client_secret": clientSecret,
             "redirect_uri": redirectURI,
-            "grant_type": "authorization_code"
+            "grant_type": "authorization_code",
+            "code_verifier": codeVerifier
         ]
-        request.httpBody = body.map { "\($0.key)=\($0.value)" }.joined(separator: "&")
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)?
-            .data(using: .utf8)
+        request.httpBody = Self.formEncode(body).data(using: .utf8)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw GoogleDriveAuthError.tokenExchangeFailed("No response")
         }
         guard http.statusCode == 200 else {
-            throw GoogleDriveAuthError.tokenExchangeFailed("HTTP \(http.statusCode)")
+            throw Self.mapTokenEndpointError(data: data, statusCode: http.statusCode)
         }
         do {
             return try JSONDecoder().decode(GoogleDriveTokenResponse.self, from: data)
@@ -324,9 +409,7 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
             "refresh_token": refreshToken,
             "grant_type": "refresh_token"
         ]
-        request.httpBody = body.map { "\($0.key)=\($0.value)" }.joined(separator: "&")
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)?
-            .data(using: .utf8)
+        request.httpBody = Self.formEncode(body).data(using: .utf8)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
@@ -348,6 +431,34 @@ final class GoogleDriveAuthManager: NSObject, ObservableObject {
         await MainActor.run { needsReconnect = false }
         ActivityLogManager.shared.info(.upload, "Google Drive token refreshed")
         return tokenResponse.accessToken
+    }
+
+    // MARK: - Form Encoding
+
+    private static func formEncode(_ dict: [String: String]) -> String {
+        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        return dict.map { key, value in
+            let ek = key.addingPercentEncoding(withAllowedCharacters: allowed) ?? key
+            let ev = value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+            return "\(ek)=\(ev)"
+        }.joined(separator: "&")
+    }
+
+    // MARK: - Token Endpoint Error Parsing
+
+    private static func mapTokenEndpointError(data: Data, statusCode: Int) -> GoogleDriveAuthError {
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let errorCode = json["error"] as? String {
+            let desc = json["error_description"] as? String
+            switch errorCode {
+            case "access_denied": return .accessDenied
+            case "redirect_uri_mismatch": return .redirectURIMismatch
+            case "invalid_client": return .invalidClient
+            case "invalid_scope": return .invalidScope
+            default: return .tokenExchangeFailed(desc ?? "HTTP \(statusCode): \(errorCode)")
+            }
+        }
+        return .tokenExchangeFailed("HTTP \(statusCode)")
     }
 
     // MARK: - User Info
@@ -426,6 +537,11 @@ enum GoogleDriveAuthError: LocalizedError {
     case tokenRefreshFailed
     case notAuthenticated
     case listenerFailed(String)
+    case stateMismatch
+    case accessDenied
+    case redirectURIMismatch
+    case invalidClient
+    case invalidScope
 
     var errorDescription: String? {
         switch self {
@@ -435,10 +551,15 @@ enum GoogleDriveAuthError: LocalizedError {
         case .oauthTimedOut: return "Sign-in timed out. Please try again."
         case .noAuthCode: return "No authorization code received. Please try again."
         case .invalidURL: return "Invalid OAuth URL. Check your Client ID."
-        case .tokenExchangeFailed: return "Token exchange failed. Check your Client ID and Secret."
+        case .tokenExchangeFailed(let d): return "Token exchange failed: \(d)"
         case .tokenRefreshFailed: return "Token refresh failed. Please sign in again."
         case .notAuthenticated: return "Not authenticated with Google Drive. Please sign in."
         case .listenerFailed(let d): return "Could not start local server: \(d)"
+        case .stateMismatch: return "Security verification failed (state mismatch). Please try again."
+        case .accessDenied: return "Access was denied. Please grant permission to continue."
+        case .redirectURIMismatch: return "Redirect URI mismatch. Check your OAuth configuration."
+        case .invalidClient: return "Invalid client. Check your Client ID."
+        case .invalidScope: return "Invalid scope. Check your OAuth configuration."
         }
     }
 }

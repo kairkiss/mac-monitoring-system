@@ -11,6 +11,7 @@ final class UploadQueueManager: ObservableObject {
     var jobs: [UploadJob] { store.jobs }
     private let settings = SettingsStore.shared
     private var processingTimer: Timer?
+    private var processLoopActive = false
 
     private init() {}
 
@@ -132,6 +133,8 @@ final class UploadQueueManager: ObservableObject {
 
     private func processNext() {
         guard !isPaused else { return }
+        guard !processLoopActive else { return }
+        processLoopActive = true
 
         // Check if provider is available
         guard let provider = StorageManager.shared.activeProvider else {
@@ -145,14 +148,15 @@ final class UploadQueueManager: ObservableObject {
             if !store.pendingJobs().isEmpty || store.jobs.contains(where: { $0.status == .waitingForProvider }) {
                 ActivityLogManager.shared.warning(.upload, "Upload queue waiting: no storage provider active")
             }
+            processLoopActive = false
             return
         }
 
         let maxConcurrent = settings.uploadMaxConcurrent
         let activeCount = store.activeJobs().count
-        guard activeCount < maxConcurrent else { return }
+        guard activeCount < maxConcurrent else { processLoopActive = false; return }
 
-        guard var job = store.pendingJobs().first else { return }
+        guard var job = store.pendingJobs().first else { processLoopActive = false; return }
         job.status = .uploading
         job.startedAt = Date()
         store.updateJob(job)
@@ -192,6 +196,7 @@ final class UploadQueueManager: ObservableObject {
                 ActivityLogManager.shared.success(.upload, "Uploaded and verified: \(job.fileName)",
                     detail: "Size: \(result.fileSize) bytes, remote: \(result.remotePath)")
 
+                self.processLoopActive = false
                 await MainActor.run { self.processNext() }
             } catch {
                 var failed = job
@@ -257,6 +262,7 @@ final class UploadQueueManager: ObservableObject {
                 self.store.updateJob(failed)
                 MediaIndexStore.shared.setUploadStatus(.failed, for: job.fileName)
 
+                self.processLoopActive = false
                 await MainActor.run { self.processNext() }
             }
         }

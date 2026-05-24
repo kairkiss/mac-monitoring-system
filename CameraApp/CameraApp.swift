@@ -128,6 +128,7 @@ struct CameraApp: App {
                     UploadQueueManager.shared.startProcessing()
                     RetentionManager.shared.start()
                     DailyReportManager.shared.start()
+                    CloudflareTunnelManager.shared.autoStartIfNeeded()
                     if settingsStore.autoCleanEnabled && settingsStore.keepLastDays > 0 {
                         _ = mediaLibrary.cleanOldFiles(keepDays: settingsStore.keepLastDays)
                     }
@@ -154,15 +155,18 @@ struct CameraApp: App {
 
     private func setupAutomationCapture() {
         let camera = CameraManager.shared
-        automationScheduler.onCapture = { [weak camera] telegramSend in
+        automationScheduler.onCapture = { [weak camera] task in
             guard let camera else { return }
             camera.ensureSessionRunning {
                 camera.capturePhoto { result in
                     if case .success(let url) = result {
                         let fileName = url.lastPathComponent
                         MediaIndexStore.shared.setSource(.automation, for: fileName)
-                        if telegramSend, let data = try? Data(contentsOf: url) {
+                        if task?.telegramSend == true, let data = try? Data(contentsOf: url) {
                             TelegramService.shared.sendPhoto(imageData: data, fileName: fileName)
+                        }
+                        if task?.uploadToCloud == true {
+                            UploadQueueManager.shared.enqueue(fileName: fileName)
                         }
                     }
                 }
@@ -185,6 +189,9 @@ struct CameraApp: App {
                         MediaIndexStore.shared.setSource(.motion, for: fileName)
                         if settingsStore.telegramOnMotion, let data = try? Data(contentsOf: url) {
                             TelegramService.shared.sendPhoto(imageData: data, caption: Strings.motionDetected, fileName: fileName)
+                        }
+                        if settingsStore.autoUploadMotionCaptures {
+                            UploadQueueManager.shared.enqueue(fileName: fileName)
                         }
                     }
                 }

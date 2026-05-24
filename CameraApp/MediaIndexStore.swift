@@ -141,6 +141,7 @@ final class MediaIndexStore: ObservableObject {
         e.uploadStatus = .verified
         e.verified = true
         e.verifiedAt = Date()
+        e.uploadDate = Date()
         if let remoteFileID { e.remoteFileID = remoteFileID }
         if let remoteURL { e.remoteURL = remoteURL }
         if let providerType { e.providerType = providerType }

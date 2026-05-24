@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 <nav class="sidebar">
     <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
     <a href="/" class="nav-item" data-i18n="dashboard">Dashboard</a>
@@ -20,6 +21,7 @@
     <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
 </nav>
 <main class="content">
+    <button class="hamburger" id="menuBtn">&#9776;</button>
     <h1 data-i18n="settings">Settings</h1>
 
     <div class="card">
@@ -59,6 +61,16 @@
     <div class="card">
         <h3>cloudflared</h3>
         <div id="cloudflaredStatus" style="font-size:13px;color:var(--fg2);">Checking...</div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="cloudflareTunnelManage">Tunnel Management</h3>
+        <div id="tunnelStatus" style="font-size:13px;color:var(--fg2);margin-bottom:10px;">Loading...</div>
+        <div style="display:flex;gap:8px;">
+            <button onclick="startTunnel()" id="tunnelStartBtn" data-i18n="cloudflareStart">Start Tunnel</button>
+            <button class="danger" onclick="stopTunnel()" id="tunnelStopBtn" data-i18n="cloudflareStop" style="display:none;">Stop Tunnel</button>
+        </div>
+        <div id="tunnelOutput" style="margin-top:8px;font-size:11px;color:var(--fg2);max-height:100px;overflow-y:auto;white-space:pre-wrap;font-family:monospace;"></div>
     </div>
 
     <div class="card">
@@ -342,6 +354,60 @@ loadProviders();
 loadStatus();
 loadDiagnostics();
 checkCloudflared();
+loadTunnelStatus();
+
+async function loadTunnelStatus() {
+    const data = await api('/api/remote/status');
+    if (!data) return;
+    const el = document.getElementById('tunnelStatus');
+    const startBtn = document.getElementById('tunnelStartBtn');
+    const stopBtn = document.getElementById('tunnelStopBtn');
+    const outputEl = document.getElementById('tunnelOutput');
+
+    let statusColor = '#666';
+    let statusText = data.status;
+    if (data.status === 'running') { statusColor = '#4caf50'; statusText = t('cloudflareRunning'); }
+    else if (data.status === 'starting') { statusColor = '#ff9800'; statusText = t('cloudflareStarting'); }
+    else if (data.status === 'stopped') { statusColor = '#666'; statusText = t('cloudflareStopped'); }
+    else if (data.status === 'error') { statusColor = '#f44336'; statusText = t('error'); }
+
+    let html = '<span style="color:' + statusColor + ';">' + statusText + '</span>';
+    if (data.tunnelName) html += ' &mdash; ' + data.tunnelName;
+    if (data.hostname) html += ' (' + data.hostname + ')';
+    if (data.pid) html += ' [PID: ' + data.pid + ']';
+    if (data.lastError) html += '<br><span style="color:#f44336;">' + data.lastError + '</span>';
+    el.innerHTML = html;
+
+    if (data.isRunning) {
+        startBtn.style.display = 'none';
+        stopBtn.style.display = '';
+    } else {
+        startBtn.style.display = '';
+        stopBtn.style.display = 'none';
+    }
+
+    if (data.lastOutput) outputEl.textContent = data.lastOutput;
+
+    if (!data.tunnelName) {
+        el.innerHTML += '<br><span style="color:#ff9800;">' + t('cloudflareNotConfigured') + '</span>';
+    }
+}
+
+async function startTunnel() {
+    const btn = document.getElementById('tunnelStartBtn');
+    btn.disabled = true;
+    await api('/api/remote/start', { method: 'POST', body: {} });
+    setTimeout(loadTunnelStatus, 2000);
+    btn.disabled = false;
+}
+
+async function stopTunnel() {
+    const btn = document.getElementById('tunnelStopBtn');
+    btn.disabled = true;
+    await api('/api/remote/stop', { method: 'POST', body: {} });
+    setTimeout(loadTunnelStatus, 1000);
+    btn.disabled = false;
+}
 </script>
 </body>
 </html>

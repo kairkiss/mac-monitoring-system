@@ -81,4 +81,30 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!getToken() && !window.location.pathname.includes('login')) {
         window.location.href = '/login.html';
     }
+
+    // Hamburger menu
+    const hamburger = document.getElementById('menuBtn');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (hamburger && sidebar) {
+        hamburger.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('active');
+        });
+        if (overlay) {
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+        }
+        // Close sidebar on nav item click (mobile)
+        sidebar.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('open');
+                    if (overlay) overlay.classList.remove('active');
+                }
+            });
+        });
+    }
 });

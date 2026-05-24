@@ -417,4 +417,42 @@ struct Strings {
     static var skipped: String { lang == .chinese ? "跳过" : "skipped" }
     static var verifiedCount: String { lang == .chinese ? "已验证" : "verified" }
     static var failedCount: String { lang == .chinese ? "失败" : "failed" }
+
+    // MARK: - v2.4.0: Upload Policy
+    static var uploadToCloud: String { lang == .chinese ? "上传到云端" : "Upload to Cloud" }
+    static var uploadToCloudDesc: String { lang == .chinese ? "任务拍摄完成后自动上传到 Google Drive" : "Auto-upload to Google Drive after task capture" }
+    static var autoUploadMotionCaptures: String { lang == .chinese ? "自动上传运动检测照片" : "Auto-upload Motion Captures" }
+    static var autoUploadMotionCapturesDesc: String { lang == .chinese ? "运动检测触发的照片自动上传（默认关闭）" : "Auto-upload photos triggered by motion detection (default off)" }
+    static var localOnly: String { lang == .chinese ? "仅本地" : "Local Only" }
+
+    // MARK: - v2.4.0: OAuth Errors
+    static var stateMismatch: String { lang == .chinese ? "安全验证失败（state 不匹配）" : "Security verification failed (state mismatch)" }
+    static var accessDenied: String { lang == .chinese ? "访问被拒绝" : "Access denied" }
+    static var redirectURIMismatch: String { lang == .chinese ? "重定向 URI 不匹配" : "Redirect URI mismatch" }
+    static var invalidClient: String { lang == .chinese ? "无效的客户端" : "Invalid client" }
+    static var invalidScope: String { lang == .chinese ? "无效的权限范围" : "Invalid scope" }
+
+    // MARK: - v2.4.0: Cloudflare Tunnel
+    static var cloudflareTunnelManage: String { lang == .chinese ? "Cloudflare Tunnel 管理" : "Cloudflare Tunnel Management" }
+    static var cloudflareStart: String { lang == .chinese ? "启动 Tunnel" : "Start Tunnel" }
+    static var cloudflareStop: String { lang == .chinese ? "停止 Tunnel" : "Stop Tunnel" }
+    static var cloudflareStatus: String { lang == .chinese ? "Tunnel 状态" : "Tunnel Status" }
+    static var cloudflareRunning: String { lang == .chinese ? "运行中" : "Running" }
+    static var cloudflareStopped: String { lang == .chinese ? "已停止" : "Stopped" }
+    static var cloudflareStarting: String { lang == .chinese ? "启动中..." : "Starting..." }
+    static var cloudflareError: String { lang == .chinese ? "错误" : "Error" }
+    static var cloudflareNotConfigured: String { lang == .chinese ? "未配置 Tunnel" : "Tunnel not configured" }
+
+    // MARK: - v2.4.0: Settings Sections
+    static var overviewSection: String { lang == .chinese ? "概览" : "Overview" }
+    static var cameraSection: String { lang == .chinese ? "摄像头" : "Camera" }
+    static var automationSection: String { lang == .chinese ? "自动化" : "Automation" }
+    static var storageCloudSection: String { lang == .chinese ? "存储与云端" : "Storage & Cloud" }
+    static var webRemoteSection: String { lang == .chinese ? "Web 与远程" : "Web & Remote" }
+    static var notificationsSection: String { lang == .chinese ? "通知" : "Notifications" }
+    static var healthLogsSection: String { lang == .chinese ? "健康与日志" : "Health & Logs" }
+    static var advancedSection: String { lang == .chinese ? "高级" : "Advanced" }
+    static var lastCapture: String { lang == .chinese ? "最后拍摄" : "Last Capture" }
+    static var lastUpload: String { lang == .chinese ? "最后上传" : "Last Upload" }
+    static var googleDriveStatus: String { lang == .chinese ? "Google Drive 状态" : "Google Drive Status" }
 }

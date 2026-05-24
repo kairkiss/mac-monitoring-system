@@ -139,6 +139,23 @@ final class SettingsStore: ObservableObject {
     @Published var uploadBandwidthLimitKBps: Int {
         didSet { UserDefaults.standard.set(uploadBandwidthLimitKBps, forKey: "uploadBandwidthLimitKBps") }
     }
+    @Published var autoUploadMotionCaptures: Bool {
+        didSet { UserDefaults.standard.set(autoUploadMotionCaptures, forKey: "autoUploadMotionCaptures") }
+    }
+
+    // MARK: - Cloudflare Tunnel
+    @Published var cloudflareTunnelName: String {
+        didSet { UserDefaults.standard.set(cloudflareTunnelName, forKey: "cloudflareTunnelName") }
+    }
+    @Published var cloudflareHostname: String {
+        didSet { UserDefaults.standard.set(cloudflareHostname, forKey: "cloudflareHostname") }
+    }
+    @Published var cloudflaredPath: String {
+        didSet { UserDefaults.standard.set(cloudflaredPath, forKey: "cloudflaredPath") }
+    }
+    @Published var cloudflareAutoStart: Bool {
+        didSet { UserDefaults.standard.set(cloudflareAutoStart, forKey: "cloudflareAutoStart") }
+    }
 
     // MARK: - Retention
     @Published var retentionDeleteAfterUpload: Bool {
@@ -243,6 +260,13 @@ final class SettingsStore: ObservableObject {
         uploadMaxConcurrent = UserDefaults.standard.object(forKey: "uploadMaxConcurrent") as? Int ?? 1
         uploadMaxRetries = UserDefaults.standard.object(forKey: "uploadMaxRetries") as? Int ?? 3
         uploadBandwidthLimitKBps = UserDefaults.standard.object(forKey: "uploadBandwidthLimitKBps") as? Int ?? 0
+        autoUploadMotionCaptures = UserDefaults.standard.bool(forKey: "autoUploadMotionCaptures")
+
+        // Cloudflare Tunnel
+        cloudflareTunnelName = UserDefaults.standard.string(forKey: "cloudflareTunnelName") ?? ""
+        cloudflareHostname = UserDefaults.standard.string(forKey: "cloudflareHostname") ?? ""
+        cloudflaredPath = UserDefaults.standard.string(forKey: "cloudflaredPath") ?? ""
+        cloudflareAutoStart = UserDefaults.standard.bool(forKey: "cloudflareAutoStart")
 
         // Retention
         retentionDeleteAfterUpload = UserDefaults.standard.bool(forKey: "retentionDeleteAfterUpload")

@@ -29,6 +29,8 @@ struct ScheduledTask: Identifiable, Codable {
     var intervalMinutes: Int
     var durationMinutes: Int
     var telegramSend: Bool
+    var uploadToCloud: Bool
+    var uploadProvider: String?
     let createdAt: Date
     var nextFireTime: Date?
     var lastRunAt: Date?
@@ -47,6 +49,8 @@ struct ScheduledTask: Identifiable, Codable {
         intervalMinutes: Int = 10,
         durationMinutes: Int = 120,
         telegramSend: Bool = false,
+        uploadToCloud: Bool = false,
+        uploadProvider: String? = nil,
         createdAt: Date = Date(),
         nextFireTime: Date? = nil,
         lastRunAt: Date? = nil,
@@ -63,6 +67,8 @@ struct ScheduledTask: Identifiable, Codable {
         self.intervalMinutes = intervalMinutes
         self.durationMinutes = durationMinutes
         self.telegramSend = telegramSend
+        self.uploadToCloud = uploadToCloud
+        self.uploadProvider = uploadProvider
         self.createdAt = createdAt
         self.nextFireTime = nextFireTime
         self.lastRunAt = lastRunAt
@@ -88,7 +94,7 @@ final class AutomationScheduler: ObservableObject {
         didSet { UserDefaults.standard.set(isAutomationEnabled, forKey: "automationEnabled") }
     }
 
-    var onCapture: ((Bool) -> Void)?  // takes telegramSend flag
+    var onCapture: ((ScheduledTask?) -> Void)?  // takes task for upload policy
 
     private var activeTimers: [UUID: Timer] = [:]
     private var intervalStopTimers: [UUID: Timer] = [:]
@@ -160,7 +166,7 @@ final class AutomationScheduler: ObservableObject {
     }
 
     func captureNow() {
-        onCapture?(false)
+        onCapture?(nil)
     }
 
     // MARK: - Restore
@@ -246,14 +252,13 @@ final class AutomationScheduler: ObservableObject {
             guard lastRun == nil || lastRun! < expected else { continue }
 
             let taskName = tasks[i].name.isEmpty ? tasks[i].type.displayName : tasks[i].name
-            let telegramSend = tasks[i].telegramSend
             ActivityLogManager.shared.log(
                 level: .info,
                 category: .automation,
                 message: "Recovering missed task: \(taskName)",
                 detail: "Expected at: \(expected), last run: \(lastRun?.description ?? "never")"
             )
-            onCapture?(telegramSend)
+            onCapture?(tasks[i])
             tasks[i].lastRunAt = now
             tasks[i].lastAttemptAt = now
             tasks[i].nextFireTime = calculateNextFireTime(for: tasks[i])
@@ -380,7 +385,6 @@ final class AutomationScheduler: ObservableObject {
         let now = Date()
         tasks[index].lastRunAt = now
         tasks[index].lastAttemptAt = now
-        let telegramSend = tasks[index].telegramSend
 
         // Check camera availability before capturing
         let camera = CameraManager.shared
@@ -391,7 +395,7 @@ final class AutomationScheduler: ObservableObject {
             return
         }
 
-        onCapture?(telegramSend)
+        onCapture?(tasks[index])
 
         let taskName = tasks[index].name.isEmpty ? tasks[index].type.displayName : tasks[index].name
         logExecution(taskID: taskID, taskName: taskName, succeeded: true)

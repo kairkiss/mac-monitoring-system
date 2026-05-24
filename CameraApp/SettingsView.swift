@@ -1,10 +1,47 @@
 import SwiftUI
 
+enum SettingsSection: String, CaseIterable, Identifiable {
+    case notifications
+    case camera
+    case storage
+    case webRemote
+    case automation
+    case retention
+    case advanced
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .notifications: return Strings.notificationsSection
+        case .camera: return Strings.cameraSection
+        case .storage: return Strings.storageCloudSection
+        case .webRemote: return Strings.webRemoteSection
+        case .automation: return Strings.automationSection
+        case .retention: return "Retention"
+        case .advanced: return Strings.advancedSection
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .notifications: return "bell.fill"
+        case .camera: return "camera.fill"
+        case .storage: return "externaldrive.fill"
+        case .webRemote: return "network"
+        case .automation: return "clock.fill"
+        case .retention: return "trash.fill"
+        case .advanced: return "gearshape.fill"
+        }
+    }
+}
+
 struct SettingsView: View {
     @EnvironmentObject var settings: SettingsStore
     @EnvironmentObject var telegram: TelegramService
     @EnvironmentObject var lang: LanguageManager
     @EnvironmentObject var mediaLibrary: MediaLibraryManager
+    @State private var selectedSection: SettingsSection? = .notifications
     @State private var cleanResult: Int?
     @State private var storageTestResult: Bool?
     @State private var webPassword: String = ""
@@ -22,7 +59,15 @@ struct SettingsView: View {
     @State private var cloudflaredPath: String = ""
 
     var body: some View {
-        Form {
+        NavigationSplitView {
+            List(SettingsSection.allCases, selection: $selectedSection) { section in
+                Label(section.label, systemImage: section.icon)
+                    .tag(section)
+            }
+            .listStyle(.sidebar)
+            .frame(minWidth: 180)
+        } detail: {
+            Form {
             // Telegram Settings
             Section {
                 HStack(spacing: 12) {
@@ -1197,6 +1242,8 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .navigationTitle(Strings.settingsTitle)
+        }
+        .navigationSplitViewStyle(.balanced)
     }
 
     private func storageRow(icon: String, color: Color, label: String, value: String) -> some View {

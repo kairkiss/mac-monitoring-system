@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 <nav class="sidebar">
     <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
     <a href="/" class="nav-item" data-i18n="dashboard">Dashboard</a>
@@ -20,6 +21,7 @@
     <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
 </nav>
 <main class="content">
+    <button class="hamburger" id="menuBtn">&#9776;</button>
     <h1 data-i18n="activityLog">Activity Log</h1>
     <div class="toolbar">
         <input type="text" id="searchInput" placeholder="Search..." data-i18n="searchPlaceholder">

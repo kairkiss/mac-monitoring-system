@@ -1,5 +1,44 @@
 # Changelog
 
+## v2.4.0 (2026-05-24)
+
+Productization & Secure Cloud Upload — adds OAuth security hardening, task-level upload control, Cloudflare tunnel management, web responsive design, and settings navigation redesign.
+
+### Security
+
+- **Google OAuth PKCE** — auth flow now uses Proof Key for Code Exchange (S256) to prevent authorization code interception
+- **OAuth state parameter** — CSRF protection via random state validation on callback
+- **Listener connection validation** — NWListener now validates HTTP requests before accepting; rejects favicon/probe/invalid connections without consuming the OAuth continuation
+- **Per-key form encoding** — token exchange body uses per-key/value percent encoding instead of whole-string encoding
+- **Better error mapping** — token endpoint errors (access_denied, invalid_client, etc.) are parsed and mapped to specific error types
+
+### New Features
+
+- **Task-level upload control** — automation tasks now have an `uploadToCloud` toggle; only tasks with this enabled auto-upload after capture
+- **Manual captures default local-only** — manual photo/video capture never auto-enqueues for upload; only explicit "Upload Now" or task config triggers upload
+- **Auto-upload motion captures** — new global setting `autoUploadMotionCaptures` (default off) for motion-triggered photos
+- **Cloudflare Tunnel management** — new `CloudflareTunnelManager` with start/stop/status; API routes `/api/remote/status`, `/api/remote/start`, `/api/remote/stop`; auto-start on app launch when configured
+- **Web task CRUD** — `POST /api/tasks` (create), `PUT /api/tasks/:id` (update) with all fields including uploadToCloud
+- **Web task create/edit forms** — tasks.html now has a modal form for creating and editing tasks with all fields
+- **Dashboard Google Drive card** — shows connection status and email
+- **Dashboard Last Capture/Upload cards** — shows most recent capture and upload
+- **SettingsView NavigationSplitView** — settings now has a sidebar for section navigation
+- **Web responsive design** — @media queries for mobile (<768px), hamburger menu, sidebar collapse, touch-friendly 44px buttons
+- **UploadDate on verify** — `markUploadVerified` now correctly sets `uploadDate`
+
+### Bug Fixes
+
+- **Upload queue process loop guard** — prevents concurrent `processNext()` calls that could cause duplicate uploads
+
+### Web
+
+- All HTML pages now have hamburger menu for mobile navigation
+- tasks.html: task type badges, uploadToCloud badges, edit/delete buttons
+- settings.html: Cloudflare tunnel start/stop/status UI
+- i18n: all new keys have Chinese and English translations
+
+---
+
 ## v2.3.3 (2026-05-24)
 
 Cloud Storage Reliability & Remote Access Polish — enhances Google Drive diagnostics, upload queue intelligence, media cloud badges, retention safety, and Cloudflare guidance.

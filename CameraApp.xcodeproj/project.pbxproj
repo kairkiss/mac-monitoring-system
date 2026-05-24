@@ -65,6 +65,7 @@
 		AA00000037 /* ThumbnailGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000039; };
 		AA00000038 /* GoogleDriveAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000003A; };
 		AA00000039 /* GoogleDriveProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000003B; };
+		AA0000003A /* CloudflareTunnelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000003C; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -127,6 +128,7 @@
 		AB00000039 /* ThumbnailGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailGenerator.swift; sourceTree = "<group>"; };
 		AB0000003A /* GoogleDriveAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleDriveAuthManager.swift; sourceTree = "<group>"; };
 		AB0000003B /* GoogleDriveProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleDriveProvider.swift; sourceTree = "<group>"; };
+		AB0000003C /* CloudflareTunnelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudflareTunnelManager.swift; sourceTree = "<group>"; };
 		AC00000001 /* CameraApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CameraApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -208,6 +210,7 @@
 				AB0000001E /* StorageManager.swift */,
 				AB0000003A /* GoogleDriveAuthManager.swift */,
 				AB0000003B /* GoogleDriveProvider.swift */,
+				AB0000003C /* CloudflareTunnelManager.swift */,
 			);
 			path = Storage;
 			sourceTree = "<group>";
@@ -386,6 +389,7 @@
 				AA00000037 /* ThumbnailGenerator.swift in Sources */,
 				AA00000038 /* GoogleDriveAuthManager.swift in Sources */,
 				AA00000039 /* GoogleDriveProvider.swift in Sources */,
+				AA0000003A /* CloudflareTunnelManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -451,14 +455,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 19;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.3.3;
+				MARKETING_VERSION = 2.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -473,14 +477,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 19;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.3.3;
+				MARKETING_VERSION = 2.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
