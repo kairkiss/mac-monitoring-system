@@ -78,6 +78,8 @@ struct APIMediaHandler {
                         "verified": entry.verified,
                         "localOriginalExists": localExists,
                         "remoteURL": entry.remoteURL ?? "",
+                        "remoteFileID": entry.remoteFileID ?? "",
+                        "providerType": entry.providerType ?? "",
                         "fileSize": fileSize,
                         "hasThumbnail": hasThumb
                     ] as [String: Any])

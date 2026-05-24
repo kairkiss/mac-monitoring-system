@@ -31,6 +31,7 @@
         <div class="stat"><span class="stat-value" id="pendingCount">0</span><span class="stat-label" data-i18n="pending">Pending</span></div>
         <div class="stat"><span class="stat-value" id="retryingCount">0</span><span class="stat-label" data-i18n="retrying">Retrying</span></div>
         <div class="stat"><span class="stat-value" id="failedCount">0</span><span class="stat-label" data-i18n="failed">Failed</span></div>
+        <div class="stat"><span class="stat-value" id="waitingCount">0</span><span class="stat-label" data-i18n="waitingForProvider">Waiting</span></div>
         <div class="stat"><span class="stat-value" id="pauseStatus" data-i18n="active">Active</span><span class="stat-label" data-i18n="status">Status</span></div>
     </div>
     <div style="margin-bottom:16px; display:flex; gap:8px;">
@@ -98,6 +99,7 @@ async function loadQueue() {
     document.getElementById('pendingCount').textContent = data.pendingCount;
     document.getElementById('retryingCount').textContent = data.retryingCount || 0;
     document.getElementById('failedCount').textContent = data.failedCount;
+    document.getElementById('waitingCount').textContent = data.waitingCount || 0;
     document.getElementById('pauseStatus').textContent = isPaused ? t('paused') : t('active');
     document.getElementById('pauseBtn').textContent = isPaused ? t('resume') : t('pause');
 
@@ -113,13 +115,13 @@ async function loadQueue() {
         const statusColors = {
             failed: 'color:#f44336', completed: 'color:#4caf50',
             uploading: 'color:var(--accent)', retrying: 'color:var(--orange)',
-            cancelled: 'color:var(--fg2)'
+            cancelled: 'color:var(--fg2)', waitingForProvider: 'color:#ff9800'
         };
         const statusClass = statusColors[j.status] || '';
         const statusText = t(j.status) || j.status;
 
         let actions = '';
-        if (j.status === 'failed' || j.status === 'retrying') {
+        if (j.status === 'failed' || j.status === 'retrying' || j.status === 'waitingForProvider') {
             actions += '<button onclick="retryJob(\'' + j.id + '\')">' + t('retry') + '</button>';
         }
         if (j.status !== 'completed' && j.status !== 'cancelled') {
@@ -137,7 +139,7 @@ async function loadQueue() {
             '<td>' + progressDisplay(j.progress, j.status) + '</td>' +
             '<td>' + j.attempts + '/' + j.maxRetries + '</td>' +
             '<td>' + retryInfo + '</td>' +
-            '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">' + (j.lastError || '-') + '</td>' +
+            '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">' + (j.errorClass ? '<span class="error-class-badge">' + j.errorClass + '</span> ' : '') + (j.lastError || '-') + '</td>' +
             '<td>' + actions + '</td>' +
             '</tr>';
     }).join('');

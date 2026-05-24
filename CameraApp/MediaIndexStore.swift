@@ -16,6 +16,7 @@ enum UploadEntryStatus: String, Codable {
     case verified
     case failed
     case localDeleted
+    case waitingForProvider
 }
 
 struct MediaIndexEntry: Codable {

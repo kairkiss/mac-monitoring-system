@@ -17,6 +17,7 @@ struct APIStatusHandler {
             let active = uploadJobs.filter { $0.status == .uploading }.count
             let failed = uploadJobs.filter { $0.status == .failed }.count
             let completed = uploadJobs.filter { $0.status == .completed }.count
+            let waiting = uploadJobs.filter { $0.status == .waitingForProvider }.count
 
             return HTTPResponse.json([
                 "version": version,
@@ -40,7 +41,8 @@ struct APIStatusHandler {
                     "pending": pending,
                     "active": active,
                     "failed": failed,
-                    "completed": completed
+                    "completed": completed,
+                    "waiting": waiting
                 ] as [String: Any]
             ] as [String: Any])
         }

@@ -32,6 +32,63 @@ final class GoogleDriveProvider: StorageProvider {
         }
     }
 
+    func testConnectionDetailed() async -> StorageDiagnostics {
+        let rootName = SettingsStore.shared.googleDriveRootFolderName
+        guard !googleDriveClientID.isEmpty, !googleDriveClientSecret.isEmpty else {
+            return StorageDiagnostics(providerType: type.rawValue, isConnected: false, authenticatedEmail: nil,
+                lastTestDate: Date(), lastTestSuccess: false, lastTestError: Strings.googleDriveCredentialsRequired,
+                lastTestErrorClass: .permissionDenied, rootFolderName: rootName, rootFolderExists: nil,
+                quotaUsedGB: nil, quotaTotalGB: nil, recentUploadCount: 0, recentFailureCount: 0)
+        }
+        guard authManager.isAuthenticated else {
+            return StorageDiagnostics(providerType: type.rawValue, isConnected: false, authenticatedEmail: nil,
+                lastTestDate: Date(), lastTestSuccess: false, lastTestError: Strings.googleDriveNotAuthenticated,
+                lastTestErrorClass: .authExpired, rootFolderName: rootName, rootFolderExists: nil,
+                quotaUsedGB: nil, quotaTotalGB: nil, recentUploadCount: 0, recentFailureCount: 0)
+        }
+        do {
+            let token = try await authManager.getValidAccessToken(
+                clientID: googleDriveClientID, clientSecret: googleDriveClientSecret)
+            guard let url = URL(string: "https://www.googleapis.com/drive/v3/about?fields=user,storageQuota") else {
+                throw GoogleDriveError.invalidURL
+            }
+            var request = URLRequest(url: url)
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                throw GoogleDriveError.apiError("HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            }
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+            let user = json["user"] as? [String: Any]
+            let email = user?["emailAddress"] as? String
+            let quota = json["storageQuota"] as? [String: Any]
+            let usedBytes = quota?["usage"] as? Double
+            let limitBytes = quota?["limit"] as? Double
+            let usedGB = usedBytes.map { $0 / 1_073_741_824 }
+            let totalGB = limitBytes.map { $0 / 1_073_741_824 }
+            // Count recent uploads/failures from MediaIndex
+            var recentUploads = 0
+            var recentFailures = 0
+            for (_, entry) in MediaIndexStore.shared.entries {
+                if entry.providerType == StorageProviderType.googleDrive.rawValue {
+                    if entry.verified { recentUploads += 1 }
+                    if entry.uploadStatus == .failed { recentFailures += 1 }
+                }
+            }
+            return StorageDiagnostics(providerType: type.rawValue, isConnected: true, authenticatedEmail: email,
+                lastTestDate: Date(), lastTestSuccess: true, lastTestError: nil, lastTestErrorClass: nil,
+                rootFolderName: rootName, rootFolderExists: true, quotaUsedGB: usedGB, quotaTotalGB: totalGB,
+                recentUploadCount: recentUploads, recentFailureCount: recentFailures)
+        } catch {
+            let errClass = classifyGoogleDriveError(error)
+            return StorageDiagnostics(providerType: type.rawValue, isConnected: false,
+                authenticatedEmail: kc.googleDriveUserEmail.isEmpty ? nil : kc.googleDriveUserEmail,
+                lastTestDate: Date(), lastTestSuccess: false, lastTestError: error.localizedDescription,
+                lastTestErrorClass: errClass, rootFolderName: rootName, rootFolderExists: nil,
+                quotaUsedGB: nil, quotaTotalGB: nil, recentUploadCount: 0, recentFailureCount: 0)
+        }
+    }
+
     // MARK: - Upload (Resumable, No-Overwrite)
 
     func upload(fileAt localURL: URL, remotePath: String, progress: @escaping (Double) -> Void) async throws -> StorageResult {
@@ -86,9 +143,14 @@ final class GoogleDriveProvider: StorageProvider {
         )
 
         // Verify
-        if let verifySize = try? await getFileSize(fileID: fileID, token: token), verifySize != fileSize {
-            throw StorageError.verificationFailed("Size mismatch after Google Drive upload")
+        let verifySize = try? await getFileSize(fileID: fileID, token: token)
+        if let verifySize, verifySize != fileSize {
+            ActivityLogManager.shared.error(.upload, "Upload verification failed: \(uniqueName)",
+                detail: "Expected \(fileSize) bytes, got \(verifySize) bytes")
+            throw StorageError.verificationFailed("Size mismatch after Google Drive upload: expected \(fileSize), got \(verifySize)")
         }
+        ActivityLogManager.shared.success(.upload, "Upload verified: \(uniqueName)",
+            detail: "Remote size: \(verifySize ?? fileSize) bytes, local size: \(fileSize) bytes, fileID: \(fileID)")
 
         // Build the actual remote path (with unique name)
         let actualRemotePath = buildActualRemotePath(remotePath: remotePath, uniqueName: uniqueName)
@@ -536,4 +598,68 @@ enum GoogleDriveError: LocalizedError {
         case .fileNotFound(let name): return "File not found: \(name)"
         }
     }
+}
+
+// MARK: - Error Classification
+
+enum GoogleDriveAPIError: String, Codable {
+    case authExpired
+    case quotaExceeded
+    case rateLimited
+    case networkUnavailable
+    case permissionDenied
+    case unknown
+
+    var localizedDescription: String {
+        switch self {
+        case .authExpired: return Strings.errorAuthExpired
+        case .quotaExceeded: return Strings.errorQuotaExceeded
+        case .rateLimited: return Strings.errorRateLimited
+        case .networkUnavailable: return Strings.errorNetworkUnavailable
+        case .permissionDenied: return Strings.errorPermissionDenied
+        case .unknown: return "Unknown error"
+        }
+    }
+}
+
+func classifyGoogleDriveError(_ error: Error) -> GoogleDriveAPIError {
+    if let gdError = error as? GoogleDriveError {
+        switch gdError {
+        case .notAuthenticated: return .authExpired
+        case .notConfigured: return .permissionDenied
+        default: break
+        }
+    }
+    if let urlError = error as? URLError {
+        switch urlError.code {
+        case .notConnectedToInternet, .networkConnectionLost, .timedOut, .cannotFindHost, .cannotConnectToHost:
+            return .networkUnavailable
+        default: break
+        }
+    }
+    let desc = error.localizedDescription.lowercased()
+    if desc.contains("401") || desc.contains("authentication expired") { return .authExpired }
+    if desc.contains("403") && desc.contains("quota") { return .quotaExceeded }
+    if desc.contains("429") || desc.contains("rate limit") { return .rateLimited }
+    if desc.contains("403") || desc.contains("permission denied") { return .permissionDenied }
+    if desc.contains("not connected") || desc.contains("network") || desc.contains("timed out") { return .networkUnavailable }
+    return .unknown
+}
+
+// MARK: - Storage Diagnostics
+
+struct StorageDiagnostics {
+    let providerType: String
+    let isConnected: Bool
+    let authenticatedEmail: String?
+    let lastTestDate: Date?
+    let lastTestSuccess: Bool
+    let lastTestError: String?
+    let lastTestErrorClass: GoogleDriveAPIError?
+    let rootFolderName: String?
+    let rootFolderExists: Bool?
+    let quotaUsedGB: Double?
+    let quotaTotalGB: Double?
+    let recentUploadCount: Int
+    let recentFailureCount: Int
 }

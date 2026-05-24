@@ -15,7 +15,7 @@ This guide helps you securely access your Mac监控系统 web dashboard from any
 
 - A Cloudflare account (free tier works) — [Sign up](https://dash.cloudflare.com/sign-up)
 - A domain added to Cloudflare (free plan is fine)
-- Mac监控系统 v2.3.1+ with Web Server enabled
+- Mac监控系统 v2.3.3+ with Web Server enabled
 
 ## Quick Start
 
@@ -144,6 +144,8 @@ Both layers must be passed. This is the recommended security configuration.
 ### cloudflared not found
 - Ensure Homebrew is installed and `brew` is in your PATH
 - Or try the full path: `/opt/homebrew/bin/cloudflared`
+- The app checks for cloudflared at `/opt/homebrew/bin/cloudflared`, `/usr/local/bin/cloudflared`, and `/usr/bin/cloudflared`
+- Detection status is shown in **Settings > cloudflared** (v2.3.3+)
 
 ## Notes
 

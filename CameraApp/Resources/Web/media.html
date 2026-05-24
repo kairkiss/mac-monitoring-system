@@ -119,6 +119,8 @@ async function loadMedia() {
             const badges = [];
             if (item.isFavorite) badges.push('<span style="color:#f44336;">&#9829;</span>');
             if (item.protected) badges.push('<span style="color:var(--accent);">&#128274;</span>');
+            if (item.verified) badges.push('<span class="verified-badge">' + t('verifiedBadge') + '</span>');
+            if (item.remoteFileID) badges.push('<span class="cloud-badge">' + t('cloudBadge') + '</span>');
             if (archived) badges.push('<span class="archived-badge">' + t('archivedBadge') + '</span>');
             return '<div class="media-item" onclick="showDetail(\'' + item.fileName + '\')">' +
                 '<div class="thumb-placeholder">' + t('noPreview') + '</div>' +
@@ -175,6 +177,11 @@ async function showDetail(fileName) {
     let actions = '';
     if (data.localOriginalExists) {
         actions += '<button onclick="downloadFile(\'' + fileName + '\')">' + t('download') + '</button>';
+    } else if (archived) {
+        actions += '<button disabled style="opacity:0.4;cursor:not-allowed;">' + t('download') + '</button>';
+    }
+    if (data.remoteURL) {
+        actions += '<button class="secondary" onclick="window.open(\'' + data.remoteURL + '\',\'_blank\')">' + t('openInGoogleDrive') + '</button>';
     }
     actions += '<button class="secondary" onclick="toggleFav(\'' + fileName + '\')">' + (data.isFavorite ? t('unfavorite') : t('favorite')) + '</button>';
     actions += '<button class="secondary" onclick="toggleProtect(\'' + fileName + '\')">' + (data.protected ? t('unprotect') : t('protect')) + '</button>';
@@ -192,7 +199,7 @@ async function showDetail(fileName) {
         '<button class="close-btn" onclick="document.getElementById(\'detailModal\').innerHTML=\'\'">&times;</button>' +
         previewHTML +
         '<div class="detail-body">' +
-        '<h2>' + fileName + (archived ? ' <span class="archived-badge">' + t('archivedBadge') + '</span>' : '') + '</h2>' +
+        '<h2>' + fileName + (data.verified ? ' <span class="verified-badge">' + t('verifiedBadge') + '</span>' : '') + (data.remoteFileID ? ' <span class="cloud-badge">' + t('cloudBadge') + '</span>' : '') + (archived ? ' <span class="archived-badge">' + t('archivedBadge') + '</span>' : '') + '</h2>' +
         '<div class="detail-meta">' +
         '<span>' + t('type') + ': ' + data.type + '</span>' +
         '<span>' + t('source') + ': ' + data.source + '</span>' +

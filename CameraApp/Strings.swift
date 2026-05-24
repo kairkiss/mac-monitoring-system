@@ -379,4 +379,42 @@ struct Strings {
     static var remoteAccessDesc: String { lang == .chinese ? "通过 Cloudflare Tunnel 从外网安全访问您的监控系统" : "Securely access your monitoring system from the internet via Cloudflare Tunnel" }
     static var doNotExposePort: String { lang == .chinese ? "不要将端口直接暴露到公网" : "Do not expose port directly to the internet" }
     static var webServerLocalURL: String { lang == .chinese ? "本地访问地址" : "Local Access URL" }
+
+    // MARK: - v2.3.3: Diagnostics
+    static var storageDiagnostics: String { lang == .chinese ? "存储诊断" : "Storage Diagnostics" }
+    static var diagnosticsReport: String { lang == .chinese ? "诊断报告" : "Diagnostics Report" }
+    static var connectionTest: String { lang == .chinese ? "连接测试" : "Connection Test" }
+    static var uploadVerification: String { lang == .chinese ? "上传验证" : "Upload Verification" }
+    static var providerStatus: String { lang == .chinese ? "提供者状态" : "Provider Status" }
+    static var lastSuccessfulUpload: String { lang == .chinese ? "上次成功上传" : "Last Successful Upload" }
+    static var cloudflaredDetected: String { lang == .chinese ? "cloudflared 已检测到" : "cloudflared Detected" }
+    static var cloudflaredNotDetected: String { lang == .chinese ? "未检测到 cloudflared" : "cloudflared Not Detected" }
+
+    // MARK: - v2.3.3: Error Classification
+    static var errorAuthExpired: String { lang == .chinese ? "认证已过期，请重新登录" : "Authentication expired. Please sign in again." }
+    static var errorQuotaExceeded: String { lang == .chinese ? "存储空间已满" : "Storage quota exceeded" }
+    static var errorRateLimited: String { lang == .chinese ? "请求过于频繁，稍后重试" : "Rate limited. Will retry later." }
+    static var errorNetworkUnavailable: String { lang == .chinese ? "网络不可用" : "Network unavailable" }
+    static var errorPermissionDenied: String { lang == .chinese ? "权限不足" : "Permission denied" }
+
+    // MARK: - v2.3.3: Upload Status
+    static var uploadWaitingForProvider: String { lang == .chinese ? "等待存储连接" : "Waiting for Provider" }
+    static var errorClass: String { lang == .chinese ? "错误类型" : "Error Type" }
+
+    // MARK: - v2.3.3: Media Badges
+    static var cloudBadge: String { lang == .chinese ? "云端" : "Cloud" }
+    static var verifiedBadge: String { lang == .chinese ? "已验证" : "Verified" }
+    static var archivedBadge: String { lang == .chinese ? "已归档" : "Archived" }
+    static var openInGoogleDrive: String { lang == .chinese ? "在 Google Drive 中打开" : "Open in Google Drive" }
+
+    // MARK: - v2.3.3: Retention
+    static var dryRunPreview: String { lang == .chinese ? "清理预览" : "Dry Run Preview" }
+    static var willDeleteCount: String { lang == .chinese ? "将删除 %d 个本地文件" : "Will delete %d local file(s)" }
+    static var retentionSkippedProvider: String { lang == .chinese ? "跳过：存储未连接" : "Skipped: provider not connected" }
+    static var runDryRun: String { lang == .chinese ? "预览清理" : "Preview Cleanup" }
+    static var quotaInfo: String { lang == .chinese ? "存储配额" : "Storage Quota" }
+    static var rootFolderStatus: String { lang == .chinese ? "根目录状态" : "Root Folder Status" }
+    static var skipped: String { lang == .chinese ? "跳过" : "skipped" }
+    static var verifiedCount: String { lang == .chinese ? "已验证" : "verified" }
+    static var failedCount: String { lang == .chinese ? "失败" : "failed" }
 }

@@ -16,6 +16,7 @@ struct APIUploadHandler {
                     "maxRetries": job.maxRetries,
                     "progress": job.progress,
                     "lastError": job.lastError ?? "",
+                    "errorClass": job.errorClass ?? "",
                     "createdAt": fmt.string(from: job.createdAt),
                     "startedAt": job.startedAt.map { fmt.string(from: $0) } ?? "",
                     "completedAt": job.completedAt.map { fmt.string(from: $0) } ?? "",
@@ -33,7 +34,8 @@ struct APIUploadHandler {
                 "retryingCount": queue.jobs.filter { $0.status == .retrying }.count,
                 "uploadingCount": queue.jobs.filter { $0.status == .uploading }.count,
                 "completedCount": queue.jobs.filter { $0.status == .completed }.count,
-                "failedCount": queue.jobs.filter { $0.status == .failed }.count
+                "failedCount": queue.jobs.filter { $0.status == .failed }.count,
+                "waitingCount": queue.jobs.filter { $0.status == .waitingForProvider }.count
             ] as [String: Any])
         }
 

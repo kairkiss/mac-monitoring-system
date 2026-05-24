@@ -15,4 +15,20 @@ protocol StorageProvider: AnyObject {
     func upload(fileAt localURL: URL, remotePath: String, progress: @escaping (Double) -> Void) async throws -> StorageResult
     func delete(remotePath: String) async throws
     func fileExists(at remotePath: String) async throws -> Bool
+    func testConnectionDetailed() async -> StorageDiagnostics
+}
+
+extension StorageProvider {
+    func testConnectionDetailed() async -> StorageDiagnostics {
+        let connected = await isAvailable()
+        return StorageDiagnostics(
+            providerType: type.rawValue, isConnected: connected, authenticatedEmail: nil,
+            lastTestDate: Date(), lastTestSuccess: connected,
+            lastTestError: connected ? nil : "Connection test failed",
+            lastTestErrorClass: connected ? nil : .unknown,
+            rootFolderName: nil, rootFolderExists: nil,
+            quotaUsedGB: nil, quotaTotalGB: nil,
+            recentUploadCount: 0, recentFailureCount: 0
+        )
+    }
 }

@@ -61,8 +61,17 @@ final class UploadQueueManager: ObservableObject {
 
     func retry(jobID: String) {
         guard var job = store.jobs.first(where: { $0.id == jobID }) else { return }
+        // If no provider available, mark as waiting instead of pending
+        if StorageManager.shared.activeProvider == nil {
+            job.status = .waitingForProvider
+            job.lastError = Strings.uploadWaitingForProvider
+            store.updateJob(job)
+            MediaIndexStore.shared.setUploadStatus(.waitingForProvider, for: job.fileName)
+            return
+        }
         job.status = .pending
         job.lastError = nil
+        job.errorClass = nil
         job.nextRetryAt = nil
         job.retryDelaySeconds = nil
         store.updateJob(job)
@@ -77,14 +86,21 @@ final class UploadQueueManager: ObservableObject {
     }
 
     func retryAllFailed() {
-        for var job in store.jobs where job.status == .failed {
-            job.status = .pending
-            job.lastError = nil
-            job.nextRetryAt = nil
-            job.retryDelaySeconds = nil
+        let hasProvider = StorageManager.shared.activeProvider != nil
+        for var job in store.jobs where job.status == .failed || job.status == .waitingForProvider {
+            if hasProvider {
+                job.status = .pending
+                job.lastError = nil
+                job.errorClass = nil
+                job.nextRetryAt = nil
+                job.retryDelaySeconds = nil
+            } else {
+                job.status = .waitingForProvider
+                job.lastError = Strings.uploadWaitingForProvider
+            }
             store.updateJob(job)
         }
-        if !isPaused { processNext() }
+        if !isPaused && hasProvider { processNext() }
     }
 
     func pauseAll() {
@@ -97,14 +113,37 @@ final class UploadQueueManager: ObservableObject {
         startProcessing()
     }
 
+    /// Called when storage provider changes — transitions waiting jobs back to pending
+    func reattachWaitingJobs() {
+        let hasProvider = StorageManager.shared.activeProvider != nil
+        guard hasProvider else { return }
+        var reattached = 0
+        for var job in store.jobs where job.status == .waitingForProvider {
+            job.status = .pending
+            job.lastError = nil
+            store.updateJob(job)
+            reattached += 1
+        }
+        if reattached > 0 {
+            ActivityLogManager.shared.info(.upload, "Reattached \(reattached) waiting jobs to active provider")
+            if isProcessing && !isPaused { processNext() }
+        }
+    }
+
     private func processNext() {
         guard !isPaused else { return }
 
-        // Check if provider is available — don't crash, just wait
+        // Check if provider is available
         guard let provider = StorageManager.shared.activeProvider else {
-            // If there are pending jobs but no provider, log once and wait
-            if !store.pendingJobs().isEmpty {
-                ActivityLogManager.shared.warning(.upload, "Upload queue has pending jobs but no storage provider is active")
+            // Mark pending/retrying jobs as waiting for provider
+            for var job in store.pendingJobs() where job.status == .pending || job.status == .retrying {
+                job.status = .waitingForProvider
+                job.lastError = Strings.uploadWaitingForProvider
+                store.updateJob(job)
+                MediaIndexStore.shared.setUploadStatus(.waitingForProvider, for: job.fileName)
+            }
+            if !store.pendingJobs().isEmpty || store.jobs.contains(where: { $0.status == .waitingForProvider }) {
+                ActivityLogManager.shared.warning(.upload, "Upload queue waiting: no storage provider active")
             }
             return
         }
@@ -139,6 +178,7 @@ final class UploadQueueManager: ObservableObject {
                 completed.completedAt = Date()
                 completed.progress = 1.0
                 completed.fileSize = result.fileSize
+                completed.errorClass = nil
                 self.store.updateJob(completed)
 
                 // Write full metadata to MediaIndex after verified upload
@@ -149,7 +189,8 @@ final class UploadQueueManager: ObservableObject {
                     providerType: provider.type.rawValue,
                     remotePath: result.remotePath
                 )
-                ActivityLogManager.shared.success(.upload, "Uploaded \(job.fileName)")
+                ActivityLogManager.shared.success(.upload, "Uploaded and verified: \(job.fileName)",
+                    detail: "Size: \(result.fileSize) bytes, remote: \(result.remotePath)")
 
                 await MainActor.run { self.processNext() }
             } catch {
@@ -157,16 +198,60 @@ final class UploadQueueManager: ObservableObject {
                 failed.attempts += 1
                 failed.lastError = error.localizedDescription
 
-                if failed.attempts < failed.maxRetries {
-                    failed.status = .retrying
-                    let delay = min(300, Int(pow(2.0, Double(failed.attempts))) * 5)
-                    failed.retryDelaySeconds = delay
-                    failed.nextRetryAt = Date().addingTimeInterval(TimeInterval(delay))
-                    failed.lastAttemptAt = Date()
-                    ActivityLogManager.shared.warning(.upload, "Retrying \(job.fileName) in \(delay)s (attempt \(failed.attempts))")
-                } else {
+                // Classify the error for smarter retry behavior
+                let errClass = classifyGoogleDriveError(error)
+                failed.errorClass = errClass.rawValue
+
+                switch errClass {
+                case .authExpired, .permissionDenied:
+                    // Don't retry — user needs to fix auth
                     failed.status = .failed
-                    ActivityLogManager.shared.error(.upload, "Upload failed: \(job.fileName)", detail: error.localizedDescription)
+                    ActivityLogManager.shared.error(.upload, "Upload failed (auth): \(job.fileName)",
+                        detail: errClass.localizedDescription)
+                case .quotaExceeded:
+                    // Don't retry — quota full
+                    failed.status = .failed
+                    ActivityLogManager.shared.error(.upload, "Upload failed (quota): \(job.fileName)",
+                        detail: errClass.localizedDescription)
+                case .rateLimited:
+                    // Retry with longer backoff
+                    if failed.attempts < failed.maxRetries {
+                        failed.status = .retrying
+                        let delay = min(600, Int(pow(2.0, Double(failed.attempts))) * 10)
+                        failed.retryDelaySeconds = delay
+                        failed.nextRetryAt = Date().addingTimeInterval(TimeInterval(delay))
+                        failed.lastAttemptAt = Date()
+                        ActivityLogManager.shared.warning(.upload, "Rate limited, retrying \(job.fileName) in \(delay)s")
+                    } else {
+                        failed.status = .failed
+                        ActivityLogManager.shared.error(.upload, "Upload failed (rate limited): \(job.fileName)")
+                    }
+                case .networkUnavailable:
+                    // Retry with standard backoff
+                    if failed.attempts < failed.maxRetries {
+                        failed.status = .retrying
+                        let delay = min(300, Int(pow(2.0, Double(failed.attempts))) * 5)
+                        failed.retryDelaySeconds = delay
+                        failed.nextRetryAt = Date().addingTimeInterval(TimeInterval(delay))
+                        failed.lastAttemptAt = Date()
+                        ActivityLogManager.shared.warning(.upload, "Network issue, retrying \(job.fileName) in \(delay)s")
+                    } else {
+                        failed.status = .failed
+                        ActivityLogManager.shared.error(.upload, "Upload failed (network): \(job.fileName)")
+                    }
+                case .unknown:
+                    // Standard retry logic
+                    if failed.attempts < failed.maxRetries {
+                        failed.status = .retrying
+                        let delay = min(300, Int(pow(2.0, Double(failed.attempts))) * 5)
+                        failed.retryDelaySeconds = delay
+                        failed.nextRetryAt = Date().addingTimeInterval(TimeInterval(delay))
+                        failed.lastAttemptAt = Date()
+                        ActivityLogManager.shared.warning(.upload, "Retrying \(job.fileName) in \(delay)s (attempt \(failed.attempts))")
+                    } else {
+                        failed.status = .failed
+                        ActivityLogManager.shared.error(.upload, "Upload failed: \(job.fileName)", detail: error.localizedDescription)
+                    }
                 }
 
                 self.store.updateJob(failed)

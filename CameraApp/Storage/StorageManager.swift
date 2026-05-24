@@ -69,10 +69,34 @@ final class StorageManager: ObservableObject {
             lastError = "WebDAV provider is planned and not fully implemented yet"
             ActivityLogManager.shared.warning(.upload, "WebDAV provider not yet implemented")
         }
+
+        // Reattach waiting upload jobs to the new provider
+        UploadQueueManager.shared.reattachWaitingJobs()
     }
 
     func testConnection() async -> Bool {
         guard let provider = activeProvider else { return false }
         return await provider.isAvailable()
+    }
+
+    func testConnectionDetailed() async -> StorageDiagnostics {
+        guard let provider = activeProvider else {
+            return StorageDiagnostics(
+                providerType: activeProviderType.rawValue,
+                isConnected: false,
+                authenticatedEmail: nil,
+                lastTestDate: Date(),
+                lastTestSuccess: false,
+                lastTestError: lastError ?? "No provider configured",
+                lastTestErrorClass: nil,
+                rootFolderName: nil,
+                rootFolderExists: nil,
+                quotaUsedGB: nil,
+                quotaTotalGB: nil,
+                recentUploadCount: 0,
+                recentFailureCount: 0
+            )
+        }
+        return await provider.testConnectionDetailed()
     }
 }

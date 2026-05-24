@@ -139,15 +139,16 @@ async function refreshStatus() {
     const pending = data.uploadQueue.pending || 0;
     const active = data.uploadQueue.active || 0;
     const failed = data.uploadQueue.failed || 0;
+    const waiting = data.uploadQueue.waiting || 0;
     if (failed > 0) {
         upEl.innerHTML = dot('orange') + pending + ' ' + t('queued2');
         upSub.textContent = failed + ' ' + t('failed') + ', ' + active + ' ' + t('uploading2');
     } else if (active > 0) {
         upEl.innerHTML = dot('green') + active + ' ' + t('uploading2');
-        upSub.textContent = pending + ' ' + t('queued2');
+        upSub.textContent = pending + ' ' + t('queued2') + (waiting > 0 ? ', ' + waiting + ' ' + t('waitingForProvider') : '');
     } else {
         upEl.innerHTML = dot('gray') + pending + ' ' + t('queued2');
-        upSub.textContent = '';
+        upSub.textContent = waiting > 0 ? waiting + ' ' + t('waitingForProvider') : '';
     }
 
     // Version

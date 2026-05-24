@@ -1,5 +1,46 @@
 # Changelog
 
+## v2.3.3 (2026-05-24)
+
+Cloud Storage Reliability & Remote Access Polish — enhances Google Drive diagnostics, upload queue intelligence, media cloud badges, retention safety, and Cloudflare guidance.
+
+### New Features
+
+- **Google Drive error classification** — upload failures are classified into categories: auth expired, quota exceeded, rate limited, network unavailable, permission denied. Auth/quota errors fail immediately; rate limits use longer backoff
+- **Storage diagnostics** — new `GET /api/storage/diagnostics` endpoint reports connection status, email, quota, upload stats, and error details (no secrets/tokens exposed)
+- **Connection test enrichment** — `POST /api/storage/test` now returns email, quota used/total, and error class
+- **Upload queue waiting status** — new `waitingForProvider` status preserves jobs when storage provider disconnects; jobs automatically reattach when provider reconnects
+- **Media cloud badges** — media library shows cloud and verified badges on grid items and detail view
+- **"Open in Google Drive" button** — detail modal links directly to remote file when available
+- **Download disabled for archived items** — download button is grayed out when local original is deleted
+- **Retention dry run** — new `POST /api/storage/retention/dry-run` endpoint previews what cleanup would delete
+- **Retention provider gate** — cleanup skips deletion when cloud provider is disconnected
+- **cloudflared detection** — web dashboard detects if cloudflared binary is installed
+- **Dashboard waiting count** — upload queue stats show waiting job count
+- **Upload verification logging** — successful uploads log remote size and file ID
+
+### Web Dashboard
+
+- **settings.html**: Storage diagnostics card, connection test button, retention dry run preview, cloudflared detection status
+- **uploads.html**: `waitingForProvider` status color (orange), error class badge on failed jobs, waiting count in stats bar
+- **media.html**: Cloud/verified badges on grid items, "Open in Google Drive" button in detail modal, disabled download for archived items
+- **index.html**: Upload queue shows waiting count
+
+### Technical
+
+- Version: 2.3.3
+- Build: 18
+- `GoogleDriveAPIError` enum with 6 error cases and `classifyGoogleDriveError()` function
+- `StorageDiagnostics` struct with 13 fields
+- `testConnectionDetailed()` protocol method on `StorageProvider`
+- `RetentionDryRunResult` struct and `dryRun()` method
+- `UploadJobStatus.waitingForProvider` and `UploadEntryStatus.waitingForProvider` cases
+- `UploadJob.errorClass` field for storing error classification
+- `UploadQueueManager.reattachWaitingJobs()` for provider reconnection
+- `APIStatusHandler` now returns `waiting` count in upload queue stats
+- No data migration required
+- No existing user data is deleted
+
 ## v2.3.2 (2026-05-24)
 
 Google Drive Crash Hotfix — fixes crashes when selecting, configuring, or signing into Google Drive storage provider. Hardens OAuth flow, provider activation, and upload queue against all failure modes.

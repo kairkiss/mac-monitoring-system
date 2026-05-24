@@ -389,3 +389,43 @@ input:focus, select:focus {
     color: #fff;
     border-color: var(--accent);
 }
+
+.cloud-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    background: rgba(33, 150, 243, 0.15);
+    color: #42a5f5;
+    margin-left: 4px;
+}
+
+.verified-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    background: rgba(76, 175, 80, 0.15);
+    color: #66bb6a;
+    margin-left: 4px;
+}
+
+.error-class-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    background: rgba(244, 67, 54, 0.12);
+    color: #ef5350;
+}
+
+.diag-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.diag-item:last-child { border-bottom: none; }
+.diag-label { color: var(--fg2); }
+.diag-value { color: var(--fg); font-weight: 500; }

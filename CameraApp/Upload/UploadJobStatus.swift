@@ -7,4 +7,5 @@ enum UploadJobStatus: String, Codable {
     case failed
     case cancelled
     case retrying
+    case waitingForProvider
 }

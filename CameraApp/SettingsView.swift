@@ -16,6 +16,10 @@ struct SettingsView: View {
     @State private var gdAuthIsError: Bool = false
     @State private var cfCopiedMessage: String?
     @State private var gdClientSecret: String = ""
+    @State private var storageDiagnostics: StorageDiagnostics?
+    @State private var dryRunResult: RetentionDryRunResult?
+    @State private var cloudflaredDetected: Bool = false
+    @State private var cloudflaredPath: String = ""
 
     var body: some View {
         Form {
@@ -502,9 +506,10 @@ struct SettingsView: View {
                             Button {
                                 Task {
                                     storageTestResult = await StorageManager.shared.testConnection()
+                                    storageDiagnostics = await StorageManager.shared.testConnectionDetailed()
                                 }
                             } label: {
-                                Label(Strings.testConnection, systemImage: "network")
+                                Label(Strings.connectionTest, systemImage: "network")
                             }
 
                             Button(role: .destructive) {
@@ -522,6 +527,34 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(result ? .green : .red)
                             .padding(.leading, 32)
+                    }
+
+                    if let diag = storageDiagnostics {
+                        VStack(alignment: .leading, spacing: 4) {
+                            if let email = diag.authenticatedEmail {
+                                storageRow(icon: "person.circle", color: .blue, label: Strings.googleDriveAccount, value: email)
+                            }
+                            if let used = diag.quotaUsedGB, let total = diag.quotaTotalGB, total > 0 {
+                                storageRow(icon: "internaldrive", color: .purple, label: Strings.quotaInfo, value: String(format: "%.1f / %.1f GB", used, total))
+                            }
+                            if let errClass = diag.lastTestErrorClass, errClass != .unknown {
+                                storageRow(icon: "exclamationmark.triangle", color: .orange, label: Strings.errorClass, value: errClass.localizedDescription)
+                            }
+                            if let error = diag.lastTestError {
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                            }
+                            HStack(spacing: 4) {
+                                Text(Strings.lastSuccessfulUpload + ":")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("\(diag.recentUploadCount) verified, \(diag.recentFailureCount) failed")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.leading, 32)
                     }
 
                     if let msg = gdAuthMessage {
@@ -881,11 +914,41 @@ struct SettingsView: View {
                     }
                     .padding(.leading, 32)
 
-                    Button("Run Cleanup Now / 立即执行清理") {
-                        let count = RetentionManager.shared.runCleanup()
-                        cleanResult = count
+                    HStack(spacing: 8) {
+                        Button(Strings.runDryRun) {
+                            dryRunResult = RetentionManager.shared.dryRun()
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button("Run Cleanup Now / 立即执行清理") {
+                            let count = RetentionManager.shared.runCleanup()
+                            cleanResult = count
+                        }
                     }
                     .padding(.leading, 32)
+
+                    if let dry = dryRunResult {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Strings.dryRunPreview)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            if let reason = dry.reason {
+                                Text(reason)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text(String(format: Strings.willDeleteCount, dry.wouldDelete))
+                                    .font(.caption)
+                                    .foregroundStyle(dry.wouldDelete > 0 ? .orange : .secondary)
+                                if dry.skipped > 0 {
+                                    Text("\(Strings.skipped): \(dry.skipped)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .padding(.leading, 32)
+                    }
 
                     if let result = cleanResult {
                         Text("Cleaned \(result) local original(s)")
@@ -1007,6 +1070,32 @@ struct SettingsView: View {
 
             // Cloudflare Tunnel
             Section {
+                // cloudflared detection
+                HStack(spacing: 12) {
+                    Image(systemName: cloudflaredDetected ? "checkmark.circle.fill" : "questionmark.circle")
+                        .foregroundStyle(cloudflaredDetected ? .green : .orange)
+                        .frame(width: 20)
+                    Text(cloudflaredDetected ? Strings.cloudflaredDetected : Strings.cloudflaredNotDetected)
+                        .font(.caption)
+                        .foregroundStyle(cloudflaredDetected ? .green : .orange)
+                    if cloudflaredDetected && !cloudflaredPath.isEmpty {
+                        Text("(\(cloudflaredPath))")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .onAppear {
+                    let fm = FileManager.default
+                    for path in ["/opt/homebrew/bin/cloudflared", "/usr/local/bin/cloudflared"] {
+                        if fm.fileExists(atPath: path) {
+                            cloudflaredDetected = true
+                            cloudflaredPath = path
+                            return
+                        }
+                    }
+                    cloudflaredDetected = false
+                }
+
                 HStack(spacing: 12) {
                     Image(systemName: "network.badge.shield.half.filled")
                         .foregroundStyle(.orange)
@@ -1100,7 +1189,7 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.3.2")
+                aboutRow("Version", Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.3.3")
                 aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")

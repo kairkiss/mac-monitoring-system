@@ -41,6 +41,27 @@
     </div>
 
     <div class="card">
+        <h3 data-i18n="storageDiagnostics">Storage Diagnostics</h3>
+        <div id="diagInfo" style="color:var(--fg2);font-size:13px;" data-i18n="loading">Loading...</div>
+        <div style="margin-top:10px;">
+            <button onclick="runTestConnection()" data-i18n="connectionTest">Test Connection</button>
+        </div>
+        <div id="testResult" style="margin-top:8px;font-size:13px;"></div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="dryRunPreview">Retention Preview</h3>
+        <p style="color:var(--fg2);font-size:13px;margin-bottom:8px;">Preview what retention cleanup would delete.</p>
+        <button onclick="runDryRun()" data-i18n="runDryRun">Preview Cleanup</button>
+        <div id="dryRunResult" style="margin-top:8px;font-size:13px;"></div>
+    </div>
+
+    <div class="card">
+        <h3>cloudflared</h3>
+        <div id="cloudflaredStatus" style="font-size:13px;color:var(--fg2);">Checking...</div>
+    </div>
+
+    <div class="card">
         <h3 data-i18n="remoteAccess">Remote Access</h3>
         <p style="color:var(--fg2);font-size:13px;margin-bottom:8px;" data-i18n="remoteAccessDesc">Securely access your monitoring system from the internet via Cloudflare Tunnel.</p>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
@@ -254,10 +275,73 @@ function copyCmd(btn) {
     }
 }
 
+async function loadDiagnostics() {
+    const data = await api('/api/storage/diagnostics');
+    const el = document.getElementById('diagInfo');
+    if (!data) { el.textContent = t('connectionError'); return; }
+    let html = '';
+    html += '<div class="diag-item"><span class="diag-label">' + t('provider') + '</span><span class="diag-value">' + data.providerType + '</span></div>';
+    html += '<div class="diag-item"><span class="diag-label">' + t('status') + '</span><span class="diag-value" style="color:' + (data.isConnected ? '#4caf50' : '#f44336') + ';">' + (data.isConnected ? t('ok') : t('failed')) + '</span></div>';
+    if (data.authenticatedEmail) html += '<div class="diag-item"><span class="diag-label">Email</span><span class="diag-value">' + data.authenticatedEmail + '</span></div>';
+    if (data.quotaUsedGB !== undefined) html += '<div class="diag-item"><span class="diag-label">' + t('quotaInfo') + '</span><span class="diag-value">' + data.quotaUsedGB + ' / ' + data.quotaTotalGB + ' GB</span></div>';
+    if (data.rootFolderName) html += '<div class="diag-item"><span class="diag-label">Root Folder</span><span class="diag-value">' + data.rootFolderName + (data.rootFolderExists ? ' &#10003;' : ' &#10007;') + '</span></div>';
+    html += '<div class="diag-item"><span class="diag-label">' + t('lastSuccessfulUpload') + '</span><span class="diag-value">' + data.recentUploadCount + ' recent, ' + data.recentFailureCount + ' failed</span></div>';
+    if (data.lastTestError) html += '<div class="diag-item"><span class="diag-label">' + t('error') + '</span><span class="diag-value" style="color:#f44336;">' + (data.lastTestErrorClass ? '<span class="error-class-badge">' + data.lastTestErrorClass + '</span> ' : '') + data.lastTestError + '</span></div>';
+    el.innerHTML = html;
+}
+
+async function runTestConnection() {
+    const el = document.getElementById('testResult');
+    el.innerHTML = '<span style="color:var(--fg2);">Testing...</span>';
+    const data = await api('/api/storage/test', { method: 'POST' });
+    if (!data) { el.innerHTML = '<span style="color:#f44336;">' + t('connectionError') + '</span>'; return; }
+    let html = '';
+    if (data.connected) {
+        html += '<span style="color:#4caf50;">&#10003; ' + t('ok') + '</span>';
+        if (data.email) html += ' &mdash; ' + data.email;
+        if (data.quotaUsedGB !== undefined) html += ' &mdash; ' + data.quotaUsedGB + '/' + data.quotaTotalGB + ' GB';
+    } else {
+        html += '<span style="color:#f44336;">&#10007; ' + t('failed') + '</span>';
+        if (data.errorClass) html += ' <span class="error-class-badge">' + data.errorClass + '</span>';
+        if (data.error) html += ' &mdash; ' + data.error;
+    }
+    el.innerHTML = html;
+    loadDiagnostics();
+}
+
+async function runDryRun() {
+    const el = document.getElementById('dryRunResult');
+    el.innerHTML = '<span style="color:var(--fg2);">Running...</span>';
+    const data = await api('/api/storage/retention/dry-run', { method: 'POST' });
+    if (!data) { el.innerHTML = '<span style="color:#f44336;">' + t('connectionError') + '</span>'; return; }
+    let html = '<div class="diag-item"><span class="diag-label">' + t('willDeleteCount') + '</span><span class="diag-value" style="color:#f44336;">' + data.wouldDelete + ' ' + t('files') + '</span></div>';
+    html += '<div class="diag-item"><span class="diag-label">' + t('skipped') + '</span><span class="diag-value">' + data.skipped + '</span></div>';
+    if (data.reason) html += '<div class="diag-item"><span class="diag-label">' + t('reason') + '</span><span class="diag-value">' + data.reason + '</span></div>';
+    if (data.files && data.files.length > 0) {
+        html += '<div style="margin-top:6px;font-size:12px;color:var(--fg2);max-height:120px;overflow-y:auto;">';
+        data.files.forEach(f => { html += '<div>' + f + '</div>'; });
+        html += '</div>';
+    }
+    el.innerHTML = html;
+}
+
+async function checkCloudflared() {
+    const el = document.getElementById('cloudflaredStatus');
+    const data = await api('/api/storage/cloudflared');
+    if (!data) { el.textContent = t('connectionError'); return; }
+    if (data.detected) {
+        el.innerHTML = '<span style="color:#4caf50;">&#10003; ' + t('cloudflaredDetected') + '</span><br><span style="font-size:12px;color:var(--fg2);">' + data.path + '</span>';
+    } else {
+        el.innerHTML = '<span style="color:#ff9800;">&#9888; ' + t('cloudflaredNotDetected') + '</span>';
+    }
+}
+
 loadStorage();
 loadUsers();
 loadProviders();
 loadStatus();
+loadDiagnostics();
+checkCloudflared();
 </script>
 </body>
 </html>

@@ -5,7 +5,7 @@ This guide walks you through setting up Google Drive as a storage provider for M
 ## Prerequisites
 
 - A Google account with Google Drive access
-- Mac监控系统 v2.3.2+ installed and running
+- Mac监控系统 v2.3.3+ installed and running
 - A web browser
 
 ## Step 1: Create a Google Cloud Project
@@ -157,8 +157,22 @@ If **Delete local original after verified upload** is enabled:
 - Ensure the app has `drive.file` scope authorized
 
 ### "Rate limited"
-- Google Drive API has rate limits; the app will retry automatically
+- Google Drive API has rate limits; the app will retry automatically with longer backoff (up to 10 minutes)
 - If persistent, wait a few minutes and try again
+
+### Error classification (v2.3.3+)
+Upload failures are now classified into categories shown in the upload queue:
+- **authExpired** — Token expired; click Sign Out then Sign In again
+- **quotaExceeded** — Google Drive storage is full; free up space or upgrade
+- **rateLimited** — Too many API requests; app will retry with exponential backoff
+- **networkUnavailable** — Network issue; check internet connection
+- **permissionDenied** — App lacks permission; re-authorize with `drive.file` scope
+- **unknown** — Unexpected error; check activity log for details
+
+### Upload jobs stuck in "Waiting for Provider" (v2.3.3+)
+- This means the storage provider disconnected while jobs were queued
+- Jobs are preserved and will automatically reattach when the provider reconnects
+- To manually retry: click Sign In to reconnect, or use the Retry button in the upload queue
 
 ### Sign-in window doesn't appear
 - Check that Mac监控系统 has network access
