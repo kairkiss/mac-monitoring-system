@@ -29,7 +29,7 @@ enum TaskActionType: String, Codable, CaseIterable {
     }
 }
 
-struct ScheduledTask: Identifiable, Codable {
+struct ScheduledTask: Identifiable {
     let id: UUID
     var name: String
     var type: TaskType
@@ -40,7 +40,8 @@ struct ScheduledTask: Identifiable, Codable {
     var weekdays: Set<Int>  // 1=Sunday ... 7=Saturday
     var countdownMinutes: Int
     var intervalMinutes: Int
-    var durationMinutes: Int
+    var durationMinutes: Int      // interval auto-stop window (minutes)
+    var videoDurationSeconds: Int // video recording duration (seconds)
     var telegramSend: Bool
     var uploadToCloud: Bool
     var uploadProvider: String?
@@ -62,6 +63,7 @@ struct ScheduledTask: Identifiable, Codable {
         countdownMinutes: Int = 30,
         intervalMinutes: Int = 10,
         durationMinutes: Int = 120,
+        videoDurationSeconds: Int = 30,
         telegramSend: Bool = false,
         uploadToCloud: Bool = false,
         uploadProvider: String? = nil,
@@ -81,6 +83,7 @@ struct ScheduledTask: Identifiable, Codable {
         self.countdownMinutes = countdownMinutes
         self.intervalMinutes = intervalMinutes
         self.durationMinutes = durationMinutes
+        self.videoDurationSeconds = videoDurationSeconds
         self.telegramSend = telegramSend
         self.uploadToCloud = uploadToCloud
         self.uploadProvider = uploadProvider
@@ -88,6 +91,38 @@ struct ScheduledTask: Identifiable, Codable {
         self.nextFireTime = nextFireTime
         self.lastRunAt = lastRunAt
         self.lastAttemptAt = lastAttemptAt
+    }
+}
+
+extension ScheduledTask: Codable {
+    enum CodingKeys: String, CodingKey {
+        case id, name, type, actionType, isEnabled, hour, minute, weekdays
+        case countdownMinutes, intervalMinutes, durationMinutes, videoDurationSeconds
+        case telegramSend, uploadToCloud, uploadProvider
+        case createdAt, nextFireTime, lastRunAt, lastAttemptAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? ""
+        type = try c.decodeIfPresent(TaskType.self, forKey: .type) ?? .daily
+        actionType = try c.decodeIfPresent(TaskActionType.self, forKey: .actionType) ?? .photo
+        isEnabled = try c.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        hour = try c.decodeIfPresent(Int.self, forKey: .hour) ?? 8
+        minute = try c.decodeIfPresent(Int.self, forKey: .minute) ?? 0
+        weekdays = try c.decodeIfPresent(Set<Int>.self, forKey: .weekdays) ?? [2, 3, 4, 5, 6]
+        countdownMinutes = try c.decodeIfPresent(Int.self, forKey: .countdownMinutes) ?? 30
+        intervalMinutes = try c.decodeIfPresent(Int.self, forKey: .intervalMinutes) ?? 10
+        durationMinutes = try c.decodeIfPresent(Int.self, forKey: .durationMinutes) ?? 120
+        videoDurationSeconds = try c.decodeIfPresent(Int.self, forKey: .videoDurationSeconds) ?? 30
+        telegramSend = try c.decodeIfPresent(Bool.self, forKey: .telegramSend) ?? false
+        uploadToCloud = try c.decodeIfPresent(Bool.self, forKey: .uploadToCloud) ?? false
+        uploadProvider = try c.decodeIfPresent(String.self, forKey: .uploadProvider)
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        nextFireTime = try c.decodeIfPresent(Date.self, forKey: .nextFireTime)
+        lastRunAt = try c.decodeIfPresent(Date.self, forKey: .lastRunAt)
+        lastAttemptAt = try c.decodeIfPresent(Date.self, forKey: .lastAttemptAt)
     }
 }
 
@@ -435,7 +470,6 @@ final class AutomationScheduler: ObservableObject {
             onCapture?(task)
         }
 
-        logExecution(taskID: taskID, taskName: taskName, succeeded: true)
         ActivityLogManager.shared.log(level: .success, category: .automation, message: "Task fired: \(taskName)", taskID: taskID.uuidString, taskName: taskName)
 
         // Reschedule
@@ -520,7 +554,13 @@ final class AutomationScheduler: ObservableObject {
 
     private func persistTasks() {
         guard let data = try? JSONEncoder().encode(tasks) else { return }
-        try? data.write(to: tasksFileURL)
+        let tmpURL = tasksFileURL.appendingPathExtension("tmp")
+        do {
+            try data.write(to: tmpURL)
+            try FileManager.default.replaceItem(at: tasksFileURL, withItemAt: tmpURL, backupItemName: nil, options: [], resultingItemURL: nil)
+        } catch {
+            try? data.write(to: tasksFileURL)
+        }
     }
 
     func saveAllTasks() {

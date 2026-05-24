@@ -156,11 +156,14 @@ struct CameraApp: App {
 
     private func setupAutomationCapture() {
         let camera = CameraManager.shared
+        let scheduler = automationScheduler
         automationScheduler.onCapture = { [weak camera] task in
             guard let camera else { return }
             camera.ensureSessionRunning {
                 camera.capturePhoto { result in
-                    if case .success(let url) = result {
+                    let taskName = task?.name.isEmpty == false ? task!.name : (task?.type.displayName ?? "photo")
+                    switch result {
+                    case .success(let url):
                         let fileName = url.lastPathComponent
                         MediaIndexStore.shared.setSource(.automation, for: fileName)
                         if task?.telegramSend == true, let data = try? Data(contentsOf: url) {
@@ -168,6 +171,13 @@ struct CameraApp: App {
                         }
                         if task?.uploadToCloud == true {
                             UploadQueueManager.shared.enqueue(fileName: fileName)
+                        }
+                        if let taskID = task?.id {
+                            scheduler.logExecution(taskID: taskID, taskName: taskName, succeeded: true)
+                        }
+                    case .failure:
+                        if let taskID = task?.id {
+                            scheduler.logExecution(taskID: taskID, taskName: taskName, succeeded: false, detail: "Photo capture failed")
                         }
                     }
                 }
@@ -179,14 +189,16 @@ struct CameraApp: App {
         let camera = CameraManager.shared
         automationScheduler.onVideoCapture = { [weak camera, weak automationScheduler] task in
             guard let camera else { return }
+            let taskName = task?.name.isEmpty == false ? task!.name : (task?.type.displayName ?? "video")
             camera.ensureSessionRunning {
                 camera.startRecording { result in
                     switch result {
                     case .success:
-                        let duration = TimeInterval(task?.durationMinutes ?? 30)
+                        let duration = TimeInterval(task?.videoDurationSeconds ?? 30)
                         DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
                             camera.stopRecording { stopResult in
-                                if case .success(let url) = stopResult {
+                                switch stopResult {
+                                case .success(let url):
                                     let fileName = url.lastPathComponent
                                     MediaIndexStore.shared.setSource(.automation, for: fileName)
                                     if task?.telegramSend == true, let data = try? Data(contentsOf: url) {
@@ -194,6 +206,13 @@ struct CameraApp: App {
                                     }
                                     if task?.uploadToCloud == true {
                                         UploadQueueManager.shared.enqueue(fileName: fileName)
+                                    }
+                                    if let taskID = task?.id {
+                                        automationScheduler?.logExecution(taskID: taskID, taskName: taskName, succeeded: true, detail: "Video \(duration)s")
+                                    }
+                                case .failure:
+                                    if let taskID = task?.id {
+                                        automationScheduler?.logExecution(taskID: taskID, taskName: taskName, succeeded: false, detail: "Video stop failed")
                                     }
                                 }
                                 if let taskID = task?.id {
@@ -203,6 +222,7 @@ struct CameraApp: App {
                         }
                     case .failure:
                         if let taskID = task?.id {
+                            automationScheduler?.logExecution(taskID: taskID, taskName: taskName, succeeded: false, detail: "Video start failed")
                             automationScheduler?.videoTaskCompleted(taskID: taskID)
                         }
                     }

@@ -1,6 +1,7 @@
 import SwiftUI
 
 enum SettingsSection: String, CaseIterable, Identifiable {
+    case overview
     case notifications
     case camera
     case storage
@@ -13,6 +14,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
+        case .overview: return Strings.overviewSection
         case .notifications: return Strings.notificationsSection
         case .camera: return Strings.cameraSection
         case .storage: return Strings.storageCloudSection
@@ -25,6 +27,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
+        case .overview: return "square.grid.2x2"
         case .notifications: return "bell.fill"
         case .camera: return "camera.fill"
         case .storage: return "externaldrive.fill"
@@ -41,7 +44,8 @@ struct SettingsView: View {
     @EnvironmentObject var telegram: TelegramService
     @EnvironmentObject var lang: LanguageManager
     @EnvironmentObject var mediaLibrary: MediaLibraryManager
-    @State private var selectedSection: SettingsSection? = .notifications
+    @EnvironmentObject var automation: AutomationScheduler
+    @State private var selectedSection: SettingsSection? = .overview
     @State private var cleanResult: Int?
     @State private var storageTestResult: Bool?
     @State private var webPassword: String = ""
@@ -57,6 +61,8 @@ struct SettingsView: View {
     @State private var dryRunResult: RetentionDryRunResult?
     @State private var cloudflaredDetected: Bool = false
     @State private var cloudflaredPath: String = ""
+    @State private var showTaskSheet: Bool = false
+    @State private var editingTask: ScheduledTask?
 
     var body: some View {
         NavigationSplitView {
@@ -69,6 +75,8 @@ struct SettingsView: View {
         } detail: {
             Form {
                 switch selectedSection {
+                case .overview:
+                    overviewSection
                 case .notifications:
                     notificationsSection
                 case .camera:
@@ -92,6 +100,97 @@ struct SettingsView: View {
             .navigationTitle(selectedSection?.label ?? Strings.settingsTitle)
         }
         .navigationSplitViewStyle(.balanced)
+        .sheet(isPresented: $showTaskSheet) {
+            TaskEditSheet(task: editingTask) { savedTask in
+                if editingTask != nil {
+                    if let idx = automation.tasks.firstIndex(where: { $0.id == savedTask.id }) {
+                        automation.tasks[idx] = savedTask
+                    }
+                } else {
+                    automation.tasks.append(savedTask)
+                }
+                automation.saveAllTasks()
+                automation.rescheduleAll()
+            }
+        }
+    }
+
+    // MARK: - Overview Section
+
+    @ViewBuilder
+    private var overviewSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "camera.fill")
+                        .foregroundStyle(.blue)
+                        .frame(width: 24)
+                    Text(Strings.cameraTitle)
+                    Spacer()
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 8, height: 8)
+                    Text(Strings.cameraRunning)
+                        .foregroundStyle(.secondary)
+                }
+
+                Divider()
+
+                HStack {
+                    Image(systemName: "clock.fill")
+                        .foregroundStyle(.orange)
+                        .frame(width: 24)
+                    Text(Strings.automationSection)
+                    Spacer()
+                    Text(automation.isAutomationEnabled ? Strings.automationEnabled : Strings.automationDisabled)
+                        .foregroundStyle(automation.isAutomationEnabled ? .green : .secondary)
+                    Text("\(automation.tasks.filter { $0.isEnabled }.count) active")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
+
+                Divider()
+
+                HStack {
+                    Image(systemName: "externaldrive.fill")
+                        .foregroundStyle(.purple)
+                        .frame(width: 24)
+                    Text(Strings.storageUsage)
+                    Spacer()
+                    Text(ByteCountFormatter.string(fromByteCount: mediaLibrary.totalStorageBytes, countStyle: .file))
+                        .foregroundStyle(.secondary)
+                }
+
+                Divider()
+
+                HStack {
+                    Image(systemName: "photo.stack.fill")
+                        .foregroundStyle(.green)
+                        .frame(width: 24)
+                    Text(Strings.photos)
+                    Spacer()
+                    Text("\(mediaLibrary.photos.count) photos, \(mediaLibrary.videos.count) videos")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
+
+                let pendingUploads = MediaIndexStore.shared.pendingUploadItems()
+                if !pendingUploads.isEmpty {
+                    Divider()
+                    HStack {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .foregroundStyle(.red)
+                            .frame(width: 24)
+                        Text(Strings.uploadQueue)
+                        Spacer()
+                        Text("\(pendingUploads.count) pending")
+                            .foregroundStyle(.red)
+                            .font(.caption)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
     }
 
     // MARK: - Notifications Section
@@ -670,6 +769,61 @@ struct SettingsView: View {
     @ViewBuilder
     private var automationSection: some View {
         Section {
+            ForEach(automation.tasks) { task in
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(task.name.isEmpty ? task.type.displayName : task.name)
+                            .font(.body)
+                        HStack(spacing: 8) {
+                            Text(task.actionType.displayName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(task.type.displayName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if task.uploadToCloud {
+                                Image(systemName: "icloud.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                    }
+                    Spacer()
+                    Toggle("", isOn: Binding(
+                        get: { task.isEnabled },
+                        set: { newValue in
+                            if let idx = automation.tasks.firstIndex(where: { $0.id == task.id }) {
+                                automation.tasks[idx].isEnabled = newValue
+                                automation.saveAllTasks()
+                            }
+                        }
+                    ))
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .controlSize(.small)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    editingTask = task
+                    showTaskSheet = true
+                }
+            }
+            .onDelete { indexSet in
+                automation.tasks.remove(atOffsets: indexSet)
+                automation.saveAllTasks()
+            }
+
+            Button {
+                editingTask = nil
+                showTaskSheet = true
+            } label: {
+                Label("Create Task", systemImage: "plus.circle.fill")
+            }
+        } header: {
+            Label(Strings.automation, systemImage: "list.bullet")
+        }
+
+        Section {
             Stepper("\(Strings.recoveryWindow): \(settings.recoveryWindowMinutes) \(Strings.minutes)", value: $settings.recoveryWindowMinutes, in: 0...120, step: 5)
         } header: {
             Label(Strings.missedTaskRecovery, systemImage: "arrow.clockwise")
@@ -931,7 +1085,7 @@ struct SettingsView: View {
         // About
         Section {
             aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-            aboutRow("Version", Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.4.1")
+            aboutRow("Version", Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.4.2")
             aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
         } header: {
             Label(Strings.about, systemImage: "info.circle")

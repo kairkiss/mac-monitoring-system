@@ -99,12 +99,13 @@ final class CloudflareTunnelManager: ObservableObject {
                 status = .error
                 return
             }
-            args = ["tunnel", "run"]
-            let hostname = settings.cloudflareHostname
-            if !hostname.isEmpty {
-                args += ["--url", "http://127.0.0.1:\(localPort)"]
+            let config = detectCloudflaredConfig()
+            if !config.credentialsExist {
+                lastError = "No credentials found in ~/.cloudflared/. Run 'cloudflared tunnel login' first."
+                status = .error
+                return
             }
-            args.append(tunnelName)
+            args = ["tunnel", "run", tunnelName]
         }
 
         proc.arguments = args
@@ -213,12 +214,29 @@ final class CloudflareTunnelManager: ObservableObject {
         }
     }
 
+    func detectCloudflaredConfig() -> (configExists: Bool, credentialsExist: Bool) {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let cloudflaredDir = home.appendingPathComponent(".cloudflared")
+        let configPath = cloudflaredDir.appendingPathComponent("config.yml")
+        let configExists = FileManager.default.fileExists(atPath: configPath.path)
+
+        var credentialsExist = false
+        if let contents = try? FileManager.default.contentsOfDirectory(atPath: cloudflaredDir.path) {
+            credentialsExist = contents.contains { $0.hasSuffix(".json") }
+        }
+
+        return (configExists, credentialsExist)
+    }
+
     func diagnostics() -> [String: String] {
         let detection = detectCloudflared()
+        let config = detectCloudflaredConfig()
         var diag: [String: String] = [:]
         diag["cloudflaredDetected"] = detection.detected ? "Yes" : "No"
         diag["cloudflaredPath"] = detection.path ?? "Not found"
         diag["cloudflaredVersion"] = detection.version ?? "Unknown"
+        diag["configExists"] = config.configExists ? "Yes" : "No"
+        diag["credentialsExist"] = config.credentialsExist ? "Yes" : "No"
         diag["tunnelMode"] = settings.cloudflareTunnelMode.rawValue
         diag["tunnelStatus"] = status.rawValue
         diag["tunnelName"] = settings.cloudflareTunnelName

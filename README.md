@@ -4,7 +4,7 @@ MacMonitor turns the app into a local camera node with a web dashboard, storage 
 
 Mac监控系统将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
 
-> **v2.4.1** — Productization Completion Hotfix. Task action types (photo/video), admin-only API enforcement, audit logging with user tracking, stability hardening (MediaIndexStore thread safety, camera capture re-entry guard, retention upload safety), Cloudflare quick tunnel support. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **v2.4.2** — Automation & Cloudflare Correctness Hotfix. ScheduledTask backward-compatible Codable, video duration field split, execution history accuracy, Settings Overview + Automation task list, web uploadProvider picker, Cloudflare named tunnel fix + config detection, mobile CSS table fix, atomic task persistence. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 

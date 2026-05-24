@@ -216,13 +216,17 @@ struct APIStorageHandler {
             }
 
             tunnel.startTunnel(mode: effectiveMode)
+            let user = request.sessionUsername ?? "unknown"
+            ActivityLogManager.shared.info(.webServer, "Tunnel start requested by \(user): mode=\(effectiveMode.rawValue)")
             return HTTPResponse.json(["ok": true, "status": tunnel.status.rawValue, "mode": effectiveMode.rawValue] as [String: Any])
         }
 
         // Stop tunnel
-        router.addRoute(method: "POST", path: "/api/remote/stop", requiredRole: .admin) { _ in
+        router.addRoute(method: "POST", path: "/api/remote/stop", requiredRole: .admin) { request in
             let tunnel = CloudflareTunnelManager.shared
             tunnel.stopTunnel()
+            let user = request.sessionUsername ?? "unknown"
+            ActivityLogManager.shared.info(.webServer, "Tunnel stop requested by \(user)")
             return HTTPResponse.json(["ok": true, "status": tunnel.status.rawValue] as [String: Any])
         }
 

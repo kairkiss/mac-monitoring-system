@@ -455,13 +455,17 @@ struct TaskEditSheet: View {
 
     @State private var name: String = ""
     @State private var type: TaskType = .daily
+    @State private var actionType: TaskActionType = .photo
     @State private var hour: Int = 8
     @State private var minute: Int = 0
     @State private var weekdays: Set<Int> = [2, 3, 4, 5, 6]
     @State private var countdownMinutes: Int = 30
     @State private var intervalMinutes: Int = 10
     @State private var durationMinutes: Int = 120
+    @State private var videoDurationSeconds: Int = 30
     @State private var telegramSend: Bool = false
+    @State private var uploadToCloud: Bool = false
+    @State private var uploadProvider: String = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -493,6 +497,12 @@ struct TaskEditSheet: View {
                     Picker(Strings.taskType, selection: $type) {
                         ForEach(TaskType.allCases, id: \.self) { t in
                             Text(t.displayName).tag(t)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    Picker(Strings.actionType, selection: $actionType) {
+                        ForEach(TaskActionType.allCases, id: \.self) { a in
+                            Text(a.displayName).tag(a)
                         }
                     }
                     .pickerStyle(.menu)
@@ -613,6 +623,36 @@ struct TaskEditSheet: View {
                     Text(Strings.sendToTelegramDesc)
                         .font(.caption)
                 }
+
+                if actionType == .video {
+                    Section {
+                        Stepper("\(Strings.videoDuration): \(videoDurationSeconds)s", value: $videoDurationSeconds, in: 5...300, step: 5)
+                    } header: {
+                        Label("Video", systemImage: "video.fill")
+                    }
+                }
+
+                Section {
+                    Toggle(isOn: $uploadToCloud) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "icloud.and.arrow.up")
+                                .foregroundStyle(.blue)
+                            Text(Strings.uploadToCloud)
+                        }
+                    }
+                    if uploadToCloud {
+                        Picker("Upload Provider", selection: $uploadProvider) {
+                            Text("Default").tag("")
+                            Text("Local Folder").tag("local")
+                            Text("Mounted Folder").tag("mounted")
+                            Text("Google Drive").tag("google_drive")
+                        }
+                        .pickerStyle(.menu)
+                    }
+                } footer: {
+                    Text(Strings.uploadToCloudDesc)
+                        .font(.caption)
+                }
             }
             .formStyle(.grouped)
         }
@@ -621,13 +661,17 @@ struct TaskEditSheet: View {
             if let task {
                 name = task.name
                 type = task.type
+                actionType = task.actionType
                 hour = task.hour
                 minute = task.minute
                 weekdays = task.weekdays
                 countdownMinutes = task.countdownMinutes
                 intervalMinutes = task.intervalMinutes
                 durationMinutes = task.durationMinutes
+                videoDurationSeconds = task.videoDurationSeconds
                 telegramSend = task.telegramSend
+                uploadToCloud = task.uploadToCloud
+                uploadProvider = task.uploadProvider ?? ""
             }
         }
     }
@@ -657,13 +701,17 @@ struct TaskEditSheet: View {
         var t = task ?? ScheduledTask()
         t.name = name
         t.type = type
+        t.actionType = actionType
         t.hour = hour
         t.minute = minute
         t.weekdays = weekdays
         t.countdownMinutes = countdownMinutes
         t.intervalMinutes = intervalMinutes
         t.durationMinutes = durationMinutes
+        t.videoDurationSeconds = videoDurationSeconds
         t.telegramSend = telegramSend
+        t.uploadToCloud = uploadToCloud
+        t.uploadProvider = uploadProvider.isEmpty ? nil : uploadProvider
         onSave(t)
         dismiss()
     }

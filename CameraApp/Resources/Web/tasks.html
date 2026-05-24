@@ -38,7 +38,7 @@
     <a href="/settings.html" class="nav-item" data-i18n="settings">Settings</a>
     <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
 </nav>
-<main class="content">
+<main class="content has-cards">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <h1 data-i18n="automation" style="margin:0;">Automation Tasks</h1>
         <button onclick="openCreateModal()" data-i18n="createTask">Create Task</button>
@@ -120,8 +120,17 @@
         <label for="telegramInput">Send to Telegram</label>
     </div>
     <div class="checkbox-group">
-        <input type="checkbox" id="uploadInput">
+        <input type="checkbox" id="uploadInput" onchange="toggleUploadProvider()">
         <label for="uploadInput" data-i18n="uploadToCloud">Upload to Cloud</label>
+    </div>
+    <div class="form-group" id="uploadProviderGroup" style="display:none;">
+        <label data-i18n="uploadProvider">Upload Provider</label>
+        <select id="uploadProviderInput">
+            <option value="">Default</option>
+            <option value="local">Local Folder</option>
+            <option value="mounted">Mounted Folder</option>
+            <option value="google_drive">Google Drive</option>
+        </select>
     </div>
     <div class="checkbox-group">
         <input type="checkbox" id="enabledInput" checked>
@@ -178,6 +187,11 @@ function updateActionFields() {
     document.getElementById('videoDurationGroup').style.display = action === 'video' ? '' : 'none';
 }
 
+function toggleUploadProvider() {
+    const checked = document.getElementById('uploadInput').checked;
+    document.getElementById('uploadProviderGroup').style.display = checked ? '' : 'none';
+}
+
 function openCreateModal() {
     document.getElementById('editTaskId').value = '';
     document.getElementById('modalTitle').textContent = t('createTask');
@@ -192,11 +206,13 @@ function openCreateModal() {
     document.getElementById('videoDurationInput').value = 30;
     document.getElementById('telegramInput').checked = false;
     document.getElementById('uploadInput').checked = false;
+    document.getElementById('uploadProviderInput').value = '';
     document.getElementById('enabledInput').checked = true;
     selectedWeekdays = new Set([2,3,4,5,6]);
     initWeekdayBtns();
     updateTypeFields();
     updateActionFields();
+    toggleUploadProvider();
     document.getElementById('taskModal').classList.add('active');
 }
 
@@ -211,14 +227,16 @@ function openEditModal(task) {
     document.getElementById('countdownInput').value = task.countdownMinutes;
     document.getElementById('intervalInput').value = task.intervalMinutes;
     document.getElementById('durationInput').value = task.durationMinutes;
-    document.getElementById('videoDurationInput').value = task.durationMinutes || 30;
+    document.getElementById('videoDurationInput').value = task.videoDurationSeconds || 30;
     document.getElementById('telegramInput').checked = task.telegramSend;
     document.getElementById('uploadInput').checked = task.uploadToCloud;
+    document.getElementById('uploadProviderInput').value = task.uploadProvider || '';
     document.getElementById('enabledInput').checked = task.isEnabled;
     selectedWeekdays = new Set(task.weekdays || [2,3,4,5,6]);
     initWeekdayBtns();
     updateTypeFields();
     updateActionFields();
+    toggleUploadProvider();
     document.getElementById('taskModal').classList.add('active');
 }
 
@@ -227,6 +245,7 @@ function closeModal() { document.getElementById('taskModal').classList.remove('a
 async function saveTask() {
     const editId = document.getElementById('editTaskId').value;
     const actionType = document.getElementById('actionTypeInput').value;
+    const uploadProvider = document.getElementById('uploadProviderInput').value;
     const body = {
         name: document.getElementById('taskNameInput').value,
         type: document.getElementById('taskTypeInput').value,
@@ -237,9 +256,11 @@ async function saveTask() {
         weekdays: Array.from(selectedWeekdays),
         countdownMinutes: parseInt(document.getElementById('countdownInput').value) || 30,
         intervalMinutes: parseInt(document.getElementById('intervalInput').value) || 10,
-        durationMinutes: actionType === 'video' ? (parseInt(document.getElementById('videoDurationInput').value) || 30) : (parseInt(document.getElementById('durationInput').value) || 120),
+        durationMinutes: parseInt(document.getElementById('durationInput').value) || 120,
+        videoDurationSeconds: parseInt(document.getElementById('videoDurationInput').value) || 30,
         telegramSend: document.getElementById('telegramInput').checked,
-        uploadToCloud: document.getElementById('uploadInput').checked
+        uploadToCloud: document.getElementById('uploadInput').checked,
+        uploadProvider: uploadProvider || null
     };
     if (editId) {
         await api(`/api/tasks/${editId}`, { method: 'PUT', body });
@@ -256,7 +277,8 @@ async function loadTasks() {
     document.getElementById('taskList').innerHTML = data.tasks.map(task => {
         const typeLabel = task.type === 'daily' ? t('daily') : task.type === 'weekly' ? t('weekly') : task.type === 'countdown' ? t('countdown') : t('interval');
         const actionLabel = task.actionType === 'video' ? t('video') : t('photo');
-        const uploadBadge = task.uploadToCloud ? '<span class="badge badge-blue">' + t('uploadToCloud') + '</span>' : '<span class="badge">' + t('localOnlyBadge') + '</span>';
+        const providerLabel = task.uploadProvider ? task.uploadProvider.replace('_', ' ') : '';
+        const uploadBadge = task.uploadToCloud ? '<span class="badge badge-blue">' + t('uploadToCloud') + (providerLabel ? ' (' + providerLabel + ')' : '') + '</span>' : '<span class="badge">' + t('localOnlyBadge') + '</span>';
         return `<tr>
             <td>${task.name || typeLabel}</td>
             <td>${actionLabel}</td>
@@ -275,7 +297,8 @@ async function loadTasks() {
     document.getElementById('taskCards').innerHTML = data.tasks.map(task => {
         const typeLabel = task.type === 'daily' ? t('daily') : task.type === 'weekly' ? t('weekly') : task.type === 'countdown' ? t('countdown') : t('interval');
         const actionLabel = task.actionType === 'video' ? t('video') : t('photo');
-        const uploadBadge = task.uploadToCloud ? '<span class="badge badge-blue">' + t('uploadToCloud') + '</span>' : '<span class="badge">' + t('localOnlyBadge') + '</span>';
+        const providerLabel = task.uploadProvider ? task.uploadProvider.replace('_', ' ') : '';
+        const uploadBadge = task.uploadToCloud ? '<span class="badge badge-blue">' + t('uploadToCloud') + (providerLabel ? ' (' + providerLabel + ')' : '') + '</span>' : '<span class="badge">' + t('localOnlyBadge') + '</span>';
         const statusBadge = task.isEnabled ? '<span class="badge badge-green">' + t('enabled') + '</span>' : '<span class="badge badge-red">' + t('disabled') + '</span>';
         const nextFire = task.nextFireTime ? new Date(task.nextFireTime).toLocaleString() : '-';
         return `<div class="task-card">

@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.4.2 (2026-05-24)
+
+Automation & Cloudflare Correctness Hotfix — fixes 10 correctness bugs in ScheduledTask migration, video duration, execution history, SettingsView, Cloudflare tunnel, mobile CSS, and data safety.
+
+### Bug Fixes
+
+- **ScheduledTask backward-compatible Codable** — custom `init(from:)` with `decodeIfPresent` defaults; old tasks.json without `actionType` no longer decodes to empty array
+- **Video duration field split** — new `videoDurationSeconds` field (default 30s) for video recording; `durationMinutes` now only controls interval auto-stop window
+- **Execution history accuracy** — `logExecution` moved from `handleTimerFired` (premature) to capture completion callbacks; video tasks log success only after recording actually stops
+- **SettingsView defaults to Overview** — new `.overview` case in `SettingsSection` enum with storage, camera, automation, and upload queue summary cards
+- **Automation task list in Settings** — native task list with enable/disable toggles, create/edit sheet, swipe-to-delete
+- **Web uploadProvider picker** — tasks.html modal now includes provider selector (Default/Local/Mounted/Google Drive) shown when uploadToCloud is enabled
+- **Cloudflare named tunnel fix** — removed erroneous `--url` injection in named mode; named tunnels now use `cloudflared tunnel run <name>` only
+- **Cloudflare config detection** — `detectCloudflaredConfig()` checks `~/.cloudflared/config.yml` and credential files; named tunnel start fails with clear error if no credentials found
+- **Remote API audit logging** — `/api/remote/start` and `/api/remote/stop` now write explicit ActivityLog entries with mode and user
+- **Mobile CSS table fix** — removed global `table { display: none; }` on mobile; tables now scroll horizontally; only pages with `.has-cards` class hide tables in favor of card layouts
+
+### Stability
+
+- **Atomic task persistence** — `persistTasks()` now writes to `.tmp` file then uses `replaceItem` for crash-safe atomic writes
+
+---
+
 ## v2.4.1 (2026-05-24)
 
 Productization Completion Hotfix — real task action types, admin-only API enforcement, audit logging, stability hardening.
