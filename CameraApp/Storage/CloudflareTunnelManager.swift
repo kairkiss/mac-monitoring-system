@@ -13,6 +13,52 @@ enum TunnelMode: String, Codable {
     case named    // cloudflared tunnel run <name> (persistent domain)
 }
 
+enum CloudflareSetupStatus: String {
+    case notInstalled           // cloudflared binary not found
+    case installedNotLoggedIn   // binary found, no credentials
+    case loggedInNoTunnel       // credentials exist, no tunnel name configured
+    case tunnelNameMissing      // named mode but tunnel name empty
+    case hostnameMissing        // named mode but hostname empty
+    case configMissing          // config.yml doesn't exist
+    case configInvalid          // config.yml exists but can't be parsed
+    case credentialsMissing     // no .json credentials in ~/.cloudflared
+    case ingressMismatch        // config service port doesn't match web server port
+    case ready                  // everything configured, ready to start
+    case running                // tunnel is currently running
+    case error                  // error state
+
+    var displayName: String {
+        switch self {
+        case .notInstalled: return "cloudflared not installed"
+        case .installedNotLoggedIn: return "Not logged in to Cloudflare"
+        case .loggedInNoTunnel: return "No tunnel configured"
+        case .tunnelNameMissing: return "Tunnel name missing"
+        case .hostnameMissing: return "Hostname missing"
+        case .configMissing: return "config.yml not found"
+        case .configInvalid: return "config.yml invalid"
+        case .credentialsMissing: return "Credentials missing"
+        case .ingressMismatch: return "Service port mismatch"
+        case .ready: return "Ready to start"
+        case .running: return "Running"
+        case .error: return "Error"
+        }
+    }
+}
+
+struct CloudflareConfig {
+    var tunnel: String = ""
+    var credentialsFile: String = ""
+    var ingressHostname: String = ""
+    var ingressService: String = ""  // e.g. "http://127.0.0.1:8765"
+
+    var parsedServicePort: Int? {
+        // Extract port from "http://127.0.0.1:8765" or "http://localhost:8765"
+        guard let range = ingressService.range(of: ":", options: .backwards) else { return nil }
+        let portStr = ingressService[range.upperBound...]
+        return Int(portStr)
+    }
+}
+
 final class CloudflareTunnelManager: ObservableObject {
     static let shared = CloudflareTunnelManager()
 
@@ -214,10 +260,9 @@ final class CloudflareTunnelManager: ObservableObject {
         }
     }
 
-    func detectCloudflaredConfig() -> (configExists: Bool, credentialsExist: Bool) {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let cloudflaredDir = home.appendingPathComponent(".cloudflared")
-        let configPath = cloudflaredDir.appendingPathComponent("config.yml")
+    func detectCloudflaredConfig() -> (configExists: Bool, credentialsExist: Bool, config: CloudflareConfig?) {
+        let configPath = configFilePath()
+        let cloudflaredDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".cloudflared")
         let configExists = FileManager.default.fileExists(atPath: configPath.path)
 
         var credentialsExist = false
@@ -225,18 +270,179 @@ final class CloudflareTunnelManager: ObservableObject {
             credentialsExist = contents.contains { $0.hasSuffix(".json") }
         }
 
-        return (configExists, credentialsExist)
+        var config: CloudflareConfig? = nil
+        if configExists {
+            config = parseConfigYML(at: configPath)
+        }
+
+        return (configExists, credentialsExist, config)
+    }
+
+    func configFilePath() -> URL {
+        let custom = settings.cloudflareConfigPath
+        if !custom.isEmpty {
+            return URL(fileURLWithPath: custom)
+        }
+        return FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".cloudflared")
+            .appendingPathComponent("config.yml")
+    }
+
+    func parseConfigYML(at url: URL) -> CloudflareConfig? {
+        guard let content = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        var config = CloudflareConfig()
+        let lines = content.components(separatedBy: "\n")
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("#") || trimmed.isEmpty { continue }
+            // Simple key: value parsing (no nested YAML)
+            let parts = trimmed.split(separator: ":", maxSplits: 1).map { String($0).trimmingCharacters(in: .whitespaces) }
+            guard parts.count == 2 else { continue }
+            let key = parts[0]
+            let value = parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+            switch key {
+            case "tunnel": config.tunnel = value
+            case "credentials-file": config.credentialsFile = value
+            case "hostname": config.ingressHostname = value
+            case "service": config.ingressService = value
+            default: break
+            }
+        }
+        return config
+    }
+
+    func generateConfigYML() -> String {
+        let tunnelName = settings.cloudflareTunnelName
+        let hostname = settings.cloudflareHostname
+        let port = settings.webServerPort
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let credFile = "\(home)/.cloudflared/\(tunnelName).json"
+
+        return """
+        tunnel: \(tunnelName)
+        credentials-file: \(credFile)
+
+        ingress:
+          - hostname: \(hostname)
+            service: http://127.0.0.1:\(port)
+          - service: http_status:404
+        """
+    }
+
+    func writeConfigWithBackup(content: String) -> (ok: Bool, error: String?, backupPath: String?) {
+        let url = configFilePath()
+        let fm = FileManager.default
+        var backupPath: String? = nil
+
+        // Backup existing config
+        if fm.fileExists(atPath: url.path) {
+            let backup = url.appendingPathExtension("bak.\(Int(Date().timeIntervalSince1970))")
+            do {
+                try fm.copyItem(at: url, to: backup)
+                backupPath = backup.path
+            } catch {
+                // Non-fatal, continue with write
+            }
+        }
+
+        // Ensure directory exists
+        let dir = url.deletingLastPathComponent()
+        if !fm.fileExists(atPath: dir.path) {
+            try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+
+        do {
+            try content.write(to: url, atomically: true, encoding: .utf8)
+            return (true, nil, backupPath)
+        } catch {
+            return (false, error.localizedDescription, backupPath)
+        }
+    }
+
+    func setupStatus() -> (status: CloudflareSetupStatus, config: CloudflareConfig?, details: [String: String]) {
+        var details: [String: String] = [:]
+        let detection = detectCloudflared()
+
+        guard detection.detected else {
+            return (.notInstalled, nil, details)
+        }
+        details["cloudflaredPath"] = detection.path
+        details["cloudflaredVersion"] = detection.version
+
+        let configResult = detectCloudflaredConfig()
+        details["configExists"] = configResult.configExists ? "true" : "false"
+        details["credentialsExist"] = configResult.credentialsExist ? "true" : "false"
+
+        // Quick mode doesn't need most checks
+        if settings.cloudflareTunnelMode == .quick {
+            if self.status == .running {
+                return (.running, configResult.config, details)
+            }
+            return (.ready, configResult.config, details)
+        }
+
+        // Named mode checks
+        guard configResult.credentialsExist else {
+            return (.credentialsMissing, configResult.config, details)
+        }
+
+        guard !settings.cloudflareTunnelName.isEmpty else {
+            return (.tunnelNameMissing, configResult.config, details)
+        }
+
+        guard !settings.cloudflareHostname.isEmpty else {
+            return (.hostnameMissing, configResult.config, details)
+        }
+
+        guard configResult.configExists else {
+            return (.configMissing, configResult.config, details)
+        }
+
+        guard let config = configResult.config else {
+            return (.configInvalid, nil, details)
+        }
+
+        details["configTunnel"] = config.tunnel
+        details["configHostname"] = config.ingressHostname
+        details["configService"] = config.ingressService
+
+        // Validate config matches settings
+        if config.tunnel != settings.cloudflareTunnelName {
+            details["configWarning"] = "Config tunnel '\(config.tunnel)' doesn't match setting '\(settings.cloudflareTunnelName)'"
+        }
+
+        // Check service port matches web server port
+        if let configPort = config.parsedServicePort, configPort != settings.webServerPort {
+            return (.ingressMismatch, config, details)
+        }
+
+        if self.status == .running {
+            return (.running, config, details)
+        }
+
+        return (.ready, config, details)
     }
 
     func diagnostics() -> [String: String] {
         let detection = detectCloudflared()
-        let config = detectCloudflaredConfig()
+        let configResult = detectCloudflaredConfig()
+        let setup = setupStatus()
         var diag: [String: String] = [:]
         diag["cloudflaredDetected"] = detection.detected ? "Yes" : "No"
         diag["cloudflaredPath"] = detection.path ?? "Not found"
         diag["cloudflaredVersion"] = detection.version ?? "Unknown"
-        diag["configExists"] = config.configExists ? "Yes" : "No"
-        diag["credentialsExist"] = config.credentialsExist ? "Yes" : "No"
+        diag["configExists"] = configResult.configExists ? "Yes" : "No"
+        diag["credentialsExist"] = configResult.credentialsExist ? "Yes" : "No"
+        diag["setupStatus"] = setup.status.rawValue
+        diag["setupStatusDisplay"] = setup.status.displayName
+        if let config = setup.config {
+            diag["configTunnel"] = config.tunnel
+            diag["configHostname"] = config.ingressHostname
+            diag["configService"] = config.ingressService
+        }
+        for (k, v) in setup.details {
+            diag[k] = v
+        }
         diag["tunnelMode"] = settings.cloudflareTunnelMode.rawValue
         diag["tunnelStatus"] = status.rawValue
         diag["tunnelName"] = settings.cloudflareTunnelName

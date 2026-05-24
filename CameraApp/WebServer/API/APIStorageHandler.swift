@@ -218,6 +218,7 @@ struct APIStorageHandler {
             tunnel.startTunnel(mode: effectiveMode)
             let user = request.sessionUsername ?? "unknown"
             ActivityLogManager.shared.info(.webServer, "Tunnel start requested by \(user): mode=\(effectiveMode.rawValue)")
+            AuditLogManager.shared.log(method: "POST", path: "/api/remote/start", status: 200, remoteAddress: request.remoteAddress ?? "unknown", user: request.sessionUsername, detail: "mode=\(effectiveMode.rawValue)")
             return HTTPResponse.json(["ok": true, "status": tunnel.status.rawValue, "mode": effectiveMode.rawValue] as [String: Any])
         }
 
@@ -227,6 +228,7 @@ struct APIStorageHandler {
             tunnel.stopTunnel()
             let user = request.sessionUsername ?? "unknown"
             ActivityLogManager.shared.info(.webServer, "Tunnel stop requested by \(user)")
+            AuditLogManager.shared.log(method: "POST", path: "/api/remote/stop", status: 200, remoteAddress: request.remoteAddress ?? "unknown", user: request.sessionUsername, detail: "stopped")
             return HTTPResponse.json(["ok": true, "status": tunnel.status.rawValue] as [String: Any])
         }
 
@@ -234,6 +236,87 @@ struct APIStorageHandler {
         router.addRoute(method: "GET", path: "/api/remote/diagnostics") { _ in
             let diag = CloudflareTunnelManager.shared.diagnostics()
             return HTTPResponse.json(["diagnostics": diag] as [String: Any])
+        }
+
+        // Setup status — state-driven wizard data
+        router.addRoute(method: "GET", path: "/api/remote/setup-status") { _ in
+            let tunnel = CloudflareTunnelManager.shared
+            let settings = SettingsStore.shared
+            let setup = tunnel.setupStatus()
+
+            var result: [String: Any] = [
+                "status": setup.status.rawValue,
+                "statusDisplay": setup.status.displayName,
+                "tunnelMode": settings.cloudflareTunnelMode.rawValue,
+                "tunnelName": settings.cloudflareTunnelName,
+                "hostname": settings.cloudflareHostname,
+                "webServerPort": settings.webServerPort,
+                "isRunning": tunnel.isRunning,
+                "quickTunnelURL": tunnel.quickTunnelURL
+            ]
+            if let config = setup.config {
+                result["configTunnel"] = config.tunnel
+                result["configHostname"] = config.ingressHostname
+                result["configService"] = config.ingressService
+                result["configServicePort"] = config.parsedServicePort as Any
+            }
+            for (k, v) in setup.details {
+                result[k] = v
+            }
+            return HTTPResponse.json(result)
+        }
+
+        // Save tunnel settings
+        router.addRoute(method: "POST", path: "/api/remote/settings", requiredRole: .admin) { request in
+            guard let body = request.body,
+                  let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
+                return HTTPResponse.error("Invalid JSON", status: 400)
+            }
+            let settings = SettingsStore.shared
+            if let name = json["cloudflareTunnelName"] as? String { settings.cloudflareTunnelName = name }
+            if let host = json["cloudflareHostname"] as? String { settings.cloudflareHostname = host }
+            if let modeRaw = json["cloudflareTunnelMode"] as? String, let mode = TunnelMode(rawValue: modeRaw) {
+                settings.cloudflareTunnelMode = mode
+            }
+            let user = request.sessionUsername ?? "unknown"
+            ActivityLogManager.shared.info(.webServer, "Tunnel settings updated by \(user)")
+            return HTTPResponse.json(["ok": true] as [String: Any])
+        }
+
+        // Generate config.yml content (preview)
+        router.addRoute(method: "POST", path: "/api/remote/generate-config", requiredRole: .admin) { _ in
+            let tunnel = CloudflareTunnelManager.shared
+            let settings = SettingsStore.shared
+            guard !settings.cloudflareTunnelName.isEmpty else {
+                return HTTPResponse.error("Tunnel name not configured", status: 400)
+            }
+            guard !settings.cloudflareHostname.isEmpty else {
+                return HTTPResponse.error("Hostname not configured", status: 400)
+            }
+            let content = tunnel.generateConfigYML()
+            return HTTPResponse.json(["content": content, "configPath": tunnel.configFilePath().path] as [String: Any])
+        }
+
+        // Write config.yml with backup
+        router.addRoute(method: "POST", path: "/api/remote/write-config", requiredRole: .admin) { request in
+            let tunnel = CloudflareTunnelManager.shared
+            let settings = SettingsStore.shared
+            guard !settings.cloudflareTunnelName.isEmpty else {
+                return HTTPResponse.error("Tunnel name not configured", status: 400)
+            }
+            guard !settings.cloudflareHostname.isEmpty else {
+                return HTTPResponse.error("Hostname not configured", status: 400)
+            }
+            let content = tunnel.generateConfigYML()
+            let result = tunnel.writeConfigWithBackup(content: content)
+            let user = request.sessionUsername ?? "unknown"
+            if result.ok {
+                ActivityLogManager.shared.info(.webServer, "Config.yml written by \(user)")
+                AuditLogManager.shared.log(method: "POST", path: "/api/remote/write-config", status: 200, remoteAddress: request.remoteAddress ?? "unknown", user: request.sessionUsername, detail: "configPath=\(tunnel.configFilePath().path)")
+                return HTTPResponse.json(["ok": true, "backupPath": result.backupPath as Any] as [String: Any])
+            } else {
+                return HTTPResponse.error("Failed to write config: \(result.error ?? "unknown")", status: 500)
+            }
         }
     }
 }

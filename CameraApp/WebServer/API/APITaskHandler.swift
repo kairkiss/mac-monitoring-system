@@ -1,6 +1,17 @@
 import Foundation
 
 struct APITaskHandler {
+    /// Normalize legacy uploadProvider values to match StorageProviderType rawValues
+    static func normalizeUploadProvider(_ value: String?) -> String? {
+        guard let v = value, !v.isEmpty else { return nil }
+        switch v {
+        case "google_drive": return "googleDrive"
+        case "local": return "localFolder"
+        case "mounted": return "mountedFolder"
+        default: return v
+        }
+    }
+
     static func register(router: WebRouter) {
         // List tasks
         router.addRoute(method: "GET", path: "/api/tasks") { _ in
@@ -21,6 +32,8 @@ struct APITaskHandler {
                     "countdownMinutes": task.countdownMinutes,
                     "intervalMinutes": task.intervalMinutes,
                     "durationMinutes": task.durationMinutes,
+                    "intervalRunDurationMinutes": task.intervalRunDurationMinutes,
+                    "videoDurationSeconds": task.videoDurationSeconds,
                     "nextFireTime": task.nextFireTime.map { ISO8601DateFormatter().string(from: $0) } as Any,
                     "lastFireTime": task.lastFireTime.map { ISO8601DateFormatter().string(from: $0) } as Any,
                     "createdAt": ISO8601DateFormatter().string(from: task.createdAt)
@@ -53,6 +66,8 @@ struct APITaskHandler {
                 "countdownMinutes": task.countdownMinutes,
                 "intervalMinutes": task.intervalMinutes,
                 "durationMinutes": task.durationMinutes,
+                "intervalRunDurationMinutes": task.intervalRunDurationMinutes,
+                "videoDurationSeconds": task.videoDurationSeconds,
                 "nextFireTime": task.nextFireTime.map { ISO8601DateFormatter().string(from: $0) } as Any,
                 "lastFireTime": task.lastFireTime.map { ISO8601DateFormatter().string(from: $0) } as Any,
                 "createdAt": ISO8601DateFormatter().string(from: task.createdAt)
@@ -96,9 +111,11 @@ struct APITaskHandler {
                 countdownMinutes: json["countdownMinutes"] as? Int ?? 30,
                 intervalMinutes: json["intervalMinutes"] as? Int ?? 10,
                 durationMinutes: json["durationMinutes"] as? Int ?? 120,
+                intervalRunDurationMinutes: json["intervalRunDurationMinutes"] as? Int ?? 0,
+                videoDurationSeconds: json["videoDurationSeconds"] as? Int ?? 30,
                 telegramSend: json["telegramSend"] as? Bool ?? false,
                 uploadToCloud: json["uploadToCloud"] as? Bool ?? false,
-                uploadProvider: json["uploadProvider"] as? String
+                uploadProvider: APITaskHandler.normalizeUploadProvider(json["uploadProvider"] as? String)
             )
 
             AutomationScheduler.shared.addTask(task)
@@ -134,9 +151,11 @@ struct APITaskHandler {
             if let cd = json["countdownMinutes"] as? Int { task.countdownMinutes = cd }
             if let iv = json["intervalMinutes"] as? Int { task.intervalMinutes = iv }
             if let dur = json["durationMinutes"] as? Int { task.durationMinutes = dur }
+            if let ird = json["intervalRunDurationMinutes"] as? Int { task.intervalRunDurationMinutes = ird }
+            if let vds = json["videoDurationSeconds"] as? Int { task.videoDurationSeconds = vds }
             if let ts = json["telegramSend"] as? Bool { task.telegramSend = ts }
             if let uc = json["uploadToCloud"] as? Bool { task.uploadToCloud = uc }
-            if let up = json["uploadProvider"] as? String { task.uploadProvider = up.isEmpty ? nil : up }
+            if let up = json["uploadProvider"] as? String { task.uploadProvider = up.isEmpty ? nil : APITaskHandler.normalizeUploadProvider(up) }
 
             scheduler.updateTask(task)
 

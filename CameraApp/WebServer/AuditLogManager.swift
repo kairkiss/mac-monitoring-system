@@ -8,6 +8,7 @@ struct AuditLogEntry: Codable {
     let duration: TimeInterval
     let remoteAddress: String
     let user: String?
+    let detail: String?
 }
 
 final class AuditLogManager {
@@ -21,7 +22,7 @@ final class AuditLogManager {
 
     private init() {}
 
-    func log(method: String, path: String, status: Int, duration: TimeInterval, remoteAddress: String, user: String?) {
+    func log(method: String, path: String, status: Int, duration: TimeInterval = 0, remoteAddress: String, user: String?, detail: String? = nil) {
         let entry = AuditLogEntry(
             timestamp: Date(),
             method: method,
@@ -29,7 +30,8 @@ final class AuditLogManager {
             status: status,
             duration: duration,
             remoteAddress: remoteAddress,
-            user: user
+            user: user,
+            detail: detail
         )
 
         queue.async { [weak self] in

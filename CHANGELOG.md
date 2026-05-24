@@ -1,5 +1,38 @@
 # Changelog
 
+## v2.4.3 (2026-05-24)
+
+Cloudflare Setup Wizard & Task API Fix — state-driven Cloudflare first-time setup, task API correctness, lossy task loading, upload provider unification.
+
+### New Features
+
+- **Cloudflare Setup Wizard** — state-driven setup status (12 states from `notInstalled` to `running`); shows exactly what's missing with copy-paste commands; one-click config.yml generation, preview, and write-with-backup
+- **Cloudflare config.yml parser** — line-by-line parser for tunnel, credentials-file, ingress hostname/service; validates service port matches web server port
+- **Cloudflare config generation** — app generates config.yml from tunnel name, hostname, credentials path, and web port; preview before writing
+- **Config write with backup** — existing config.yml backed up before overwrite; backup path returned to UI
+- **`/api/remote/setup-status`** — new endpoint returning full setup state, parsed config, diagnostics
+- **`/api/remote/settings`** — new endpoint for saving tunnel settings from web UI
+- **`/api/remote/generate-config`** — preview generated config.yml content
+- **`/api/remote/write-config`** — write config with automatic backup
+- **`intervalRunDurationMinutes`** — new independent field for interval auto-stop window; `durationMinutes` preserved for backward compat
+- **`cloudflareConfigPath`** — new SettingsStore field for custom config.yml path
+- **Audit logging for tunnel actions** — start, stop, write-config now logged with user and detail
+
+### Bug Fixes
+
+- **Task API videoDurationSeconds** — POST/PUT `/api/tasks` now persists `videoDurationSeconds`; GET returns it
+- **Task API intervalRunDurationMinutes** — POST/PUT `/api/tasks` now persists `intervalRunDurationMinutes`; GET returns it
+- **uploadProvider value unification** — web sends `googleDrive`/`localFolder`/`mountedFolder` matching `StorageProviderType` rawValues; API normalizes legacy values (`google_drive` → `googleDrive`, `local` → `localFolder`, `mounted` → `mountedFolder`)
+- **Lossy task loading** — `loadTasks()` now decodes each task individually; one bad entry is skipped with a warning instead of clearing the entire task list
+- **AuditLogManager detail field** — `AuditLogEntry` and `log()` now accept optional `detail` parameter
+
+### UI
+
+- **Web Settings: state-driven Cloudflare wizard** — replaces static 5-step copy-paste wizard with dynamic status banner, step checklist with checkmarks, config preview, one-click write
+- **Named tunnel config fields** — tunnel name and hostname editable directly in web settings; save triggers `/api/remote/settings`
+
+---
+
 ## v2.4.2 (2026-05-24)
 
 Automation & Cloudflare Correctness Hotfix — fixes 10 correctness bugs in ScheduledTask migration, video duration, execution history, SettingsView, Cloudflare tunnel, mobile CSS, and data safety.

@@ -60,12 +60,17 @@
     </div>
 
     <div class="card">
-        <h3>cloudflared</h3>
-        <div id="cloudflaredStatus" style="font-size:13px;color:var(--fg2);">Checking...</div>
-    </div>
+        <h3 data-i18n="remoteAccess">Remote Access</h3>
+        <p style="color:var(--fg2);font-size:13px;margin-bottom:8px;" data-i18n="remoteAccessDesc">Securely access your monitoring system from the internet via Cloudflare Tunnel.</p>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="color:#4caf50;font-size:20px;">&#128274;</span>
+            <span style="font-size:13px;color:var(--fg2);" data-i18n="cloudflareDoubleProtection">Double protection: Cloudflare Access + App Login</span>
+        </div>
 
-    <div class="card">
-        <h3 data-i18n="cloudflareTunnelManage">Tunnel Management</h3>
+        <!-- Setup Status Banner -->
+        <div id="setupBanner" style="padding:10px 12px;border-radius:8px;margin-bottom:12px;font-size:13px;display:none;"></div>
+
+        <!-- Tunnel Mode Selector -->
         <div style="margin-bottom:10px;">
             <label style="font-size:13px;color:var(--fg2);display:block;margin-bottom:4px;" data-i18n="tunnelMode">Tunnel Mode</label>
             <select id="tunnelModeSelect" style="width:auto;margin-bottom:8px;" onchange="updateTunnelModeUI()">
@@ -75,6 +80,37 @@
             <div id="quickTunnelDesc" style="font-size:12px;color:var(--fg2);" data-i18n="quickTunnelDesc">Temporary URL, changes on restart</div>
             <div id="namedTunnelDesc" style="font-size:12px;color:var(--fg2);display:none;" data-i18n="namedTunnelDesc">Persistent domain, requires Cloudflare account</div>
         </div>
+
+        <!-- Named Tunnel Config Fields -->
+        <div id="namedConfigFields" style="display:none;margin-bottom:12px;">
+            <div style="display:flex;flex-direction:column;gap:8px;max-width:400px;">
+                <div>
+                    <label style="font-size:12px;color:var(--fg2);display:block;margin-bottom:2px;">Tunnel Name</label>
+                    <input type="text" id="tunnelNameInput" placeholder="e.g. mac-monitor" style="font-size:13px;">
+                </div>
+                <div>
+                    <label style="font-size:12px;color:var(--fg2);display:block;margin-bottom:2px;">Hostname</label>
+                    <input type="text" id="hostnameInput" placeholder="e.g. monitor.yourdomain.com" style="font-size:13px;">
+                </div>
+                <button onclick="saveTunnelSettings()" style="width:auto;align-self:flex-start;">Save Settings</button>
+            </div>
+        </div>
+
+        <!-- Setup Steps (for named tunnel) -->
+        <div id="setupSteps" style="display:none;margin-bottom:12px;"></div>
+
+        <!-- Config Preview -->
+        <div id="configPreview" style="display:none;margin-bottom:12px;">
+            <div style="font-size:12px;color:var(--fg2);margin-bottom:4px;">Generated config.yml:</div>
+            <pre style="background:var(--bg);padding:10px;border-radius:6px;font-size:11px;overflow-x:auto;max-height:200px;overflow-y:auto;margin:0;"><code id="configContent"></code></pre>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+                <button onclick="copyConfig()" class="secondary" style="font-size:12px;">Copy</button>
+                <button onclick="writeConfig()" style="font-size:12px;">Write to ~/.cloudflared/config.yml</button>
+            </div>
+            <div id="writeResult" style="font-size:12px;margin-top:4px;"></div>
+        </div>
+
+        <!-- Tunnel Status + Controls -->
         <div id="tunnelStatus" style="font-size:13px;color:var(--fg2);margin-bottom:10px;">Loading...</div>
         <div id="quickTunnelURLBox" style="display:none;margin-bottom:10px;padding:8px;background:var(--bg);border-radius:6px;">
             <span style="font-size:12px;color:var(--fg2);" data-i18n="tunnelURL">Tunnel URL</span>:
@@ -85,59 +121,11 @@
             <button class="danger" onclick="stopTunnel()" id="tunnelStopBtn" data-i18n="cloudflareStop" style="display:none;">Stop Tunnel</button>
         </div>
         <div id="tunnelOutput" style="margin-top:8px;font-size:11px;color:var(--fg2);max-height:100px;overflow-y:auto;white-space:pre-wrap;font-family:monospace;"></div>
-    </div>
 
-    <div class="card">
-        <h3 data-i18n="remoteAccess">Remote Access</h3>
-        <p style="color:var(--fg2);font-size:13px;margin-bottom:8px;" data-i18n="remoteAccessDesc">Securely access your monitoring system from the internet via Cloudflare Tunnel.</p>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-            <span style="color:#4caf50;font-size:20px;">&#128274;</span>
-            <span style="font-size:13px;color:var(--fg2);" data-i18n="cloudflareDoubleProtection">Double protection: Cloudflare Access + App Login</span>
-        </div>
-        <details>
-            <summary style="cursor:pointer;color:var(--fg);font-weight:500;" data-i18n="cloudflareSetupWizard">Cloudflare Setup Wizard</summary>
-            <div style="padding:12px 0;">
-                <div class="cf-step">
-                    <div class="cf-step-num">1</div>
-                    <div>
-                        <div class="cf-step-title" data-i18n="cloudflareStep1">Install cloudflared</div>
-                        <div class="cf-step-desc">Install the Cloudflare Tunnel client</div>
-                        <div class="cf-cmd"><code>brew install cloudflared</code> <button onclick="copyCmd(this)" class="copy-btn" data-i18n="copyCommand">Copy</button></div>
-                    </div>
-                </div>
-                <div class="cf-step">
-                    <div class="cf-step-num">2</div>
-                    <div>
-                        <div class="cf-step-title" data-i18n="cloudflareStep2">Login to Cloudflare</div>
-                        <div class="cf-step-desc">Authenticate with your Cloudflare account</div>
-                        <div class="cf-cmd"><code>cloudflared tunnel login</code> <button onclick="copyCmd(this)" class="copy-btn" data-i18n="copyCommand">Copy</button></div>
-                    </div>
-                </div>
-                <div class="cf-step">
-                    <div class="cf-step-num">3</div>
-                    <div>
-                        <div class="cf-step-title" data-i18n="cloudflareStep3">Create Tunnel</div>
-                        <div class="cf-step-desc">Create a named tunnel</div>
-                        <div class="cf-cmd"><code>cloudflared tunnel create mac-monitor</code> <button onclick="copyCmd(this)" class="copy-btn" data-i18n="copyCommand">Copy</button></div>
-                    </div>
-                </div>
-                <div class="cf-step">
-                    <div class="cf-step-num">4</div>
-                    <div>
-                        <div class="cf-step-title" data-i18n="cloudflareStep4">Configure DNS</div>
-                        <div class="cf-step-desc">Point your domain to the tunnel</div>
-                        <div class="cf-cmd"><code>cloudflared tunnel route dns mac-monitor monitor.yourdomain.com</code> <button onclick="copyCmd(this)" class="copy-btn" data-i18n="copyCommand">Copy</button></div>
-                    </div>
-                </div>
-                <div class="cf-step">
-                    <div class="cf-step-num">5</div>
-                    <div>
-                        <div class="cf-step-title" data-i18n="cloudflareStep5">Start Tunnel</div>
-                        <div class="cf-step-desc">Start tunneling traffic to local web server</div>
-                        <div class="cf-cmd"><code>cloudflared tunnel run --url http://127.0.0.1:<span id="cfPort">8765</span> mac-monitor</code> <button onclick="copyCmd(this)" class="copy-btn" data-i18n="copyCommand">Copy</button></div>
-                    </div>
-                </div>
-            </div>
+        <!-- Diagnostics -->
+        <details style="margin-top:12px;">
+            <summary style="cursor:pointer;font-size:12px;color:var(--fg2);">Diagnostics</summary>
+            <div id="tunnelDiag" style="font-size:11px;color:var(--fg2);margin-top:6px;"></div>
         </details>
     </div>
 
@@ -367,48 +355,82 @@ loadUsers();
 loadProviders();
 loadStatus();
 loadDiagnostics();
-checkCloudflared();
-loadTunnelStatus();
+loadSetupStatus();
 
 function updateTunnelModeUI() {
     const mode = document.getElementById('tunnelModeSelect').value;
     document.getElementById('quickTunnelDesc').style.display = mode === 'quick' ? '' : 'none';
     document.getElementById('namedTunnelDesc').style.display = mode === 'named' ? '' : 'none';
+    document.getElementById('namedConfigFields').style.display = mode === 'named' ? '' : 'none';
+    document.getElementById('setupSteps').style.display = mode === 'named' ? '' : 'none';
+    document.getElementById('configPreview').style.display = 'none';
 }
 
-async function loadTunnelStatus() {
-    const data = await api('/api/remote/status');
+async function loadSetupStatus() {
+    const data = await api('/api/remote/setup-status');
     if (!data) return;
-    const el = document.getElementById('tunnelStatus');
+
+    const modeSelect = document.getElementById('tunnelModeSelect');
+    const banner = document.getElementById('setupBanner');
+    const statusEl = document.getElementById('tunnelStatus');
     const startBtn = document.getElementById('tunnelStartBtn');
     const stopBtn = document.getElementById('tunnelStopBtn');
-    const outputEl = document.getElementById('tunnelOutput');
-    const modeSelect = document.getElementById('tunnelModeSelect');
     const urlBox = document.getElementById('quickTunnelURLBox');
     const urlLink = document.getElementById('quickTunnelLink');
+    const outputEl = document.getElementById('tunnelOutput');
+    const stepsEl = document.getElementById('setupSteps');
+    const diagEl = document.getElementById('tunnelDiag');
 
-    // Sync mode selector
+    // Sync mode selector + config fields
     if (data.tunnelMode) {
         modeSelect.value = data.tunnelMode;
         updateTunnelModeUI();
     }
+    document.getElementById('tunnelNameInput').value = data.tunnelName || '';
+    document.getElementById('hostnameInput').value = data.hostname || '';
 
+    // Setup status banner
+    const status = data.status;
+    let bannerColor = '#666', bannerBg = 'rgba(255,255,255,0.05)';
+    if (status === 'ready') { bannerColor = '#4caf50'; bannerBg = 'rgba(76,175,80,0.1)'; }
+    else if (status === 'running') { bannerColor = '#4caf50'; bannerBg = 'rgba(76,175,80,0.15)'; }
+    else if (status === 'notInstalled' || status === 'credentialsMissing' || status === 'error') { bannerColor = '#f44336'; bannerBg = 'rgba(244,67,54,0.1)'; }
+    else { bannerColor = '#ff9800'; bannerBg = 'rgba(255,152,0,0.1)'; }
+    banner.style.display = '';
+    banner.style.background = bannerBg;
+    banner.style.border = '1px solid ' + bannerColor;
+    banner.innerHTML = '<span style="color:' + bannerColor + ';font-weight:500;">' + data.statusDisplay + '</span>';
+
+    // Named tunnel setup steps
+    if (data.tunnelMode === 'named') {
+        let stepsHtml = '';
+        stepsHtml += renderStep(1, 'Install cloudflared', data.cloudflaredDetected === 'true' || data.cloudflaredDetected === true, data.cloudflaredPath || '', 'brew install cloudflared');
+        stepsHtml += renderStep(2, 'Login to Cloudflare', data.credentialsExist === 'true' || data.credentialsExist === true, '', 'cloudflared tunnel login');
+        stepsHtml += renderStep(3, 'Create Tunnel + Name', !!(data.tunnelName), data.tunnelName || 'Not set', '');
+        stepsHtml += renderStep(4, 'Set Hostname', !!(data.hostname), data.hostname || 'Not set', '');
+        stepsHtml += renderStep(5, 'Config file', data.configExists === 'true' || data.configExists === true, data.configService || '', '');
+        if (status === 'ingressMismatch') {
+            stepsHtml += '<div style="color:#f44336;font-size:12px;margin-top:6px;">Service port mismatch: config=' + (data.configServicePort||'?') + ', web server=' + data.webServerPort + '. Generate and rewrite config.</div>';
+        }
+        if (status !== 'running' && status !== 'ready') {
+            stepsHtml += '<button onclick="showConfigPreview()" style="margin-top:8px;font-size:12px;">Generate Config Preview</button>';
+        }
+        stepsEl.innerHTML = stepsHtml;
+    }
+
+    // Tunnel status line
     let statusColor = '#666';
-    let statusText = data.status;
-    if (data.status === 'running') { statusColor = '#4caf50'; statusText = t('cloudflareRunning'); }
-    else if (data.status === 'starting') { statusColor = '#ff9800'; statusText = t('cloudflareStarting'); }
-    else if (data.status === 'stopped') { statusColor = '#666'; statusText = t('cloudflareStopped'); }
-    else if (data.status === 'error') { statusColor = '#f44336'; statusText = t('error'); }
-
+    let statusText = data.isRunning ? t('cloudflareRunning') : (status === 'error' ? t('error') : t('cloudflareStopped'));
+    if (data.isRunning) statusColor = '#4caf50';
+    else if (status === 'error') statusColor = '#f44336';
     let html = '<span style="color:' + statusColor + ';">' + statusText + '</span>';
     if (data.tunnelMode === 'named' && data.tunnelName) html += ' &mdash; ' + data.tunnelName;
     if (data.hostname) html += ' (' + data.hostname + ')';
-    if (data.pid) html += ' [PID: ' + data.pid + ']';
     if (data.cloudflaredVersion) html += ' <span style="font-size:11px;color:var(--fg2);">v' + data.cloudflaredVersion + '</span>';
     if (data.lastError) html += '<br><span style="color:#f44336;">' + data.lastError + '</span>';
-    el.innerHTML = html;
+    statusEl.innerHTML = html;
 
-    // Quick tunnel URL display
+    // Quick tunnel URL
     if (data.quickTunnelURL) {
         urlBox.style.display = '';
         urlLink.href = data.quickTunnelURL;
@@ -417,6 +439,7 @@ async function loadTunnelStatus() {
         urlBox.style.display = 'none';
     }
 
+    // Start/Stop buttons
     if (data.isRunning) {
         startBtn.style.display = 'none';
         stopBtn.style.display = '';
@@ -425,11 +448,65 @@ async function loadTunnelStatus() {
         stopBtn.style.display = 'none';
     }
 
-    if (data.lastOutput) outputEl.textContent = data.lastOutput;
-
-    if (data.tunnelMode === 'named' && !data.tunnelName) {
-        el.innerHTML += '<br><span style="color:#ff9800;">' + t('cloudflareNotConfigured') + '</span>';
+    // Diagnostics
+    let diagHtml = '';
+    for (const [k, v] of Object.entries(data)) {
+        if (!['status','statusDisplay','tunnelMode','tunnelName','hostname','webServerPort','isRunning','quickTunnelURL','lastError','lastOutput'].includes(k)) {
+            diagHtml += '<div>' + k + ': ' + v + '</div>';
+        }
     }
+    diagEl.innerHTML = diagHtml;
+
+    // Load tunnel output from /api/remote/status
+    const statusData = await api('/api/remote/status');
+    if (statusData && statusData.lastOutput) outputEl.textContent = statusData.lastOutput;
+}
+
+function renderStep(num, title, done, detail, cmd) {
+    const icon = done ? '<span style="color:#4caf50;">&#10003;</span>' : '<span style="color:#ff9800;">&#9679;</span>';
+    let html = '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">' + icon + '<div>';
+    html += '<span style="font-size:13px;' + (done ? 'color:var(--fg2);' : '') + '">' + title + '</span>';
+    if (detail) html += '<span style="font-size:11px;color:var(--fg2);margin-left:8px;">' + detail + '</span>';
+    if (cmd && !done) html += '<div class="cf-cmd" style="margin-top:2px;"><code>' + cmd + '</code> <button onclick="copyCmd(this)" class="copy-btn" style="font-size:11px;">Copy</button></div>';
+    html += '</div></div>';
+    return html;
+}
+
+async function saveTunnelSettings() {
+    const name = document.getElementById('tunnelNameInput').value.trim();
+    const host = document.getElementById('hostnameInput').value.trim();
+    await api('/api/remote/settings', { method: 'POST', body: { cloudflareTunnelName: name, cloudflareHostname: host, cloudflareTunnelMode: 'named' } });
+    loadSetupStatus();
+}
+
+async function generateConfig() {
+    const data = await api('/api/remote/generate-config', { method: 'POST', body: {} });
+    if (!data) return null;
+    return data;
+}
+
+async function showConfigPreview() {
+    const data = await generateConfig();
+    if (!data) return;
+    document.getElementById('configContent').textContent = data.content;
+    document.getElementById('configPreview').style.display = '';
+}
+
+async function copyConfig() {
+    const content = document.getElementById('configContent').textContent;
+    navigator.clipboard.writeText(content).then(() => {
+        const btn = document.querySelector('#configPreview button.secondary');
+        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 2000); }
+    });
+}
+
+async function writeConfig() {
+    const el = document.getElementById('writeResult');
+    el.innerHTML = '<span style="color:var(--fg2);">Writing...</span>';
+    const data = await api('/api/remote/write-config', { method: 'POST', body: {} });
+    if (!data) { el.innerHTML = '<span style="color:#f44336;">Failed</span>'; return; }
+    el.innerHTML = '<span style="color:#4caf50;">&#10003; Written</span>' + (data.backupPath ? ' (backup: ' + data.backupPath + ')' : '');
+    loadSetupStatus();
 }
 
 async function startTunnel() {
@@ -437,7 +514,7 @@ async function startTunnel() {
     const mode = document.getElementById('tunnelModeSelect').value;
     btn.disabled = true;
     await api('/api/remote/start', { method: 'POST', body: { mode: mode } });
-    setTimeout(loadTunnelStatus, 2000);
+    setTimeout(loadSetupStatus, 2000);
     btn.disabled = false;
 }
 
@@ -445,7 +522,7 @@ async function stopTunnel() {
     const btn = document.getElementById('tunnelStopBtn');
     btn.disabled = true;
     await api('/api/remote/stop', { method: 'POST', body: {} });
-    setTimeout(loadTunnelStatus, 1000);
+    setTimeout(loadSetupStatus, 1000);
     btn.disabled = false;
 }
 </script>

@@ -159,6 +159,9 @@ final class SettingsStore: ObservableObject {
     @Published var cloudflareTunnelMode: TunnelMode {
         didSet { UserDefaults.standard.set(cloudflareTunnelMode.rawValue, forKey: "cloudflareTunnelMode") }
     }
+    @Published var cloudflareConfigPath: String {
+        didSet { UserDefaults.standard.set(cloudflareConfigPath, forKey: "cloudflareConfigPath") }
+    }
 
     // MARK: - Retention
     @Published var retentionDeleteAfterUpload: Bool {
@@ -271,6 +274,7 @@ final class SettingsStore: ObservableObject {
         cloudflaredPath = UserDefaults.standard.string(forKey: "cloudflaredPath") ?? ""
         cloudflareAutoStart = UserDefaults.standard.bool(forKey: "cloudflareAutoStart")
         cloudflareTunnelMode = TunnelMode(rawValue: UserDefaults.standard.string(forKey: "cloudflareTunnelMode") ?? "quick") ?? .quick
+        cloudflareConfigPath = UserDefaults.standard.string(forKey: "cloudflareConfigPath") ?? ""
 
         // Retention
         retentionDeleteAfterUpload = UserDefaults.standard.bool(forKey: "retentionDeleteAfterUpload")

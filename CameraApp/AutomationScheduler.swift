@@ -40,8 +40,9 @@ struct ScheduledTask: Identifiable {
     var weekdays: Set<Int>  // 1=Sunday ... 7=Saturday
     var countdownMinutes: Int
     var intervalMinutes: Int
-    var durationMinutes: Int      // interval auto-stop window (minutes)
-    var videoDurationSeconds: Int // video recording duration (seconds)
+    var durationMinutes: Int              // interval auto-stop window (minutes) — legacy, use intervalRunDurationMinutes
+    var intervalRunDurationMinutes: Int   // interval auto-stop window (minutes) — 0 = run forever
+    var videoDurationSeconds: Int         // video recording duration (seconds)
     var telegramSend: Bool
     var uploadToCloud: Bool
     var uploadProvider: String?
@@ -63,6 +64,7 @@ struct ScheduledTask: Identifiable {
         countdownMinutes: Int = 30,
         intervalMinutes: Int = 10,
         durationMinutes: Int = 120,
+        intervalRunDurationMinutes: Int = 0,
         videoDurationSeconds: Int = 30,
         telegramSend: Bool = false,
         uploadToCloud: Bool = false,
@@ -83,6 +85,7 @@ struct ScheduledTask: Identifiable {
         self.countdownMinutes = countdownMinutes
         self.intervalMinutes = intervalMinutes
         self.durationMinutes = durationMinutes
+        self.intervalRunDurationMinutes = intervalRunDurationMinutes
         self.videoDurationSeconds = videoDurationSeconds
         self.telegramSend = telegramSend
         self.uploadToCloud = uploadToCloud
@@ -97,7 +100,7 @@ struct ScheduledTask: Identifiable {
 extension ScheduledTask: Codable {
     enum CodingKeys: String, CodingKey {
         case id, name, type, actionType, isEnabled, hour, minute, weekdays
-        case countdownMinutes, intervalMinutes, durationMinutes, videoDurationSeconds
+        case countdownMinutes, intervalMinutes, durationMinutes, intervalRunDurationMinutes, videoDurationSeconds
         case telegramSend, uploadToCloud, uploadProvider
         case createdAt, nextFireTime, lastRunAt, lastAttemptAt
     }
@@ -115,6 +118,8 @@ extension ScheduledTask: Codable {
         countdownMinutes = try c.decodeIfPresent(Int.self, forKey: .countdownMinutes) ?? 30
         intervalMinutes = try c.decodeIfPresent(Int.self, forKey: .intervalMinutes) ?? 10
         durationMinutes = try c.decodeIfPresent(Int.self, forKey: .durationMinutes) ?? 120
+        // intervalRunDurationMinutes: new field, falls back to durationMinutes for old data
+        intervalRunDurationMinutes = try c.decodeIfPresent(Int.self, forKey: .intervalRunDurationMinutes) ?? 0
         videoDurationSeconds = try c.decodeIfPresent(Int.self, forKey: .videoDurationSeconds) ?? 30
         telegramSend = try c.decodeIfPresent(Bool.self, forKey: .telegramSend) ?? false
         uploadToCloud = try c.decodeIfPresent(Bool.self, forKey: .uploadToCloud) ?? false
@@ -404,8 +409,9 @@ final class AutomationScheduler: ObservableObject {
             RunLoop.main.add(timer, forMode: .common)
             activeTimers[task.id] = timer
 
-            if task.durationMinutes > 0 {
-                let stopDate = fireDate.addingTimeInterval(TimeInterval(task.durationMinutes * 60))
+            let effectiveDuration = task.intervalRunDurationMinutes > 0 ? task.intervalRunDurationMinutes : task.durationMinutes
+            if effectiveDuration > 0 {
+                let stopDate = fireDate.addingTimeInterval(TimeInterval(effectiveDuration * 60))
                 let stopTimer = Timer(fire: stopDate, interval: 0, repeats: false) { [weak self] _ in
                     self?.cancelTimer(for: task.id)
                     if let index = self?.tasks.firstIndex(where: { $0.id == task.id }) {
@@ -578,6 +584,21 @@ final class AutomationScheduler: ObservableObject {
 
     private func loadTasks() -> [ScheduledTask] {
         guard let data = try? Data(contentsOf: tasksFileURL) else { return [] }
-        return (try? JSONDecoder().decode([ScheduledTask].self, from: data)) ?? []
+        // Lossy decode: decode each task individually, skip bad entries
+        guard let rawArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
+        var result: [ScheduledTask] = []
+        let decoder = JSONDecoder()
+        for (index, dict) in rawArray.enumerated() {
+            guard let taskData = try? JSONSerialization.data(withJSONObject: dict) else {
+                ActivityLogManager.shared.log(level: .warning, category: .system, message: "Skipping task \(index): invalid JSON")
+                continue
+            }
+            if let task = try? decoder.decode(ScheduledTask.self, from: taskData) {
+                result.append(task)
+            } else {
+                ActivityLogManager.shared.log(level: .warning, category: .system, message: "Skipping task \(index): decode failed")
+            }
+        }
+        return result
     }
 }
