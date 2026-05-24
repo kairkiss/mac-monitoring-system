@@ -187,7 +187,15 @@ const I18N = {
     googleDrive: "Google Drive",
     googleDriveAuthenticated: "Authenticated",
     webdav: "WebDAV",
-    webdavPlanned: "WebDAV (Planned)"
+    webdavPlanned: "WebDAV (Planned)",
+    needsReconnect: "Needs Reconnect",
+    googleDriveReconnect: "Reconnect",
+    noOverwrite: "No Remote Overwrite",
+    noOverwriteDesc: "Auto-generates unique filenames — never overwrites existing remote files",
+    webServerLocalURL: "Local Access URL",
+    doNotExposePort: "Do not expose port directly to the internet",
+    cloudflareAccess: "Cloudflare Access",
+    securityNote: "Security Note"
   },
   zh: {
     appName: "Mac监控系统",
@@ -376,7 +384,15 @@ const I18N = {
     googleDrive: "Google Drive",
     googleDriveAuthenticated: "已登录",
     webdav: "WebDAV",
-    webdavPlanned: "WebDAV（计划中）"
+    webdavPlanned: "WebDAV（计划中）",
+    needsReconnect: "需要重新连接",
+    googleDriveReconnect: "重新连接",
+    noOverwrite: "不覆盖远端文件",
+    noOverwriteDesc: "同名文件自动生成新文件名，不会覆盖已有文件",
+    webServerLocalURL: "本地访问地址",
+    doNotExposePort: "不要将端口直接暴露到公网",
+    cloudflareAccess: "Cloudflare Access",
+    securityNote: "安全提示"
   }
 };
 

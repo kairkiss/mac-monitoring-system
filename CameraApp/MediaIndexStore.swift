@@ -26,7 +26,8 @@ struct MediaIndexEntry: Codable {
 
     // v2.0.0 upload tracking
     var uploadStatus: UploadEntryStatus = .notQueued
-    var uploadProvider: String?
+    var uploadProvider: String?  // rawValue of StorageProviderType
+    var providerType: String?   // explicit provider type for lookups
     var uploadRemotePath: String?
     var uploadDate: Date?
     var uploadJobID: String?
@@ -134,13 +135,15 @@ final class MediaIndexStore: ObservableObject {
         persist()
     }
 
-    func markUploadVerified(_ fileName: String, remoteFileID: String?, remoteURL: String?) {
+    func markUploadVerified(_ fileName: String, remoteFileID: String?, remoteURL: String?, providerType: String? = nil) {
         var e = entry(for: fileName)
         e.uploadStatus = .verified
         e.verified = true
         e.verifiedAt = Date()
         if let remoteFileID { e.remoteFileID = remoteFileID }
         if let remoteURL { e.remoteURL = remoteURL }
+        if let providerType { e.providerType = providerType }
+        if let providerType { e.uploadProvider = providerType }
         entries[fileName] = e
         persist()
     }

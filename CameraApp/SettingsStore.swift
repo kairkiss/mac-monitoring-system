@@ -103,8 +103,12 @@ final class SettingsStore: ObservableObject {
     @Published var googleDriveClientID: String {
         didSet { UserDefaults.standard.set(googleDriveClientID, forKey: "googleDriveClientID") }
     }
-    @Published var googleDriveClientSecret: String {
-        didSet { UserDefaults.standard.set(googleDriveClientSecret, forKey: "googleDriveClientSecret") }
+    var googleDriveClientSecret: String {
+        get { KeychainService.shared.googleDriveClientSecret }
+        set { KeychainService.shared.googleDriveClientSecret = newValue }
+    }
+    @Published var googleDriveRootFolderName: String {
+        didSet { UserDefaults.standard.set(googleDriveRootFolderName, forKey: "googleDriveRootFolderName") }
     }
     @Published var webdavURL: String {
         didSet { UserDefaults.standard.set(webdavURL, forKey: "webdavURL") }
@@ -226,7 +230,8 @@ final class SettingsStore: ObservableObject {
         mountedFolderPath = UserDefaults.standard.string(forKey: "mountedFolderPath") ?? ""
         googleDriveFolderID = UserDefaults.standard.string(forKey: "googleDriveFolderID") ?? ""
         googleDriveClientID = UserDefaults.standard.string(forKey: "googleDriveClientID") ?? ""
-        googleDriveClientSecret = UserDefaults.standard.string(forKey: "googleDriveClientSecret") ?? ""
+        // googleDriveClientSecret is stored in Keychain, not UserDefaults
+        googleDriveRootFolderName = UserDefaults.standard.string(forKey: "googleDriveRootFolderName") ?? "MacMonitor"
         webdavURL = UserDefaults.standard.string(forKey: "webdavURL") ?? ""
         webdavUsername = UserDefaults.standard.string(forKey: "webdavUsername") ?? ""
         webdavBasePath = UserDefaults.standard.string(forKey: "webdavBasePath") ?? "/"

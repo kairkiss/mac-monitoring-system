@@ -15,6 +15,7 @@ struct SettingsView: View {
     @State private var gdAuthMessage: String?
     @State private var gdAuthIsError: Bool = false
     @State private var cfCopiedMessage: String?
+    @State private var gdClientSecret: String = ""
 
     var body: some View {
         Form {
@@ -348,19 +349,35 @@ struct SettingsView: View {
 
                 if settings.activeStorageProviderType == "googleDrive" {
                     // Google Drive Configuration
+                    let auth = GoogleDriveAuthManager.shared
+                    Color.clear.onAppear {
+                        if gdClientSecret.isEmpty {
+                            gdClientSecret = KeychainService.shared.googleDriveClientSecret
+                        }
+                    }
                     HStack(spacing: 12) {
                         Image(systemName: "cloud")
                             .foregroundStyle(.orange)
                             .frame(width: 20)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(Strings.googleDriveAccount)
-                            Text(GoogleDriveAuthManager.shared.isAuthenticated ? GoogleDriveAuthManager.shared.userEmail : Strings.googleDriveNotAuthenticated)
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
+                            if auth.isAuthenticated {
+                                Text(auth.userEmail)
+                                    .font(.caption)
+                                    .foregroundStyle(.green)
+                            } else if auth.needsReconnect {
+                                Text(Strings.googleDriveNeedsReconnect)
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            } else {
+                                Text(Strings.googleDriveNotAuthenticated)
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
 
-                    if !GoogleDriveAuthManager.shared.isAuthenticated {
+                    if !auth.isAuthenticated || auth.needsReconnect {
                         // Client ID
                         HStack(spacing: 12) {
                             Image(systemName: "key")
@@ -375,7 +392,7 @@ struct SettingsView: View {
                             Image(systemName: "lock")
                                 .foregroundStyle(.blue)
                                 .frame(width: 20)
-                            SecureField(Strings.googleDriveClientSecret, text: $settings.googleDriveClientSecret)
+                            SecureField(Strings.googleDriveClientSecret, text: $gdClientSecret)
                                 .textFieldStyle(.roundedBorder)
                         }
 
@@ -384,17 +401,24 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                             .padding(.leading, 32)
 
+                        Text(Strings.googleDriveRedirectNote)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.leading, 32)
+
                         Button {
                             Task {
-                                guard !settings.googleDriveClientID.isEmpty, !settings.googleDriveClientSecret.isEmpty else {
+                                guard !settings.googleDriveClientID.isEmpty, !gdClientSecret.isEmpty else {
                                     gdAuthMessage = Strings.googleDriveCredentialsRequired
                                     gdAuthIsError = true
                                     return
                                 }
                                 do {
-                                    try await GoogleDriveAuthManager.shared.authenticate(
+                                    // Save secret to Keychain before authenticating
+                                    settings.googleDriveClientSecret = gdClientSecret
+                                    try await auth.authenticate(
                                         clientID: settings.googleDriveClientID,
-                                        clientSecret: settings.googleDriveClientSecret
+                                        clientSecret: gdClientSecret
                                     )
                                     gdAuthMessage = Strings.googleDriveAuthenticated
                                     gdAuthIsError = false
@@ -405,7 +429,7 @@ struct SettingsView: View {
                                 }
                             }
                         } label: {
-                            Label(Strings.googleDriveSignIn, systemImage: "person.crop.circle.badge.checkmark")
+                            Label(auth.needsReconnect ? Strings.googleDriveReconnect : Strings.googleDriveSignIn, systemImage: "person.crop.circle.badge.checkmark")
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.orange)
@@ -421,14 +445,15 @@ struct SettingsView: View {
                                 .foregroundStyle(.green)
                         }
 
+                        // Root Folder Name (user-facing)
                         HStack(spacing: 12) {
                             Image(systemName: "folder")
                                 .foregroundStyle(.blue)
                                 .frame(width: 20)
-                            TextField(Strings.googleDriveRootFolder, text: $settings.googleDriveFolderID)
+                            TextField(Strings.googleDriveRootFolderName, text: $settings.googleDriveRootFolderName)
                                 .textFieldStyle(.roundedBorder)
                         }
-                        Text(Strings.googleDriveRootFolderDesc)
+                        Text(Strings.googleDriveRootFolderNameDesc)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.leading, 32)
@@ -440,6 +465,18 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(Strings.googleDriveFolderStructure)
                                 Text(Strings.googleDriveFolderStructureDesc)
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+
+                        HStack(spacing: 12) {
+                            Image(systemName: "checkmark.shield")
+                                .foregroundStyle(.green)
+                                .frame(width: 20)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(Strings.googleDriveNoOverwrite)
+                                Text(Strings.googleDriveNoOverwriteDesc)
                                     .font(.caption)
                                     .foregroundStyle(.tertiary)
                             }
@@ -464,7 +501,7 @@ struct SettingsView: View {
                             }
 
                             Button(role: .destructive) {
-                                GoogleDriveAuthManager.shared.signOut()
+                                auth.signOut()
                                 StorageManager.shared.configure()
                             } label: {
                                 Label(Strings.googleDriveSignOut, systemImage: "rectangle.portrait.and.arrow.right")
@@ -1056,7 +1093,7 @@ struct SettingsView: View {
             // About
             Section {
                 aboutRow("System", ProcessInfo.processInfo.operatingSystemVersionString)
-                aboutRow("Version", "2.3.0")
+                aboutRow("Version", "2.3.1")
                 aboutRow("Bundle ID", "com.kairkiss.MacMonitor")
             } header: {
                 Label(Strings.about, systemImage: "info.circle")

@@ -31,7 +31,7 @@ final class GoogleDriveProvider: StorageProvider {
         }
     }
 
-    // MARK: - Upload (Resumable)
+    // MARK: - Upload (Resumable, No-Overwrite)
 
     func upload(fileAt localURL: URL, remotePath: String, progress: @escaping (Double) -> Void) async throws -> StorageResult {
         let token = try await authManager.getValidAccessToken(
@@ -39,25 +39,28 @@ final class GoogleDriveProvider: StorageProvider {
             clientSecret: googleDriveClientSecret
         )
 
-        // Ensure parent folder exists
+        // Ensure parent folder exists and get its ID
         let parentID = try await ensureFolderPath(remotePath: remotePath, token: token)
 
         // Get file info
         let fileAttributes = try FileManager.default.attributesOfItem(atPath: localURL.path)
         let fileSize = (fileAttributes[.size] as? Int64) ?? 0
-        let fileName = localURL.lastPathComponent
+        let originalName = localURL.lastPathComponent
         let mimeType = mimeTypeForPath(localURL.path)
 
-        // Check if file already exists (for replacement)
-        let existingFileID = try? await findFile(name: fileName, parentID: parentID, token: token)
+        // Generate unique filename — never overwrite existing remote files
+        let uniqueName = try await generateUniqueName(
+            name: originalName,
+            parentID: parentID,
+            token: token
+        )
 
-        // Initiate resumable upload
+        // Initiate resumable upload (always POST for new file)
         let uploadURI = try await initiateResumableUpload(
-            fileName: fileName,
+            fileName: uniqueName,
             mimeType: mimeType,
             parentID: parentID,
             fileSize: fileSize,
-            existingFileID: existingFileID,
             token: token
         )
 
@@ -76,16 +79,25 @@ final class GoogleDriveProvider: StorageProvider {
             throw StorageError.verificationFailed("Size mismatch after Google Drive upload")
         }
 
+        // Build the actual remote path (with unique name)
+        let actualRemotePath = buildActualRemotePath(remotePath: remotePath, uniqueName: uniqueName)
+
+        // Store folder ID for future lookups
+        if kc.googleDriveRootFolderID.isEmpty || SettingsStore.shared.googleDriveFolderID.isEmpty {
+            let rootFolderID = try await findRootFolderID(token: token)
+            kc.googleDriveRootFolderID = rootFolderID
+        }
+
         let driveURL = "https://drive.google.com/file/d/\(fileID)/view"
         return StorageResult(
-            remotePath: remotePath,
+            remotePath: actualRemotePath,
             remoteFileID: fileID,
             remoteURL: driveURL,
             fileSize: fileSize
         )
     }
 
-    // MARK: - Delete
+    // MARK: - Delete (by file ID, not path)
 
     func delete(remotePath: String) async throws {
         let token = try await authManager.getValidAccessToken(
@@ -93,7 +105,9 @@ final class GoogleDriveProvider: StorageProvider {
             clientSecret: googleDriveClientSecret
         )
 
-        guard let fileID = try await findFileByPath(remotePath: remotePath, token: token) else {
+        // Try to find by file ID from remotePath if it contains one
+        // Otherwise search by path
+        guard let fileID = try await resolveFileID(from: remotePath, token: token) else {
             return
         }
 
@@ -117,39 +131,57 @@ final class GoogleDriveProvider: StorageProvider {
             clientSecret: googleDriveClientSecret
         ) else { return false }
 
-        return (try? await findFileByPath(remotePath: remotePath, token: token)) != nil
+        return (try? await resolveFileID(from: remotePath, token: token)) != nil
     }
 
     // MARK: - Folder Management
 
-    func ensureFolderPath(remotePath: String, token: String) async throws -> String {
+    private func ensureFolderPath(remotePath: String, token: String) async throws -> String {
         let settings = SettingsStore.shared
-        var currentFolderID = settings.googleDriveFolderID.isEmpty ? "root" : settings.googleDriveFolderID
+        let rootFolderName = settings.googleDriveRootFolderName.isEmpty ? "MacMonitor" : settings.googleDriveRootFolderName
 
-        // Create MacMonitor/Date/Category subfolders
-        let fileName = (remotePath as NSString).lastPathComponent
+        // Start from cached root folder ID or "root"
+        var currentFolderID: String
+        if !settings.googleDriveFolderID.isEmpty {
+            currentFolderID = settings.googleDriveFolderID
+        } else if !kc.googleDriveRootFolderID.isEmpty {
+            currentFolderID = kc.googleDriveRootFolderID
+        } else {
+            currentFolderID = "root"
+        }
+
+        // Build path: RootFolder/Category/
+        // No date in path — so files are findable across days
         let category = categoryFromPath(remotePath)
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd"
-        let datePath = formatter.string(from: Date())
-        let pathComponents = ["MacMonitor"] + datePath.split(separator: "/").map(String.init) + [category]
+        let pathComponents = [rootFolderName, category]
 
         for component in pathComponents {
             currentFolderID = try await findOrCreateFolder(name: component, parentID: currentFolderID, token: token)
         }
 
+        // Cache the root folder ID
+        if kc.googleDriveRootFolderID.isEmpty {
+            let rootID = try await findOrCreateFolder(name: rootFolderName, parentID: "root", token: token)
+            kc.googleDriveRootFolderID = rootID
+        }
+
         return currentFolderID
     }
 
-    func findOrCreateFolder(name: String, parentID: String, token: String) async throws -> String {
+    private func findRootFolderID(token: String) async throws -> String {
+        let settings = SettingsStore.shared
+        let rootFolderName = settings.googleDriveRootFolderName.isEmpty ? "MacMonitor" : settings.googleDriveRootFolderName
+        return try await findOrCreateFolder(name: rootFolderName, parentID: "root", token: token)
+    }
+
+    private func findOrCreateFolder(name: String, parentID: String, token: String) async throws -> String {
         if let existing = try await findFile(name: name, parentID: parentID, token: token, mimeType: "application/vnd.google-apps.folder") {
             return existing
         }
-
         return try await createFolder(name: name, parentID: parentID, token: token)
     }
 
-    func createFolder(name: String, parentID: String, token: String) async throws -> String {
+    private func createFolder(name: String, parentID: String, token: String) async throws -> String {
         let metadata: [String: Any] = [
             "name": name,
             "mimeType": "application/vnd.google-apps.folder",
@@ -176,6 +208,40 @@ final class GoogleDriveProvider: StorageProvider {
         return folderID
     }
 
+    // MARK: - No-Overwrite: Generate Unique Name
+
+    private func generateUniqueName(name: String, parentID: String, token: String) async throws -> String {
+        // Check if name already exists
+        let existing = try await findFile(name: name, parentID: parentID, token: token)
+        if existing == nil {
+            return name // no conflict
+        }
+
+        // Generate unique name: name_TIMESTAMP.ext or name_TIMESTAMP_N.ext
+        let ext = (name as NSString).pathExtension
+        let baseName = (name as NSString).deletingPathExtension
+        let timestamp = Int(Date().timeIntervalSince1970)
+
+        var candidate: String
+        var counter = 0
+        repeat {
+            if counter == 0 {
+                candidate = ext.isEmpty ? "\(baseName)_\(timestamp)" : "\(baseName)_\(timestamp).\(ext)"
+            } else {
+                candidate = ext.isEmpty ? "\(baseName)_\(timestamp)_\(counter)" : "\(baseName)_\(timestamp)_\(counter).\(ext)"
+            }
+            counter += 1
+            let found = try await findFile(name: candidate, parentID: parentID, token: token)
+            if found == nil {
+                return candidate
+            }
+        } while counter < 100
+
+        // Fallback: use UUID
+        let uuid = UUID().uuidString.prefix(8)
+        return ext.isEmpty ? "\(baseName)_\(uuid)" : "\(baseName)_\(uuid).\(ext)"
+    }
+
     // MARK: - Resumable Upload
 
     private func initiateResumableUpload(
@@ -183,7 +249,6 @@ final class GoogleDriveProvider: StorageProvider {
         mimeType: String,
         parentID: String,
         fileSize: Int64,
-        existingFileID: String?,
         token: String
     ) async throws -> URL {
         let metadata: [String: Any] = [
@@ -194,21 +259,13 @@ final class GoogleDriveProvider: StorageProvider {
 
         let metadataJSON = try JSONSerialization.data(withJSONObject: metadata)
 
-        var urlString: String
-        var httpMethod: String
-
-        if let fileID = existingFileID {
-            urlString = "https://www.googleapis.com/upload/drive/v3/files/\(fileID)?uploadType=resumable"
-            httpMethod = "PATCH"
-        } else {
-            urlString = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable"
-            httpMethod = "POST"
-        }
+        // Always create new file (POST), never PATCH
+        let urlString = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable"
 
         guard let url = URL(string: urlString) else { throw GoogleDriveError.invalidURL }
 
         var request = URLRequest(url: url)
-        request.httpMethod = httpMethod
+        request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json; charset=UTF-8", forHTTPHeaderField: "Content-Type")
         request.setValue("\(metadataJSON.count)", forHTTPHeaderField: "Content-Length")
@@ -270,6 +327,12 @@ final class GoogleDriveProvider: StorageProvider {
                    let id = json["id"] as? String {
                     fileID = id
                 }
+            } else if httpResponse.statusCode == 401 {
+                throw GoogleDriveError.apiError("Authentication expired. Please sign in again.")
+            } else if httpResponse.statusCode == 403 {
+                throw GoogleDriveError.apiError("Permission denied or storage quota exceeded.")
+            } else if httpResponse.statusCode == 429 {
+                throw GoogleDriveError.apiError("Rate limited. Will retry later.")
             } else {
                 throw GoogleDriveError.apiError("Chunk upload failed: HTTP \(httpResponse.statusCode)")
             }
@@ -287,7 +350,7 @@ final class GoogleDriveProvider: StorageProvider {
 
     // MARK: - Queries
 
-    func findFile(name: String, parentID: String, token: String, mimeType: String? = nil) async throws -> String? {
+    private func findFile(name: String, parentID: String, token: String, mimeType: String? = nil) async throws -> String? {
         var query = "name='\(name.replacingOccurrences(of: "'", with: "\\'"))' and '\(parentID)' in parents and trashed=false"
         if let mime = mimeType {
             query += " and mimeType='\(mime)'"
@@ -316,24 +379,56 @@ final class GoogleDriveProvider: StorageProvider {
         return id
     }
 
-    func findFileByPath(remotePath: String, token: String) async throws -> String? {
+    /// Resolve file ID from remotePath — supports both file ID in path and path-based lookup
+    private func resolveFileID(from remotePath: String, token: String) async throws -> String? {
+        // If remotePath looks like a Google Drive file ID (no slashes), use it directly
+        if !remotePath.contains("/") && !remotePath.isEmpty && remotePath.count >= 10 {
+            // Verify the file exists via API
+            let url = URL(string: "https://www.googleapis.com/drive/v3/files/\(remotePath)?fields=id")!
+            var request = URLRequest(url: url)
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if (response as? HTTPURLResponse)?.statusCode == 200 {
+                return remotePath
+            }
+        }
+
+        // Fallback: search by path components
+        return try await findFileByStoredPath(remotePath: remotePath, token: token)
+    }
+
+    /// Find file by stored path — uses cached folder IDs, not date-based reconstruction
+    private func findFileByStoredPath(remotePath: String, token: String) async throws -> String? {
         let settings = SettingsStore.shared
-        var currentFolderID = settings.googleDriveFolderID.isEmpty ? "root" : settings.googleDriveFolderID
+        let rootFolderName = settings.googleDriveRootFolderName.isEmpty ? "MacMonitor" : settings.googleDriveRootFolderName
 
-        let fileName = (remotePath as NSString).lastPathComponent
-        let category = categoryFromPath(remotePath)
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd"
-        let datePath = formatter.string(from: Date())
-        let pathComponents = ["MacMonitor"] + datePath.split(separator: "/").map(String.init) + [category]
+        var currentFolderID: String
+        if !kc.googleDriveRootFolderID.isEmpty {
+            currentFolderID = kc.googleDriveRootFolderID
+        } else if !settings.googleDriveFolderID.isEmpty {
+            currentFolderID = settings.googleDriveFolderID
+        } else {
+            currentFolderID = "root"
+        }
 
-        for component in pathComponents {
-            guard let folderID = try await findFile(name: component, parentID: currentFolderID, token: token, mimeType: "application/vnd.google-apps.folder") else {
+        // Parse stored path: RootFolder/Category/filename
+        let components = remotePath.split(separator: "/").map(String.init)
+        guard !components.isEmpty else { return nil }
+
+        for i in 0..<(components.count - 1) {
+            guard let folderID = try await findFile(
+                name: components[i],
+                parentID: currentFolderID,
+                token: token,
+                mimeType: "application/vnd.google-apps.folder"
+            ) else {
                 return nil
             }
             currentFolderID = folderID
         }
 
+        // Find the file itself
+        let fileName = components.last!
         return try await findFile(name: fileName, parentID: currentFolderID, token: token)
     }
 
@@ -358,6 +453,15 @@ final class GoogleDriveProvider: StorageProvider {
 
     // MARK: - Helpers
 
+    private func buildActualRemotePath(remotePath: String, uniqueName: String) -> String {
+        // remotePath is like "photos/IMG_001.jpg"
+        // We want "MacMonitor/photos/IMG_001_TIMESTAMP.jpg"
+        let settings = SettingsStore.shared
+        let rootFolderName = settings.googleDriveRootFolderName.isEmpty ? "MacMonitor" : settings.googleDriveRootFolderName
+        let category = categoryFromPath(remotePath)
+        return "\(rootFolderName)/\(category)/\(uniqueName)"
+    }
+
     private func categoryFromPath(_ path: String) -> String {
         let lower = path.lowercased()
         if lower.contains("video") || lower.contains(".mp4") || lower.contains(".mov") {
@@ -380,14 +484,14 @@ final class GoogleDriveProvider: StorageProvider {
         }
     }
 
-    // MARK: - Google API Credentials
+    // MARK: - Google API Credentials (from Keychain)
 
     private var googleDriveClientID: String {
         SettingsStore.shared.googleDriveClientID
     }
 
     private var googleDriveClientSecret: String {
-        SettingsStore.shared.googleDriveClientSecret
+        KeychainService.shared.googleDriveClientSecret
     }
 }
 

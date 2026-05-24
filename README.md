@@ -4,7 +4,7 @@ MacMonitor turns the app into a local camera node with a web dashboard, storage 
 
 Mac监控系统将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
 
-> **v2.3.0** — Google Drive Cloud Storage + Cloudflare Public Access Wizard. Real Google Drive provider with OAuth + resumable upload; Cloudflare Tunnel setup wizard in Settings and Web UI. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **v2.3.1** — Google Drive OAuth & Safety Hotfix. Fixed OAuth callback, secured credentials, no-remote-overwrite, improved folder/path tracking. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 

@@ -1,31 +1,46 @@
 # Cloudflare Tunnel Setup for Mac监控系统
 
-This guide explains how to securely expose your Mac监控系统 web dashboard to the internet using Cloudflare Tunnel (formerly Argo Tunnel).
+This guide helps you securely access your Mac监控系统 web dashboard from anywhere using Cloudflare Tunnel.
 
-> **Tip:** As of v2.3.0, a built-in setup wizard is available in **Settings > Remote Access** (both macOS app and web dashboard). It provides copy-to-clipboard commands for each step.
+## Why Cloudflare Tunnel?
+
+- **No port forwarding** — your Mac's IP is never exposed
+- **Free** — Cloudflare Tunnel has no bandwidth limits on the free tier
+- **Encrypted** — all traffic is TLS encrypted end-to-end
+- **Double protection** — Cloudflare Access + App Login = two layers of security
+
+> **Security:** Never bind the web server to `0.0.0.0` or expose port 8765 directly to the internet. Always use Cloudflare Tunnel.
 
 ## Prerequisites
 
-- A Cloudflare account (free tier works)
-- A domain managed by Cloudflare
-- Mac监控系统 v2.3.0+ installed and running with Web Server enabled
+- A Cloudflare account (free tier works) — [Sign up](https://dash.cloudflare.com/sign-up)
+- A domain added to Cloudflare (free plan is fine)
+- Mac监控系统 v2.3.1+ with Web Server enabled
+
+## Quick Start
+
+The app includes a built-in setup wizard in **Settings > Remote Access** with copy-to-clipboard commands. This guide provides the same steps with more detail.
 
 ## Step 1: Install cloudflared
 
 ```bash
-# macOS (Homebrew)
 brew install cloudflare/cloudflare/cloudflared
-
-# Or download from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
 ```
 
-## Step 2: Authenticate
+Or download from [Cloudflare Downloads](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/).
+
+Verify installation:
+```bash
+cloudflared --version
+```
+
+## Step 2: Authenticate with Cloudflare
 
 ```bash
 cloudflared tunnel login
 ```
 
-This opens a browser where you select your domain.
+This opens a browser. Select the domain you want to use.
 
 ## Step 3: Create a Tunnel
 
@@ -33,85 +48,106 @@ This opens a browser where you select your domain.
 cloudflared tunnel create mac-monitor
 ```
 
-Note the tunnel ID returned.
+Note the tunnel ID that is returned (looks like `a1b2c3d4-...`).
 
-## Step 4: Configure the Tunnel
+## Step 4: Configure DNS
+
+Replace `monitor.yourdomain.com` with your actual subdomain:
+
+```bash
+cloudflared tunnel route dns mac-monitor monitor.yourdomain.com
+```
+
+## Step 5: Create Configuration File
 
 Create `~/.cloudflared/config.yml`:
 
 ```yaml
-tunnel: <TUNNEL-ID>
-credentials-file: /Users/<username>/.cloudflared/<TUNNEL-ID>.json
+tunnel: <YOUR-TUNNEL-ID>
+credentials-file: /Users/<YOUR-USERNAME>/.cloudflared/<YOUR-TUNNEL-ID>.json
 
 ingress:
-  - hostname: camera.yourdomain.com
+  - hostname: monitor.yourdomain.com
     service: http://127.0.0.1:8765
-    originRequest:
-      noTLSVerify: false
   - service: http_status:404
 ```
 
-## Step 5: Add DNS Record
+Replace:
+- `<YOUR-TUNNEL-ID>` with the tunnel ID from Step 3
+- `<YOUR-USERNAME>` with your macOS username
+- `monitor.yourdomain.com` with your actual subdomain
+- `8765` with your web server port if you changed it
 
-```bash
-cloudflared tunnel route dns mac-monitor camera.yourdomain.com
-```
-
-## Step 6: Run the Tunnel
+## Step 6: Start the Tunnel
 
 ```bash
 cloudflared tunnel run mac-monitor
 ```
 
-To run as a service (survives reboot):
-
+To run as a background service (survives reboot):
 ```bash
 sudo cloudflared service install
 ```
 
 ## Step 7: Verify
 
-Visit `https://camera.yourdomain.com` — you should see the login page.
+Visit `https://monitor.yourdomain.com` — you should see the login page.
 
-## Security Recommendations
+## Step 8: Enable Cloudflare Access (Recommended)
 
-### Cloudflare Access (Recommended)
+This adds a second authentication layer before anyone reaches your app:
 
-Enable Cloudflare Access to add an authentication layer before the tunnel:
+1. Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com/)
+2. **Access** > **Applications** > **Add an application**
+3. Select **Self-hosted**
+4. Configure:
+   - Application name: "MacMonitor"
+   - Session duration: 24 hours
+   - Application domain: monitor.yourdomain.com
+5. Add a policy:
+   - Policy name: "Allow"
+   - Action: Allow
+   - Include: Email (enter your email) or One-time PIN
+6. Save
 
-1. Go to Cloudflare Zero Trust Dashboard
-2. Access > Applications > Add an application
-3. Configure policies (e.g., email OTP, GitHub OAuth)
-4. This adds a second authentication barrier beyond the app's built-in auth
+Now visitors must pass Cloudflare Access **before** they see the app login page.
 
-### Additional Security
+## Double Protection
 
-- **Even behind Cloudflare Access, keep the app's web login enabled** — use double protection: Cloudflare Access + app-level authentication
-- **Keep the web server bound to 127.0.0.1** (default) — never bind to 0.0.0.0
-- **Use strong passwords** for web admin accounts (salted SHA256, customizable since v2.2.0)
-- **Change the default admin username** — customize via Settings > Web Server or the web Settings page
-- **Enable Cloudflare's WAF** rules for your domain
-- **Monitor access logs** in the app's Activity Log and Cloudflare's analytics
-- **Rotate passwords** periodically
-- **Use the app's role system** — give viewers read-only access, reserve admin for yourself
+```
+Internet → Cloudflare Access (email/OTP) → Tunnel → App Login (username/password)
+```
+
+- **Layer 1:** Cloudflare Access — verifies identity via email OTP, GitHub OAuth, etc.
+- **Layer 2:** App Login — your custom username and password (configurable in Settings)
+
+Both layers must be passed. This is the recommended security configuration.
 
 ## Troubleshooting
 
-### Tunnel shows 502 Bad Gateway
-- Verify the Mac监控系统 web server is running (Settings > Web Server > enabled)
-- Check the port matches (default 8765)
+### 502 Bad Gateway
+- Check that Mac监控系统 web server is running (Settings > Web Server > enabled)
+- Verify the port in `config.yml` matches your web server port
 
 ### Connection refused
 - Ensure `cloudflared` is running: `cloudflared tunnel info mac-monitor`
-- Check firewall rules aren't blocking localhost:8765
+- Check that the web server is bound to `127.0.0.1` (not `0.0.0.0`)
+
+### DNS not resolving
+- Wait a few minutes for DNS propagation
+- Check that the CNAME record was created in Cloudflare DNS settings
 
 ### Slow loading
-- Cloudflare Tunnel adds minimal latency (~10-50ms)
-- If images are slow, consider reducing thumbnail quality in settings
+- Cloudflare Tunnel adds ~10-50ms latency
+- If images are slow, the app serves thumbnails; use Download for full files
+
+### cloudflared not found
+- Ensure Homebrew is installed and `brew` is in your PATH
+- Or try the full path: `/opt/homebrew/bin/cloudflared`
 
 ## Notes
 
-- The free Cloudflare Tunnel tier supports unlimited bandwidth
-- The tunnel encrypts all traffic end-to-end (TLS)
+- The free tier supports unlimited bandwidth
 - Your Mac's IP is never exposed — only Cloudflare's edge IPs are public
-- If your Mac sleeps, the tunnel disconnects; consider disabling sleep or using `caffeinate`
+- If your Mac sleeps, the tunnel disconnects; consider using `caffeinate` or disabling sleep
+- The tunnel encrypts all traffic with TLS

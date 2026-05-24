@@ -30,6 +30,7 @@ final class KeychainService {
     let googleDriveTokenExpiryAccount = "googleDriveTokenExpiry"
     let googleDriveUserEmailAccount = "googleDriveUserEmail"
     let googleDriveRootFolderIDAccount = "googleDriveRootFolderID"
+    let googleDriveClientSecretAccount = "googleDriveClientSecret"
 
     private init() {}
 
@@ -216,6 +217,18 @@ final class KeychainService {
                 try? delete(service: service, account: googleDriveRootFolderIDAccount)
             } else {
                 try? save(newValue, service: service, account: googleDriveRootFolderIDAccount)
+            }
+        }
+    }
+
+    var googleDriveClientSecret: String {
+        get { (try? read(service: service, account: googleDriveClientSecretAccount)) ?? "" }
+        set {
+            if newValue.isEmpty {
+                try? delete(service: service, account: googleDriveClientSecretAccount)
+            } else {
+                do { try save(newValue, service: service, account: googleDriveClientSecretAccount) }
+                catch { ActivityLogManager.shared.error(.security, "Failed to save Google Drive client secret", detail: error.localizedDescription) }
             }
         }
     }

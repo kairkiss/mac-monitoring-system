@@ -15,21 +15,23 @@ Mac监控系统 supports multiple storage backends for uploading captured photos
 - **Behavior:** Same as Local Folder; useful for NAS or external drives
 
 ### Google Drive
-- **Status:** Available (v2.3.0+)
-- **Configuration:**
-  1. Create OAuth 2.0 credentials in [Google Cloud Console](https://console.cloud.google.com/)
-  2. In the app: Settings > Storage Providers > Google Drive
-  3. Enter your Client ID and Client Secret
-  4. Click "Sign In to Google Drive" and authorize in the browser
-  5. Optionally set a root folder ID (leave empty for My Drive root)
+- **Status:** Available (v2.3.1+)
+- **Configuration:** See [GOOGLE_DRIVE_SETUP.md](GOOGLE_DRIVE_SETUP.md) for detailed step-by-step instructions
+  1. Create OAuth 2.0 credentials (Desktop app type) in [Google Cloud Console](https://console.cloud.google.com/)
+  2. Add `http://127.0.0.1` as authorized redirect URI
+  3. In the app: Settings > Storage Providers > Google Drive
+  4. Enter your Client ID and Client Secret (stored in Keychain)
+  5. Click "Sign In to Google Drive" and authorize in the browser
+  6. Set a root folder name (default: MacMonitor)
 - **Behavior:**
   - Resumable chunked upload (8MB chunks)
-  - Automatic folder creation: `MacMonitor/YYYY/MM/DD/photos|videos/`
+  - Automatic folder creation: `RootFolder/photos/` or `RootFolder/videos/`
+  - No-remote-overwrite: unique filenames generated automatically
   - Post-upload file verification (size match)
   - OAuth tokens stored securely in macOS Keychain
   - Automatic token refresh when expired
 - **Security:**
-  - Access and refresh tokens are stored in macOS Keychain
+  - Client Secret, access token, and refresh token are stored in macOS Keychain
   - Tokens are never exposed to the Web UI or activity logs
   - Only the `drive.file` scope is requested (files created by the app)
 

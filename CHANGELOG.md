@@ -1,5 +1,33 @@
 # Changelog
 
+## v2.3.1 (2026-05-24)
+
+Google Drive OAuth & Safety Hotfix — fixes OAuth callback, secures credentials, prevents remote file overwrites, improves folder/path tracking.
+
+### Fixes
+
+- **Fixed Google OAuth callback** — replaced placeholder URL scheme with loopback HTTP listener (http://127.0.0.1:randomPort); OAuth flow now works with real Google API credentials
+- **Moved Client Secret to Keychain** — no longer stored in UserDefaults; read/written only via KeychainService
+- **No-remote-overwrite** — Google Drive uploads now generate unique filenames (timestamp suffix) when a same-name file already exists; never PATCHes/overwrites existing remote files
+- **Fixed date-dependent remote paths** — folder structure is now `RootFolder/category/filename` (no year/month/day), so files are findable across days
+- **Added providerType to MediaIndex** — upload records now include explicit provider type for future lookups
+- **Root Folder Name UX** — users now set a folder name (e.g. "MacMonitor") instead of a cryptic folder ID; ID is cached internally
+- **Needs Reconnect state** — when Google Drive token refresh fails, UI shows "Needs Reconnect" instead of silent failure
+- **Better error messages** — OAuth errors, API errors (401, 403, 429) now produce human-readable explanations
+- **Secure API responses** — /api/storage/status no longer exposes tokens or secrets; shows googleDriveConnected, email, needsReconnect, rootFolderName
+- **Cloudflare wizard improvements** — added security notes, local URL display, "do not expose port" warning
+
+### Technical
+
+- Version: 2.3.1
+- Build: 16
+- No data migration required
+- No existing user data is deleted
+- Client Secret moved from UserDefaults to Keychain (account: googleDriveClientSecret)
+- New Keychain account: googleDriveClientSecret
+- New SettingsStore property: googleDriveRootFolderName (replaces googleDriveFolderID for user-facing config)
+- MediaIndexEntry gained `providerType: String?` field
+
 ## v2.3.0 (2026-05-22)
 
 Google Drive Cloud Storage + Cloudflare Public Access Wizard.

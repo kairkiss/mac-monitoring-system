@@ -346,19 +346,26 @@ struct Strings {
 
     // MARK: - Google Drive
     static var googleDriveSignIn: String { lang == .chinese ? "登录 Google Drive" : "Sign In to Google Drive" }
+    static var googleDriveReconnect: String { lang == .chinese ? "重新连接 Google Drive" : "Reconnect Google Drive" }
     static var googleDriveSignOut: String { lang == .chinese ? "退出 Google Drive" : "Sign Out" }
     static var googleDriveAuthenticated: String { lang == .chinese ? "已登录" : "Authenticated" }
     static var googleDriveNotAuthenticated: String { lang == .chinese ? "未登录" : "Not Authenticated" }
+    static var googleDriveNeedsReconnect: String { lang == .chinese ? "需要重新连接" : "Needs Reconnect" }
     static var googleDriveClientID: String { lang == .chinese ? "Google API Client ID" : "Google API Client ID" }
     static var googleDriveClientSecret: String { lang == .chinese ? "Google API Client Secret" : "Google API Client Secret" }
+    static var googleDriveRootFolderName: String { lang == .chinese ? "根文件夹名称" : "Root Folder Name" }
+    static var googleDriveRootFolderNameDesc: String { lang == .chinese ? "Google Drive 中的文件夹名称，如 MacMonitor" : "Folder name in Google Drive, e.g. MacMonitor" }
     static var googleDriveRootFolder: String { lang == .chinese ? "根文件夹 ID" : "Root Folder ID" }
     static var googleDriveRootFolderDesc: String { lang == .chinese ? "留空使用 My Drive 根目录" : "Leave empty to use My Drive root" }
     static var googleDriveAccount: String { lang == .chinese ? "Google 账户" : "Google Account" }
     static var googleDriveFolderStructure: String { lang == .chinese ? "文件夹结构" : "Folder Structure" }
-    static var googleDriveFolderStructureDesc: String { lang == .chinese ? "自动创建 MacMonitor/年/月/日/分类 目录" : "Auto-creates MacMonitor/year/month/day/category directories" }
-    static var googleDriveSetupDesc: String { lang == .chinese ? "在 Google Cloud Console 创建 OAuth 2.0 凭据，然后在此输入 Client ID 和 Secret" : "Create OAuth 2.0 credentials in Google Cloud Console, then enter Client ID and Secret here" }
-    static var googleDriveResumable: String { lang == .chinese ? "支持断点续传" : "Resumable upload supported" }
+    static var googleDriveFolderStructureDesc: String { lang == .chinese ? "自动创建 根文件夹/分类/ 目录" : "Auto-creates RootFolder/category/ directories" }
+    static var googleDriveSetupDesc: String { lang == .chinese ? "在 Google Cloud Console 创建 OAuth 2.0 凭据（桌面应用类型），然后在此输入 Client ID 和 Secret" : "Create OAuth 2.0 credentials (Desktop app type) in Google Cloud Console, then enter Client ID and Secret here" }
+    static var googleDriveRedirectNote: String { lang == .chinese ? "回调地址: http://127.0.0.1（需在 Google Cloud Console 中添加为已授权的重定向 URI）" : "Callback URL: http://127.0.0.1 (must be added as authorized redirect URI in Google Cloud Console)" }
+    static var googleDriveResumable: String { lang == .chinese ? "支持断点续传（8MB 分块）" : "Resumable upload (8MB chunks)" }
     static var googleDriveCredentialsRequired: String { lang == .chinese ? "请先输入 Google API Client ID 和 Secret" : "Please enter Google API Client ID and Secret first" }
+    static var googleDriveNoOverwrite: String { lang == .chinese ? "不覆盖远端文件" : "No Remote Overwrite" }
+    static var googleDriveNoOverwriteDesc: String { lang == .chinese ? "同名文件自动生成新文件名，不会覆盖已有文件" : "Auto-generates unique filenames — never overwrites existing remote files" }
     static var cloudflareSetupWizard: String { lang == .chinese ? "Cloudflare 配置向导" : "Cloudflare Setup Wizard" }
     static var cloudflareStep1: String { lang == .chinese ? "步骤 1: 安装 cloudflared" : "Step 1: Install cloudflared" }
     static var cloudflareStep2: String { lang == .chinese ? "步骤 2: 登录 Cloudflare" : "Step 2: Login to Cloudflare" }
@@ -370,4 +377,6 @@ struct Strings {
     static var cloudflareDoubleProtection: String { lang == .chinese ? "双重保护：Cloudflare Access + 应用登录" : "Double protection: Cloudflare Access + App Login" }
     static var remoteAccess: String { lang == .chinese ? "远程访问" : "Remote Access" }
     static var remoteAccessDesc: String { lang == .chinese ? "通过 Cloudflare Tunnel 从外网安全访问您的监控系统" : "Securely access your monitoring system from the internet via Cloudflare Tunnel" }
+    static var doNotExposePort: String { lang == .chinese ? "不要将端口直接暴露到公网" : "Do not expose port directly to the internet" }
+    static var webServerLocalURL: String { lang == .chinese ? "本地访问地址" : "Local Access URL" }
 }
