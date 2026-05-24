@@ -4,7 +4,7 @@ MacMonitor turns the app into a local camera node with a web dashboard, storage 
 
 Mac监控系统将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
 
-> **v2.3.1** — Google Drive OAuth & Safety Hotfix. Fixed OAuth callback, secured credentials, no-remote-overwrite, improved folder/path tracking. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **v2.3.2** — Google Drive Crash Hotfix. Fixed crashes when selecting/signing into Google Drive, hardened OAuth flow and provider activation. Google Drive still requires OAuth setup per [docs/GOOGLE_DRIVE_SETUP.md](docs/GOOGLE_DRIVE_SETUP.md). See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 

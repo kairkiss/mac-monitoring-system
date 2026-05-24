@@ -11,17 +11,18 @@ final class GoogleDriveProvider: StorageProvider {
     private let chunkSize = 8 * 1024 * 1024
 
     var isConfigured: Bool {
-        authManager.isAuthenticated
+        !googleDriveClientID.isEmpty && !googleDriveClientSecret.isEmpty && authManager.isAuthenticated
     }
 
     func isAvailable() async -> Bool {
+        guard !googleDriveClientID.isEmpty, !googleDriveClientSecret.isEmpty else { return false }
         guard authManager.isAuthenticated else { return false }
         do {
             let token = try await authManager.getValidAccessToken(
                 clientID: googleDriveClientID,
                 clientSecret: googleDriveClientSecret
             )
-            let url = URL(string: "https://www.googleapis.com/drive/v3/about?fields=user")!
+            guard let url = URL(string: "https://www.googleapis.com/drive/v3/about?fields=user") else { return false }
             var request = URLRequest(url: url)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             let (_, response) = try await URLSession.shared.data(for: request)
@@ -34,6 +35,13 @@ final class GoogleDriveProvider: StorageProvider {
     // MARK: - Upload (Resumable, No-Overwrite)
 
     func upload(fileAt localURL: URL, remotePath: String, progress: @escaping (Double) -> Void) async throws -> StorageResult {
+        guard !googleDriveClientID.isEmpty, !googleDriveClientSecret.isEmpty else {
+            throw GoogleDriveError.notConfigured
+        }
+        guard authManager.isAuthenticated else {
+            throw GoogleDriveError.notAuthenticated
+        }
+
         let token = try await authManager.getValidAccessToken(
             clientID: googleDriveClientID,
             clientSecret: googleDriveClientSecret
@@ -43,6 +51,10 @@ final class GoogleDriveProvider: StorageProvider {
         let parentID = try await ensureFolderPath(remotePath: remotePath, token: token)
 
         // Get file info
+        guard FileManager.default.fileExists(atPath: localURL.path) else {
+            throw GoogleDriveError.fileNotFound(localURL.lastPathComponent)
+        }
+
         let fileAttributes = try FileManager.default.attributesOfItem(atPath: localURL.path)
         let fileSize = (fileAttributes[.size] as? Int64) ?? 0
         let originalName = localURL.lastPathComponent
@@ -74,8 +86,7 @@ final class GoogleDriveProvider: StorageProvider {
         )
 
         // Verify
-        guard let verifySize = try? await getFileSize(fileID: fileID, token: token),
-              verifySize == fileSize else {
+        if let verifySize = try? await getFileSize(fileID: fileID, token: token), verifySize != fileSize {
             throw StorageError.verificationFailed("Size mismatch after Google Drive upload")
         }
 
@@ -83,9 +94,10 @@ final class GoogleDriveProvider: StorageProvider {
         let actualRemotePath = buildActualRemotePath(remotePath: remotePath, uniqueName: uniqueName)
 
         // Store folder ID for future lookups
-        if kc.googleDriveRootFolderID.isEmpty || SettingsStore.shared.googleDriveFolderID.isEmpty {
-            let rootFolderID = try await findRootFolderID(token: token)
-            kc.googleDriveRootFolderID = rootFolderID
+        if kc.googleDriveRootFolderID.isEmpty {
+            if let rootFolderID = try? await findRootFolderID(token: token) {
+                kc.googleDriveRootFolderID = rootFolderID
+            }
         }
 
         let driveURL = "https://drive.google.com/file/d/\(fileID)/view"
@@ -100,18 +112,23 @@ final class GoogleDriveProvider: StorageProvider {
     // MARK: - Delete (by file ID, not path)
 
     func delete(remotePath: String) async throws {
+        guard !googleDriveClientID.isEmpty, !googleDriveClientSecret.isEmpty else {
+            throw GoogleDriveError.notConfigured
+        }
+
         let token = try await authManager.getValidAccessToken(
             clientID: googleDriveClientID,
             clientSecret: googleDriveClientSecret
         )
 
-        // Try to find by file ID from remotePath if it contains one
-        // Otherwise search by path
         guard let fileID = try await resolveFileID(from: remotePath, token: token) else {
             return
         }
 
-        let url = URL(string: "https://www.googleapis.com/drive/v3/files/\(fileID)")!
+        guard let url = URL(string: "https://www.googleapis.com/drive/v3/files/\(fileID)") else {
+            throw GoogleDriveError.invalidURL
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -126,6 +143,7 @@ final class GoogleDriveProvider: StorageProvider {
     // MARK: - File Exists
 
     func fileExists(at remotePath: String) async -> Bool {
+        guard !googleDriveClientID.isEmpty, !googleDriveClientSecret.isEmpty else { return false }
         guard let token = try? await authManager.getValidAccessToken(
             clientID: googleDriveClientID,
             clientSecret: googleDriveClientSecret
@@ -151,7 +169,6 @@ final class GoogleDriveProvider: StorageProvider {
         }
 
         // Build path: RootFolder/Category/
-        // No date in path — so files are findable across days
         let category = categoryFromPath(remotePath)
         let pathComponents = [rootFolderName, category]
 
@@ -161,8 +178,9 @@ final class GoogleDriveProvider: StorageProvider {
 
         // Cache the root folder ID
         if kc.googleDriveRootFolderID.isEmpty {
-            let rootID = try await findOrCreateFolder(name: rootFolderName, parentID: "root", token: token)
-            kc.googleDriveRootFolderID = rootID
+            if let rootID = try? await findOrCreateFolder(name: rootFolderName, parentID: "root", token: token) {
+                kc.googleDriveRootFolderID = rootID
+            }
         }
 
         return currentFolderID
@@ -188,7 +206,10 @@ final class GoogleDriveProvider: StorageProvider {
             "parents": [parentID]
         ]
 
-        let url = URL(string: "https://www.googleapis.com/drive/v3/files")!
+        guard let url = URL(string: "https://www.googleapis.com/drive/v3/files") else {
+            throw GoogleDriveError.invalidURL
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -200,7 +221,7 @@ final class GoogleDriveProvider: StorageProvider {
             throw GoogleDriveError.apiError("Folder creation failed")
         }
 
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let folderID = json["id"] as? String else {
             throw GoogleDriveError.apiError("Invalid folder creation response")
         }
@@ -211,13 +232,11 @@ final class GoogleDriveProvider: StorageProvider {
     // MARK: - No-Overwrite: Generate Unique Name
 
     private func generateUniqueName(name: String, parentID: String, token: String) async throws -> String {
-        // Check if name already exists
         let existing = try await findFile(name: name, parentID: parentID, token: token)
         if existing == nil {
-            return name // no conflict
+            return name
         }
 
-        // Generate unique name: name_TIMESTAMP.ext or name_TIMESTAMP_N.ext
         let ext = (name as NSString).pathExtension
         let baseName = (name as NSString).deletingPathExtension
         let timestamp = Int(Date().timeIntervalSince1970)
@@ -237,7 +256,6 @@ final class GoogleDriveProvider: StorageProvider {
             }
         } while counter < 100
 
-        // Fallback: use UUID
         let uuid = UUID().uuidString.prefix(8)
         return ext.isEmpty ? "\(baseName)_\(uuid)" : "\(baseName)_\(uuid).\(ext)"
     }
@@ -259,10 +277,9 @@ final class GoogleDriveProvider: StorageProvider {
 
         let metadataJSON = try JSONSerialization.data(withJSONObject: metadata)
 
-        // Always create new file (POST), never PATCH
-        let urlString = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable"
-
-        guard let url = URL(string: urlString) else { throw GoogleDriveError.invalidURL }
+        guard let url = URL(string: "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable") else {
+            throw GoogleDriveError.invalidURL
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -292,7 +309,12 @@ final class GoogleDriveProvider: StorageProvider {
         progress: @escaping (Double) -> Void,
         token: String
     ) async throws -> String {
-        let fileHandle = try FileHandle(forReadingFrom: localURL)
+        let fileHandle: FileHandle
+        do {
+            fileHandle = try FileHandle(forReadingFrom: localURL)
+        } catch {
+            throw GoogleDriveError.fileNotFound("Cannot open file: \(localURL.lastPathComponent)")
+        }
         defer { try? fileHandle.close() }
 
         var offset: Int64 = 0
@@ -322,7 +344,6 @@ final class GoogleDriveProvider: StorageProvider {
             if httpResponse.statusCode == 308 {
                 // Resume incomplete — continue
             } else if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
-                // Upload complete
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let id = json["id"] as? String {
                     fileID = id
@@ -338,7 +359,9 @@ final class GoogleDriveProvider: StorageProvider {
             }
 
             offset += Int64(currentChunkSize)
-            await MainActor.run { progress(Double(offset) / Double(fileSize)) }
+            let currentOffset = offset
+            let currentFileSize = fileSize
+            await MainActor.run { progress(Double(currentOffset) / Double(currentFileSize)) }
         }
 
         guard let resultID = fileID else {
@@ -351,25 +374,30 @@ final class GoogleDriveProvider: StorageProvider {
     // MARK: - Queries
 
     private func findFile(name: String, parentID: String, token: String, mimeType: String? = nil) async throws -> String? {
-        var query = "name='\(name.replacingOccurrences(of: "'", with: "\\'"))' and '\(parentID)' in parents and trashed=false"
+        let escapedName = name.replacingOccurrences(of: "'", with: "\\'")
+        var query = "name='\(escapedName)' and '\(parentID)' in parents and trashed=false"
         if let mime = mimeType {
             query += " and mimeType='\(mime)'"
         }
 
-        var components = URLComponents(string: "https://www.googleapis.com/drive/v3/files")!
+        guard var components = URLComponents(string: "https://www.googleapis.com/drive/v3/files") else {
+            return nil
+        }
         components.queryItems = [
             URLQueryItem(name: "q", value: query),
             URLQueryItem(name: "fields", value: "files(id)"),
             URLQueryItem(name: "spaces", value: "drive")
         ]
 
-        var request = URLRequest(url: components.url!)
+        guard let url = components.url else { return nil }
+
+        var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
 
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let files = json["files"] as? [[String: Any]],
               let first = files.first,
               let id = first["id"] as? String else {
@@ -381,10 +409,10 @@ final class GoogleDriveProvider: StorageProvider {
 
     /// Resolve file ID from remotePath — supports both file ID in path and path-based lookup
     private func resolveFileID(from remotePath: String, token: String) async throws -> String? {
-        // If remotePath looks like a Google Drive file ID (no slashes), use it directly
         if !remotePath.contains("/") && !remotePath.isEmpty && remotePath.count >= 10 {
-            // Verify the file exists via API
-            let url = URL(string: "https://www.googleapis.com/drive/v3/files/\(remotePath)?fields=id")!
+            guard let url = URL(string: "https://www.googleapis.com/drive/v3/files/\(remotePath)?fields=id") else {
+                return try await findFileByStoredPath(remotePath: remotePath, token: token)
+            }
             var request = URLRequest(url: url)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             let (_, response) = try await URLSession.shared.data(for: request)
@@ -393,14 +421,12 @@ final class GoogleDriveProvider: StorageProvider {
             }
         }
 
-        // Fallback: search by path components
         return try await findFileByStoredPath(remotePath: remotePath, token: token)
     }
 
     /// Find file by stored path — uses cached folder IDs, not date-based reconstruction
     private func findFileByStoredPath(remotePath: String, token: String) async throws -> String? {
         let settings = SettingsStore.shared
-        let rootFolderName = settings.googleDriveRootFolderName.isEmpty ? "MacMonitor" : settings.googleDriveRootFolderName
 
         var currentFolderID: String
         if !kc.googleDriveRootFolderID.isEmpty {
@@ -411,7 +437,6 @@ final class GoogleDriveProvider: StorageProvider {
             currentFolderID = "root"
         }
 
-        // Parse stored path: RootFolder/Category/filename
         let components = remotePath.split(separator: "/").map(String.init)
         guard !components.isEmpty else { return nil }
 
@@ -427,13 +452,15 @@ final class GoogleDriveProvider: StorageProvider {
             currentFolderID = folderID
         }
 
-        // Find the file itself
         let fileName = components.last!
         return try await findFile(name: fileName, parentID: currentFolderID, token: token)
     }
 
     func getFileSize(fileID: String, token: String) async throws -> Int64 {
-        let url = URL(string: "https://www.googleapis.com/drive/v3/files/\(fileID)?fields=size")!
+        guard let url = URL(string: "https://www.googleapis.com/drive/v3/files/\(fileID)?fields=size") else {
+            throw GoogleDriveError.invalidURL
+        }
+
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
@@ -442,7 +469,7 @@ final class GoogleDriveProvider: StorageProvider {
             throw GoogleDriveError.apiError("Failed to get file size")
         }
 
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let size = json["size"] as? String,
               let sizeInt = Int64(size) else {
             return 0
@@ -454,8 +481,6 @@ final class GoogleDriveProvider: StorageProvider {
     // MARK: - Helpers
 
     private func buildActualRemotePath(remotePath: String, uniqueName: String) -> String {
-        // remotePath is like "photos/IMG_001.jpg"
-        // We want "MacMonitor/photos/IMG_001_TIMESTAMP.jpg"
         let settings = SettingsStore.shared
         let rootFolderName = settings.googleDriveRootFolderName.isEmpty ? "MacMonitor" : settings.googleDriveRootFolderName
         let category = categoryFromPath(remotePath)
@@ -498,11 +523,17 @@ final class GoogleDriveProvider: StorageProvider {
 enum GoogleDriveError: LocalizedError {
     case apiError(String)
     case invalidURL
+    case notConfigured
+    case notAuthenticated
+    case fileNotFound(String)
 
     var errorDescription: String? {
         switch self {
         case .apiError(let detail): return "Google Drive API error: \(detail)"
         case .invalidURL: return "Invalid URL"
+        case .notConfigured: return "Google Drive is not configured. Please enter Client ID and Client Secret in Settings."
+        case .notAuthenticated: return "Not authenticated with Google Drive. Please sign in."
+        case .fileNotFound(let name): return "File not found: \(name)"
         }
     }
 }

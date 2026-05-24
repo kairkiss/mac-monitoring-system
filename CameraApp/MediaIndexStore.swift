@@ -135,7 +135,7 @@ final class MediaIndexStore: ObservableObject {
         persist()
     }
 
-    func markUploadVerified(_ fileName: String, remoteFileID: String?, remoteURL: String?, providerType: String? = nil) {
+    func markUploadVerified(_ fileName: String, remoteFileID: String?, remoteURL: String?, providerType: String? = nil, remotePath: String? = nil) {
         var e = entry(for: fileName)
         e.uploadStatus = .verified
         e.verified = true
@@ -144,6 +144,7 @@ final class MediaIndexStore: ObservableObject {
         if let remoteURL { e.remoteURL = remoteURL }
         if let providerType { e.providerType = providerType }
         if let providerType { e.uploadProvider = providerType }
+        if let remotePath { e.uploadRemotePath = remotePath }
         entries[fileName] = e
         persist()
     }

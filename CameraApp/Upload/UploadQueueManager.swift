@@ -99,7 +99,16 @@ final class UploadQueueManager: ObservableObject {
 
     private func processNext() {
         guard !isPaused else { return }
-        guard let provider = StorageManager.shared.activeProvider else { return }
+
+        // Check if provider is available — don't crash, just wait
+        guard let provider = StorageManager.shared.activeProvider else {
+            // If there are pending jobs but no provider, log once and wait
+            if !store.pendingJobs().isEmpty {
+                ActivityLogManager.shared.warning(.upload, "Upload queue has pending jobs but no storage provider is active")
+            }
+            return
+        }
+
         let maxConcurrent = settings.uploadMaxConcurrent
         let activeCount = store.activeJobs().count
         guard activeCount < maxConcurrent else { return }
@@ -113,6 +122,12 @@ final class UploadQueueManager: ObservableObject {
         Task {
             do {
                 let localURL = URL(fileURLWithPath: job.localPath)
+
+                // Verify local file exists before attempting upload
+                guard FileManager.default.fileExists(atPath: job.localPath) else {
+                    throw UploadError.localFileMissing(job.fileName)
+                }
+
                 let result = try await provider.upload(fileAt: localURL, remotePath: job.remotePath) { progress in
                     var updated = job
                     updated.progress = progress
@@ -126,10 +141,13 @@ final class UploadQueueManager: ObservableObject {
                 completed.fileSize = result.fileSize
                 self.store.updateJob(completed)
 
+                // Write full metadata to MediaIndex after verified upload
                 MediaIndexStore.shared.markUploadVerified(
                     job.fileName,
                     remoteFileID: result.remoteFileID,
-                    remoteURL: result.remoteURL
+                    remoteURL: result.remoteURL,
+                    providerType: provider.type.rawValue,
+                    remotePath: result.remotePath
                 )
                 ActivityLogManager.shared.success(.upload, "Uploaded \(job.fileName)")
 
@@ -156,6 +174,16 @@ final class UploadQueueManager: ObservableObject {
 
                 await MainActor.run { self.processNext() }
             }
+        }
+    }
+}
+
+enum UploadError: LocalizedError {
+    case localFileMissing(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .localFileMissing(let name): return "Local file missing: \(name)"
         }
     }
 }

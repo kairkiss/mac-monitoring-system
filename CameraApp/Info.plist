@@ -13,9 +13,9 @@
 	<key>CFBundleIdentifier</key>
 	<string>com.kairkiss.MacMonitor</string>
 	<key>CFBundleVersion</key>
-	<string>16</string>
+	<string>17</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.3.1</string>
+	<string>2.3.2</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Mac监控系统需要本地网络权限来运行 Web 服务器，用于远程监控和管理。</string>
 	<key>CFBundlePackageType</key>

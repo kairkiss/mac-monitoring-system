@@ -5,7 +5,7 @@ This guide walks you through setting up Google Drive as a storage provider for M
 ## Prerequisites
 
 - A Google account with Google Drive access
-- Mac监控系统 v2.3.1+ installed and running
+- Mac监控系统 v2.3.2+ installed and running
 - A web browser
 
 ## Step 1: Create a Google Cloud Project
@@ -121,6 +121,26 @@ If **Delete local original after verified upload** is enabled:
 6. Favorites and protected files are never auto-deleted
 
 ## Troubleshooting
+
+### App crashes when selecting Google Drive
+- **Fixed in v2.3.2** — update to the latest version
+- If still crashing, check that your macOS version is 14.0+
+
+### App crashes when clicking Sign In
+- **Fixed in v2.3.2** — the OAuth flow now runs safely on the main thread
+- Make sure you've entered both Client ID and Client Secret before clicking Sign In
+
+### "Google Drive is not configured"
+- Enter your Client ID and Client Secret in Settings > Storage Providers > Google Drive
+- Both fields are required before signing in
+
+### "Sign-in was cancelled"
+- You closed the browser window before completing authorization
+- Click Sign In again and complete the full flow
+
+### "Google Drive needs reconnect"
+- Your refresh token expired or was revoked
+- Click Sign Out, then Sign In again with fresh credentials
 
 ### "OAuth failed" or "No authorization code received"
 - Verify **Client ID** and **Client Secret** are correct

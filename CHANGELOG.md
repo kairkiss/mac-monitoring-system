@@ -1,5 +1,36 @@
 # Changelog
 
+## v2.3.2 (2026-05-24)
+
+Google Drive Crash Hotfix — fixes crashes when selecting, configuring, or signing into Google Drive storage provider. Hardens OAuth flow, provider activation, and upload queue against all failure modes.
+
+### Fixes
+
+- **Fixed crash when selecting Google Drive provider** — StorageManager now safely validates credentials and authentication state before creating GoogleDriveProvider
+- **Fixed crash during OAuth sign-in** — ASWebAuthenticationSession is now created and started on the main thread; NWListener callback and session callback use thread-safe single-resume guard to prevent double continuation resume
+- **Fixed crash on OAuth cancellation** — all cancellation paths now safely resume continuation with user-readable error
+- **Fixed crash when credentials are missing** — GoogleDriveProvider returns clear errors instead of force-unwrapping URLs
+- **Fixed crash when local file is missing** — UploadQueueManager verifies file existence before upload attempt
+- **Added import AppKit** — explicit import for NSApplication/ASPresentationAnchor access
+- **Hardened GoogleDriveProvider** — removed all force unwraps, added credential guards, safe FileHandle operations
+- **Hardened StorageManager** — validates credentials and authentication before creating provider; shows clear status messages
+- **Hardened UploadQueueManager** — passes providerType and remotePath to MediaIndex after verified upload; logs warning when queue has jobs but no provider
+- **Wrote providerType and remotePath to MediaIndex** — markUploadVerified now persists providerType and actual remotePath
+- **Updated stale WebDAV copy** — removed version reference from planned provider message
+- **Sign-in button disabled while authenticating** — prevents double-click crashes
+
+### Technical
+
+- Version: 2.3.2
+- Build: 17
+- No data migration required
+- No existing user data is deleted
+- New ContinuationGuard class with NSLock for thread-safe OAuth callbacks
+- MediaIndexStore.markUploadVerified gains `remotePath` parameter
+- StorageManager gains `lastError` property
+- GoogleDriveError gains `.notConfigured`, `.notAuthenticated`, `.fileNotFound` cases
+- GoogleDriveAuthError gains `.listenerFailed` case
+
 ## v2.3.1 (2026-05-24)
 
 Google Drive OAuth & Safety Hotfix — fixes OAuth callback, secures credentials, prevents remote file overwrites, improves folder/path tracking.

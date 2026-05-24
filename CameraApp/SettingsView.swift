@@ -429,11 +429,18 @@ struct SettingsView: View {
                                 }
                             }
                         } label: {
-                            Label(auth.needsReconnect ? Strings.googleDriveReconnect : Strings.googleDriveSignIn, systemImage: "person.crop.circle.badge.checkmark")
+                            if auth.isAuthenticating {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text(Strings.testing)
+                            } else {
+                                Label(auth.needsReconnect ? Strings.googleDriveReconnect : Strings.googleDriveSignIn, systemImage: "person.crop.circle.badge.checkmark")
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.orange)
                         .padding(.leading, 32)
+                        .disabled(auth.isAuthenticating)
                     } else {
                         // Authenticated state
                         HStack(spacing: 12) {
@@ -530,7 +537,7 @@ struct SettingsView: View {
                         Image(systemName: "server.rack")
                             .foregroundStyle(.orange)
                             .frame(width: 20)
-                        Text("WebDAV provider is planned and not fully implemented in v2.0.2.")
+                        Text("WebDAV provider is planned and not fully implemented yet.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
