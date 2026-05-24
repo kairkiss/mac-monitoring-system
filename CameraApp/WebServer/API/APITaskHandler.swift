@@ -10,6 +10,7 @@ struct APITaskHandler {
                     "id": task.id.uuidString,
                     "name": task.name,
                     "type": task.type.rawValue,
+                    "actionType": task.actionType.rawValue,
                     "isEnabled": task.isEnabled,
                     "telegramSend": task.telegramSend,
                     "uploadToCloud": task.uploadToCloud,
@@ -41,6 +42,7 @@ struct APITaskHandler {
                 "id": task.id.uuidString,
                 "name": task.name,
                 "type": task.type.rawValue,
+                "actionType": task.actionType.rawValue,
                 "isEnabled": task.isEnabled,
                 "telegramSend": task.telegramSend,
                 "uploadToCloud": task.uploadToCloud,
@@ -58,7 +60,7 @@ struct APITaskHandler {
         }
 
         // Create task
-        router.addRoute(method: "POST", path: "/api/tasks") { request in
+        router.addRoute(method: "POST", path: "/api/tasks", requiredRole: .operatorRole) { request in
             guard let body = request.body else {
                 return HTTPResponse.error("Missing body", status: 400)
             }
@@ -71,6 +73,11 @@ struct APITaskHandler {
                 return HTTPResponse.error("Invalid task type", status: 400)
             }
 
+            let actionTypeRaw = json["actionType"] as? String ?? "photo"
+            guard let actionType = TaskActionType(rawValue: actionTypeRaw) else {
+                return HTTPResponse.error("Invalid action type", status: 400)
+            }
+
             let weekdays: Set<Int>
             if let wdArray = json["weekdays"] as? [Int] {
                 weekdays = Set(wdArray)
@@ -81,6 +88,7 @@ struct APITaskHandler {
             var task = ScheduledTask(
                 name: json["name"] as? String ?? "",
                 type: taskType,
+                actionType: actionType,
                 isEnabled: json["isEnabled"] as? Bool ?? true,
                 hour: json["hour"] as? Int ?? 8,
                 minute: json["minute"] as? Int ?? 0,
@@ -99,7 +107,7 @@ struct APITaskHandler {
         }
 
         // Update task
-        router.addRoute(method: "PUT", path: "/api/tasks/:id") { request in
+        router.addRoute(method: "PUT", path: "/api/tasks/:id", requiredRole: .operatorRole) { request in
             let taskID = router.extractParam("id", from: request, pattern: "/api/tasks/:id") ?? ""
             let scheduler = AutomationScheduler.shared
 
@@ -118,6 +126,7 @@ struct APITaskHandler {
 
             if let name = json["name"] as? String { task.name = name }
             if let typeRaw = json["type"] as? String, let type = TaskType(rawValue: typeRaw) { task.type = type }
+            if let actionRaw = json["actionType"] as? String, let action = TaskActionType(rawValue: actionRaw) { task.actionType = action }
             if let isEnabled = json["isEnabled"] as? Bool { task.isEnabled = isEnabled }
             if let hour = json["hour"] as? Int { task.hour = hour }
             if let minute = json["minute"] as? Int { task.minute = minute }
@@ -135,7 +144,7 @@ struct APITaskHandler {
         }
 
         // Toggle task
-        router.addRoute(method: "POST", path: "/api/tasks/:id/toggle") { request in
+        router.addRoute(method: "POST", path: "/api/tasks/:id/toggle", requiredRole: .operatorRole) { request in
             let taskID = router.extractParam("id", from: request, pattern: "/api/tasks/:id/toggle") ?? ""
             let scheduler = AutomationScheduler.shared
 
@@ -151,7 +160,7 @@ struct APITaskHandler {
         }
 
         // Delete task
-        router.addRoute(method: "DELETE", path: "/api/tasks/:id") { request in
+        router.addRoute(method: "DELETE", path: "/api/tasks/:id", requiredRole: .operatorRole) { request in
             let taskID = router.extractParam("id", from: request, pattern: "/api/tasks/:id") ?? ""
             let scheduler = AutomationScheduler.shared
 

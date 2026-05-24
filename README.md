@@ -4,25 +4,28 @@ MacMonitor turns the app into a local camera node with a web dashboard, storage 
 
 Mac监控系统将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
 
-> **v2.3.3** — Cloud Storage Reliability & Remote Access Polish. Google Drive error classification, storage diagnostics, upload queue intelligence (waitingForProvider), media cloud badges, retention dry run, cloudflared detection. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **v2.4.1** — Productization Completion Hotfix. Task action types (photo/video), admin-only API enforcement, audit logging with user tracking, stability hardening (MediaIndexStore thread safety, camera capture re-entry guard, retention upload safety), Cloudflare quick tunnel support. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 
 - **Camera Preview** — Real-time webcam preview with photo capture and video recording
 - **Media Library** — Browse, view, and delete captured photos and videos with swipe navigation, pinch-to-zoom, EXIF viewer, and slideshow mode
-- **Automation** — Schedule automatic captures: daily, weekly, countdown, or interval-based, with timeline visualization and execution history
-- **Telegram Push** — Send captured photos to your Telegram chat via Bot API
+- **Automation** — Schedule automatic captures: daily, weekly, countdown, or interval-based, with photo/video action types, timeline visualization, and execution history
+- **Telegram Push** — Send captured photos and videos to your Telegram chat via Bot API
 - **Motion Detection** — Frame-diff based motion detection with configurable sensitivity; optional auto-capture and Telegram push on motion
 - **Event Recording** — Motion-triggered short video clips with configurable duration
 - **Health Monitor** — Camera disconnect, low disk, upload failure, and storage provider alerts
 - **Activity Log** — JSONL-based logging with search, filter, and export
+- **Audit Log** — HTTP request audit trail with authenticated user tracking (admin-only)
+- **Role-Based Access** — Three-tier roles (admin/operator/viewer) with per-route enforcement
 - **Multi-Camera** — Supports multiple cameras with preferred camera persistence and graceful fallback
 - **Web Dashboard** — Browser-based control panel with bilingual UI (Chinese/English), live camera snapshots, media library with thumbnails, task management, and upload queue monitoring
 - **REST API** — Full API for camera, media, tasks, logs, health, uploads, and storage; HTTP Range support for large media file downloads
 - **Storage Providers** — Local folder, mounted folder, and Google Drive backends (available); WebDAV (planned, not fully implemented)
 - **Upload Queue** — Persistent queue with exponential backoff retry, progress tracking, pause/resume, and local/mounted-folder verification. Bandwidth limiting is planned.
 - **Customizable Web Credentials** — Change web admin username and password from macOS Settings or web interface; salted SHA256 password hashing
-- **Retention Policy** — Automatic cleanup of local originals after verified cloud upload
+- **Retention Policy** — Automatic cleanup of local originals after verified cloud upload; skips in-flight uploads
+- **Cloudflare Tunnel** — Quick tunnel (temporary URL) or named tunnel (persistent domain) for secure remote access
 - **Daily Reports** — Automated daily summary of activity, uploads, and health
 - **Timelapse** — Interval-based photo capture compiled into video
 - **Multi-User Access** — Role-based web access (admin/operator/viewer)

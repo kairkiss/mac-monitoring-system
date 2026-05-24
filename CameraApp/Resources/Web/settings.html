@@ -17,6 +17,7 @@
     <a href="/uploads.html" class="nav-item" data-i18n="uploadQueue">Upload Queue</a>
     <a href="/health.html" class="nav-item" data-i18n="health">Health</a>
     <a href="/logs.html" class="nav-item" data-i18n="activityLog">Activity Log</a>
+    <a href="/audit.html" class="nav-item" data-i18n="auditLog">Audit Log</a>
     <a href="/settings.html" class="nav-item active" data-i18n="settings">Settings</a>
     <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
 </nav>
@@ -65,7 +66,20 @@
 
     <div class="card">
         <h3 data-i18n="cloudflareTunnelManage">Tunnel Management</h3>
+        <div style="margin-bottom:10px;">
+            <label style="font-size:13px;color:var(--fg2);display:block;margin-bottom:4px;" data-i18n="tunnelMode">Tunnel Mode</label>
+            <select id="tunnelModeSelect" style="width:auto;margin-bottom:8px;" onchange="updateTunnelModeUI()">
+                <option value="quick" data-i18n="quickTunnel">Quick Tunnel</option>
+                <option value="named" data-i18n="namedTunnel">Named Tunnel</option>
+            </select>
+            <div id="quickTunnelDesc" style="font-size:12px;color:var(--fg2);" data-i18n="quickTunnelDesc">Temporary URL, changes on restart</div>
+            <div id="namedTunnelDesc" style="font-size:12px;color:var(--fg2);display:none;" data-i18n="namedTunnelDesc">Persistent domain, requires Cloudflare account</div>
+        </div>
         <div id="tunnelStatus" style="font-size:13px;color:var(--fg2);margin-bottom:10px;">Loading...</div>
+        <div id="quickTunnelURLBox" style="display:none;margin-bottom:10px;padding:8px;background:var(--bg);border-radius:6px;">
+            <span style="font-size:12px;color:var(--fg2);" data-i18n="tunnelURL">Tunnel URL</span>:
+            <a id="quickTunnelLink" href="#" target="_blank" style="color:var(--accent);font-size:13px;word-break:break-all;"></a>
+        </div>
         <div style="display:flex;gap:8px;">
             <button onclick="startTunnel()" id="tunnelStartBtn" data-i18n="cloudflareStart">Start Tunnel</button>
             <button class="danger" onclick="stopTunnel()" id="tunnelStopBtn" data-i18n="cloudflareStop" style="display:none;">Stop Tunnel</button>
@@ -356,6 +370,12 @@ loadDiagnostics();
 checkCloudflared();
 loadTunnelStatus();
 
+function updateTunnelModeUI() {
+    const mode = document.getElementById('tunnelModeSelect').value;
+    document.getElementById('quickTunnelDesc').style.display = mode === 'quick' ? '' : 'none';
+    document.getElementById('namedTunnelDesc').style.display = mode === 'named' ? '' : 'none';
+}
+
 async function loadTunnelStatus() {
     const data = await api('/api/remote/status');
     if (!data) return;
@@ -363,6 +383,15 @@ async function loadTunnelStatus() {
     const startBtn = document.getElementById('tunnelStartBtn');
     const stopBtn = document.getElementById('tunnelStopBtn');
     const outputEl = document.getElementById('tunnelOutput');
+    const modeSelect = document.getElementById('tunnelModeSelect');
+    const urlBox = document.getElementById('quickTunnelURLBox');
+    const urlLink = document.getElementById('quickTunnelLink');
+
+    // Sync mode selector
+    if (data.tunnelMode) {
+        modeSelect.value = data.tunnelMode;
+        updateTunnelModeUI();
+    }
 
     let statusColor = '#666';
     let statusText = data.status;
@@ -372,11 +401,21 @@ async function loadTunnelStatus() {
     else if (data.status === 'error') { statusColor = '#f44336'; statusText = t('error'); }
 
     let html = '<span style="color:' + statusColor + ';">' + statusText + '</span>';
-    if (data.tunnelName) html += ' &mdash; ' + data.tunnelName;
+    if (data.tunnelMode === 'named' && data.tunnelName) html += ' &mdash; ' + data.tunnelName;
     if (data.hostname) html += ' (' + data.hostname + ')';
     if (data.pid) html += ' [PID: ' + data.pid + ']';
+    if (data.cloudflaredVersion) html += ' <span style="font-size:11px;color:var(--fg2);">v' + data.cloudflaredVersion + '</span>';
     if (data.lastError) html += '<br><span style="color:#f44336;">' + data.lastError + '</span>';
     el.innerHTML = html;
+
+    // Quick tunnel URL display
+    if (data.quickTunnelURL) {
+        urlBox.style.display = '';
+        urlLink.href = data.quickTunnelURL;
+        urlLink.textContent = data.quickTunnelURL;
+    } else {
+        urlBox.style.display = 'none';
+    }
 
     if (data.isRunning) {
         startBtn.style.display = 'none';
@@ -388,15 +427,16 @@ async function loadTunnelStatus() {
 
     if (data.lastOutput) outputEl.textContent = data.lastOutput;
 
-    if (!data.tunnelName) {
+    if (data.tunnelMode === 'named' && !data.tunnelName) {
         el.innerHTML += '<br><span style="color:#ff9800;">' + t('cloudflareNotConfigured') + '</span>';
     }
 }
 
 async function startTunnel() {
     const btn = document.getElementById('tunnelStartBtn');
+    const mode = document.getElementById('tunnelModeSelect').value;
     btn.disabled = true;
-    await api('/api/remote/start', { method: 'POST', body: {} });
+    await api('/api/remote/start', { method: 'POST', body: { mode: mode } });
     setTimeout(loadTunnelStatus, 2000);
     btn.disabled = false;
 }

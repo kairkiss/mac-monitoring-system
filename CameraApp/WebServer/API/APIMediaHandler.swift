@@ -228,7 +228,7 @@ struct APIMediaHandler {
         }
 
         // Delete media
-        router.addRoute(method: "DELETE", path: "/api/media/:id") { request in
+        router.addRoute(method: "DELETE", path: "/api/media/:id", requiredRole: .operatorRole) { request in
             let fileName = sanitizeFileName(router.extractParam("id", from: request, pattern: "/api/media/:id") ?? "")
             guard !fileName.isEmpty else { return HTTPResponse.error("Missing id") }
 
@@ -252,7 +252,7 @@ struct APIMediaHandler {
         }
 
         // Upload now (enqueue)
-        router.addRoute(method: "POST", path: "/api/media/:id/upload") { request in
+        router.addRoute(method: "POST", path: "/api/media/:id/upload", requiredRole: .operatorRole) { request in
             let fileName = sanitizeFileName(router.extractParam("id", from: request, pattern: "/api/media/:id/upload") ?? "")
             guard !fileName.isEmpty else { return HTTPResponse.error("Missing id") }
 

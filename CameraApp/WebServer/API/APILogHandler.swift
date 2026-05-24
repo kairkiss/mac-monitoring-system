@@ -53,5 +53,29 @@ struct APILogHandler {
             ActivityLogManager.shared.clearLog()
             return HTTPResponse.ok()
         }
+
+        // Read audit log (admin only)
+        router.addRoute(method: "GET", path: "/api/audit", requiredRole: .admin) { request in
+            let limit = Int(request.queryParameters["limit"] ?? "100") ?? 100
+            let entries = AuditLogManager.shared.readEntries(limit: limit)
+            let items = entries.map { entry -> [String: Any] in
+                [
+                    "timestamp": ISO8601DateFormatter().string(from: entry.timestamp),
+                    "method": entry.method,
+                    "path": entry.path,
+                    "status": entry.status,
+                    "duration": Int(entry.duration * 1000),
+                    "remoteAddress": entry.remoteAddress,
+                    "user": entry.user ?? ""
+                ] as [String: Any]
+            }
+            return HTTPResponse.json(["entries": items, "total": items.count])
+        }
+
+        // Clear audit log (admin only)
+        router.addRoute(method: "DELETE", path: "/api/audit", requiredRole: .admin) { _ in
+            AuditLogManager.shared.clear()
+            return HTTPResponse.ok()
+        }
     }
 }

@@ -455,4 +455,25 @@ struct Strings {
     static var lastCapture: String { lang == .chinese ? "最后拍摄" : "Last Capture" }
     static var lastUpload: String { lang == .chinese ? "最后上传" : "Last Upload" }
     static var googleDriveStatus: String { lang == .chinese ? "Google Drive 状态" : "Google Drive Status" }
+
+    // MARK: - v2.4.1: Task Action Type
+    static var actionType: String { lang == .chinese ? "动作类型" : "Action Type" }
+    static var videoDuration: String { lang == .chinese ? "录像时长 (秒)" : "Video Duration (sec)" }
+    static var photoAction: String { lang == .chinese ? "拍照" : "Photo" }
+    static var videoAction: String { lang == .chinese ? "录像" : "Video" }
+
+    // MARK: - v2.4.1: Cloudflare Tunnel
+    static var quickTunnel: String { lang == .chinese ? "快速 Tunnel" : "Quick Tunnel" }
+    static var namedTunnel: String { lang == .chinese ? "命名 Tunnel" : "Named Tunnel" }
+    static var tunnelMode: String { lang == .chinese ? "Tunnel 模式" : "Tunnel Mode" }
+    static var quickTunnelDesc: String { lang == .chinese ? "临时 URL，重启后变化" : "Temporary URL, changes on restart" }
+    static var namedTunnelDesc: String { lang == .chinese ? "固定域名，需要 Cloudflare 账户" : "Persistent domain, requires Cloudflare account" }
+    static var tunnelURL: String { lang == .chinese ? "Tunnel URL" : "Tunnel URL" }
+    static var tunnelDiagnostics: String { lang == .chinese ? "Tunnel 诊断" : "Tunnel Diagnostics" }
+    static var cloudflaredVersion: String { lang == .chinese ? "cloudflared 版本" : "cloudflared Version" }
+
+    // MARK: - v2.4.1: Admin & Audit
+    static var adminOnly: String { lang == .chinese ? "仅管理员" : "Admin Only" }
+    static var adminOnlyAction: String { lang == .chinese ? "此操作需要管理员权限" : "This action requires admin privileges" }
+    static var auditLogEntry: String { lang == .chinese ? "审计记录" : "Audit Entry" }
 }

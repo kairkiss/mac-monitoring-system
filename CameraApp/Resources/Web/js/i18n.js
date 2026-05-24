@@ -114,6 +114,8 @@ const I18N = {
     export: "Export",
     level: "Level",
     category: "Category",
+    user: "User",
+    clear: "Clear",
     storage: "Storage",
     webUsers: "Web Users",
     storageProviders: "Storage Providers",
@@ -247,7 +249,21 @@ const I18N = {
     interval: "Interval",
     saveTask: "Save Task",
     cancelEdit: "Cancel",
-    remoteAccess: "Remote Access"
+    actionType: "Action Type",
+    photo: "Photo",
+    video: "Video",
+    videoDuration: "Video Duration (sec)",
+    quickTunnel: "Quick Tunnel",
+    namedTunnel: "Named Tunnel",
+    tunnelMode: "Tunnel Mode",
+    quickTunnelDesc: "Temporary URL, changes on restart",
+    namedTunnelDesc: "Persistent domain, requires Cloudflare account",
+    tunnelURL: "Tunnel URL",
+    tunnelDiagnostics: "Tunnel Diagnostics",
+    cloudflaredVersion: "cloudflared Version",
+    adminOnly: "Admin Only",
+    adminOnlyAction: "This action requires admin privileges",
+    auditLog: "Audit Log"
   },
   zh: {
     appName: "Mac监控系统",
@@ -363,6 +379,8 @@ const I18N = {
     export: "导出",
     level: "级别",
     category: "分类",
+    user: "用户",
+    clear: "清除",
     storage: "存储",
     webUsers: "Web用户",
     storageProviders: "存储提供者",
@@ -496,7 +514,21 @@ const I18N = {
     interval: "间隔",
     saveTask: "保存任务",
     cancelEdit: "取消",
-    remoteAccess: "远程访问"
+    actionType: "动作类型",
+    photo: "拍照",
+    video: "录像",
+    videoDuration: "录像时长 (秒)",
+    quickTunnel: "快速 Tunnel",
+    namedTunnel: "命名 Tunnel",
+    tunnelMode: "Tunnel 模式",
+    quickTunnelDesc: "临时 URL，重启后变化",
+    namedTunnelDesc: "固定域名，需要 Cloudflare 账户",
+    tunnelURL: "Tunnel URL",
+    tunnelDiagnostics: "Tunnel 诊断",
+    cloudflaredVersion: "cloudflared 版本",
+    adminOnly: "仅管理员",
+    adminOnlyAction: "此操作需要管理员权限",
+    auditLog: "审计日志"
   }
 };
 

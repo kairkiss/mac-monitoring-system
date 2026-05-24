@@ -37,7 +37,7 @@ struct APIReportHandler {
         }
 
         // Trigger manual report generation
-        router.addRoute(method: "POST", path: "/api/reports/generate") { _ in
+        router.addRoute(method: "POST", path: "/api/reports/generate", requiredRole: .operatorRole) { _ in
             DailyReportManager.shared.generateNow()
             return HTTPResponse.ok()
         }
@@ -53,13 +53,13 @@ struct APIReportHandler {
         }
 
         // Start timelapse
-        router.addRoute(method: "POST", path: "/api/timelapse/start") { _ in
+        router.addRoute(method: "POST", path: "/api/timelapse/start", requiredRole: .operatorRole) { _ in
             TimelapseManager.shared.start()
             return HTTPResponse.ok()
         }
 
         // Stop timelapse
-        router.addRoute(method: "POST", path: "/api/timelapse/stop") { _ in
+        router.addRoute(method: "POST", path: "/api/timelapse/stop", requiredRole: .operatorRole) { _ in
             TimelapseManager.shared.stop()
             return HTTPResponse.ok()
         }

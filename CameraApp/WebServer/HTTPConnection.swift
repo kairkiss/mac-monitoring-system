@@ -122,7 +122,7 @@ final class HTTPConnection {
             status: response.status,
             duration: duration,
             remoteAddress: request.remoteAddress,
-            user: nil
+            user: request.sessionUsername
         )
     }
 

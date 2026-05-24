@@ -7,6 +7,8 @@ struct HTTPRequest {
     let queryParameters: [String: String]
     let body: Data?
     let remoteAddress: String
+    var sessionUsername: String?
+    var sessionRole: UserRole?
 
     var bearerToken: String? {
         guard let auth = headers["Authorization"], auth.hasPrefix("Bearer ") else { return nil }

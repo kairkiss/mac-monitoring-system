@@ -17,10 +17,23 @@ enum TaskType: String, Codable, CaseIterable {
     }
 }
 
+enum TaskActionType: String, Codable, CaseIterable {
+    case photo
+    case video
+
+    var displayName: String {
+        switch self {
+        case .photo: return Strings.photo
+        case .video: return Strings.video
+        }
+    }
+}
+
 struct ScheduledTask: Identifiable, Codable {
     let id: UUID
     var name: String
     var type: TaskType
+    var actionType: TaskActionType
     var isEnabled: Bool
     var hour: Int
     var minute: Int
@@ -41,6 +54,7 @@ struct ScheduledTask: Identifiable, Codable {
         id: UUID = UUID(),
         name: String = "",
         type: TaskType = .daily,
+        actionType: TaskActionType = .photo,
         isEnabled: Bool = true,
         hour: Int = 8,
         minute: Int = 0,
@@ -59,6 +73,7 @@ struct ScheduledTask: Identifiable, Codable {
         self.id = id
         self.name = name
         self.type = type
+        self.actionType = actionType
         self.isEnabled = isEnabled
         self.hour = hour
         self.minute = minute
@@ -95,10 +110,12 @@ final class AutomationScheduler: ObservableObject {
     }
 
     var onCapture: ((ScheduledTask?) -> Void)?  // takes task for upload policy
+    var onVideoCapture: ((ScheduledTask?) -> Void)?  // video recording action
 
     private var activeTimers: [UUID: Timer] = [:]
     private var intervalStopTimers: [UUID: Timer] = [:]
     private var retryTimers: [UUID: Timer] = [:]
+    private var activeVideoTasks: Set<UUID> = []  // re-entry guard for video tasks
 
     private init() {
         isAutomationEnabled = UserDefaults.standard.bool(forKey: "automationEnabled")
@@ -167,6 +184,14 @@ final class AutomationScheduler: ObservableObject {
 
     func captureNow() {
         onCapture?(nil)
+    }
+
+    func videoCaptureNow() {
+        onVideoCapture?(nil)
+    }
+
+    func videoTaskCompleted(taskID: UUID) {
+        activeVideoTasks.remove(taskID)
     }
 
     // MARK: - Restore
@@ -395,9 +420,21 @@ final class AutomationScheduler: ObservableObject {
             return
         }
 
-        onCapture?(tasks[index])
+        let task = tasks[index]
+        let taskName = task.name.isEmpty ? task.type.displayName : task.name
 
-        let taskName = tasks[index].name.isEmpty ? tasks[index].type.displayName : tasks[index].name
+        if task.actionType == .video {
+            // Re-entry guard: don't start another video if one is active for this task
+            guard !activeVideoTasks.contains(taskID) else {
+                ActivityLogManager.shared.log(level: .warning, category: .automation, message: "Video task already recording: \(taskName)", taskID: taskID.uuidString, taskName: taskName)
+                return
+            }
+            activeVideoTasks.insert(taskID)
+            onVideoCapture?(task)
+        } else {
+            onCapture?(task)
+        }
+
         logExecution(taskID: taskID, taskName: taskName, succeeded: true)
         ActivityLogManager.shared.log(level: .success, category: .automation, message: "Task fired: \(taskName)", taskID: taskID.uuidString, taskName: taskName)
 

@@ -123,6 +123,7 @@ struct CameraApp: App {
                     mediaLibrary.scanLibrary()
                     automationScheduler.restoreAllTasks()
                     setupAutomationCapture()
+                    setupVideoAutomationCapture()
                     setupMotionDetection()
                     HealthMonitor.shared.startMonitoring()
                     UploadQueueManager.shared.startProcessing()
@@ -167,6 +168,42 @@ struct CameraApp: App {
                         }
                         if task?.uploadToCloud == true {
                             UploadQueueManager.shared.enqueue(fileName: fileName)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func setupVideoAutomationCapture() {
+        let camera = CameraManager.shared
+        automationScheduler.onVideoCapture = { [weak camera, weak automationScheduler] task in
+            guard let camera else { return }
+            camera.ensureSessionRunning {
+                camera.startRecording { result in
+                    switch result {
+                    case .success:
+                        let duration = TimeInterval(task?.durationMinutes ?? 30)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+                            camera.stopRecording { stopResult in
+                                if case .success(let url) = stopResult {
+                                    let fileName = url.lastPathComponent
+                                    MediaIndexStore.shared.setSource(.automation, for: fileName)
+                                    if task?.telegramSend == true, let data = try? Data(contentsOf: url) {
+                                        TelegramService.shared.sendVideo(videoData: data, fileName: fileName)
+                                    }
+                                    if task?.uploadToCloud == true {
+                                        UploadQueueManager.shared.enqueue(fileName: fileName)
+                                    }
+                                }
+                                if let taskID = task?.id {
+                                    automationScheduler?.videoTaskCompleted(taskID: taskID)
+                                }
+                            }
+                        }
+                    case .failure:
+                        if let taskID = task?.id {
+                            automationScheduler?.videoTaskCompleted(taskID: taskID)
                         }
                     }
                 }

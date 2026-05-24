@@ -28,18 +28,22 @@ final class WebRouter {
         // Check for exact match first
         for route in routes {
             if route.method == request.method && matchPattern(route.pattern, against: request.path) {
+                var req = request
                 if route.requiresAuth {
                     guard let token = request.bearerToken,
                           let session = WebAuthManager.shared.validateSession(token) else {
                         return HTTPResponse.error("Unauthorized", status: 401)
                     }
+                    req.sessionUsername = session.username
+                    req.sessionRole = session.role
                     if let requiredRole = route.requiredRole {
                         guard session.role.hasPermission(requiredRole) else {
+                            ActivityLogManager.shared.warning(.security, "Permission denied: \(session.username) (\(session.role.rawValue)) attempted \(request.method) \(request.path)")
                             return HTTPResponse.error("Forbidden", status: 403)
                         }
                     }
                 }
-                return route.handler(request)
+                return route.handler(req)
             }
         }
 

@@ -77,6 +77,9 @@ final class RetentionManager {
             // Only delete verified uploads
             guard entry.verified, entry.uploadStatus == .verified || entry.uploadStatus == .completed else { continue }
 
+            // Never delete files currently in-flight
+            guard entry.uploadStatus != .uploading, entry.uploadStatus != .queued else { continue }
+
             // Protect favorites if configured
             if settings.retentionProtectFavorites && entry.isFavorite { continue }
 

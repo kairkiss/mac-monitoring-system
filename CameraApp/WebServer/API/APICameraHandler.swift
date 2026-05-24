@@ -38,7 +38,7 @@ struct APICameraHandler {
         }
 
         // Capture photo
-        router.addRoute(method: "POST", path: "/api/camera/capture") { _ in
+        router.addRoute(method: "POST", path: "/api/camera/capture", requiredRole: .operatorRole) { _ in
             let camera = CameraManager.shared
             let semaphore = DispatchSemaphore(value: 0)
             var captureResult: Result<URL, CameraCaptureError>?
@@ -79,7 +79,7 @@ struct APICameraHandler {
         }
 
         // Switch camera
-        router.addRoute(method: "POST", path: "/api/camera/switch") { request in
+        router.addRoute(method: "POST", path: "/api/camera/switch", requiredRole: .operatorRole) { request in
             guard let body = request.body,
                   let json = try? JSONSerialization.jsonObject(with: body) as? [String: String],
                   let deviceID = json["deviceID"] else {
@@ -92,7 +92,7 @@ struct APICameraHandler {
         }
 
         // Start recording
-        router.addRoute(method: "POST", path: "/api/camera/record/start") { _ in
+        router.addRoute(method: "POST", path: "/api/camera/record/start", requiredRole: .operatorRole) { _ in
             let camera = CameraManager.shared
             guard !camera.isVideoRecording else {
                 return HTTPResponse.error("Already recording", status: 409)
@@ -117,7 +117,7 @@ struct APICameraHandler {
         }
 
         // Stop recording
-        router.addRoute(method: "POST", path: "/api/camera/record/stop") { _ in
+        router.addRoute(method: "POST", path: "/api/camera/record/stop", requiredRole: .operatorRole) { _ in
             let camera = CameraManager.shared
             guard camera.isVideoRecording else {
                 return HTTPResponse.error("Not recording", status: 409)

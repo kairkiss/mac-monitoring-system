@@ -51,6 +51,7 @@ final class MediaIndexStore: ObservableObject {
     static let shared = MediaIndexStore()
 
     @Published private(set) var entries: [String: MediaIndexEntry] = [:]  // keyed by fileName
+    private let queue = DispatchQueue(label: "media-index-store", qos: .userInitiated)
 
     private var fileURL: URL {
         MediaLibraryManager.shared.baseDirectory.appendingPathComponent("media_index.json")
@@ -63,141 +64,163 @@ final class MediaIndexStore: ObservableObject {
     // MARK: - Access
 
     func entry(for fileName: String) -> MediaIndexEntry {
-        entries[fileName] ?? MediaIndexEntry()
+        queue.sync { entries[fileName] ?? MediaIndexEntry() }
     }
 
     func isFavorite(_ fileName: String) -> Bool {
-        entries[fileName]?.isFavorite ?? false
+        queue.sync { entries[fileName]?.isFavorite ?? false }
     }
 
     func toggleFavorite(_ fileName: String) {
-        var e = entry(for: fileName)
-        e.isFavorite.toggle()
-        entries[fileName] = e
-        persist()
+        queue.sync {
+            var e = entries[fileName] ?? MediaIndexEntry()
+            e.isFavorite.toggle()
+            entries[fileName] = e
+        }
+        notifyAndPersist()
     }
 
     func setSource(_ source: MediaSource, for fileName: String) {
-        var e = entry(for: fileName)
-        e.source = source
-        entries[fileName] = e
-        persist()
+        queue.sync {
+            var e = entries[fileName] ?? MediaIndexEntry()
+            e.source = source
+            entries[fileName] = e
+        }
+        notifyAndPersist()
     }
 
     func markTelegramSent(_ fileName: String) {
-        var e = entry(for: fileName)
-        e.telegramSent = true
-        entries[fileName] = e
-        persist()
+        queue.sync {
+            var e = entries[fileName] ?? MediaIndexEntry()
+            e.telegramSent = true
+            entries[fileName] = e
+        }
+        notifyAndPersist()
     }
 
     func addTag(_ tag: String, to fileName: String) {
-        var e = entry(for: fileName)
-        if !e.tags.contains(tag) {
-            e.tags.append(tag)
-            entries[fileName] = e
-            persist()
+        queue.sync {
+            var e = entries[fileName] ?? MediaIndexEntry()
+            if !e.tags.contains(tag) {
+                e.tags.append(tag)
+                entries[fileName] = e
+            }
         }
+        notifyAndPersist()
     }
 
     func removeTag(_ tag: String, from fileName: String) {
-        var e = entry(for: fileName)
-        e.tags.removeAll { $0 == tag }
-        entries[fileName] = e
-        persist()
+        queue.sync {
+            var e = entries[fileName] ?? MediaIndexEntry()
+            e.tags.removeAll { $0 == tag }
+            entries[fileName] = e
+        }
+        notifyAndPersist()
     }
 
     // MARK: - Queries
 
     var favorites: [String] {
-        entries.filter { $0.value.isFavorite }.map { $0.key }
+        queue.sync { entries.filter { $0.value.isFavorite }.map { $0.key } }
     }
 
     func items(withSource source: MediaSource) -> [String] {
-        entries.filter { $0.value.source == source }.map { $0.key }
+        queue.sync { entries.filter { $0.value.source == source }.map { $0.key } }
     }
 
     func telegramSentItems() -> [String] {
-        entries.filter { $0.value.telegramSent }.map { $0.key }
+        queue.sync { entries.filter { $0.value.telegramSent }.map { $0.key } }
     }
 
     // MARK: - Upload Tracking
 
     func setUploadStatus(_ status: UploadEntryStatus, for fileName: String, provider: String? = nil, remotePath: String? = nil, jobID: String? = nil) {
-        var e = entry(for: fileName)
-        e.uploadStatus = status
-        if let provider { e.uploadProvider = provider }
-        if let remotePath { e.uploadRemotePath = remotePath }
-        if let jobID { e.uploadJobID = jobID }
-        if status == .completed || status == .verified {
-            e.uploadDate = Date()
+        queue.sync {
+            var e = entries[fileName] ?? MediaIndexEntry()
+            e.uploadStatus = status
+            if let provider { e.uploadProvider = provider }
+            if let remotePath { e.uploadRemotePath = remotePath }
+            if let jobID { e.uploadJobID = jobID }
+            if status == .completed || status == .verified {
+                e.uploadDate = Date()
+            }
+            entries[fileName] = e
         }
-        entries[fileName] = e
-        persist()
+        notifyAndPersist()
     }
 
     func markUploadVerified(_ fileName: String, remoteFileID: String?, remoteURL: String?, providerType: String? = nil, remotePath: String? = nil) {
-        var e = entry(for: fileName)
-        e.uploadStatus = .verified
-        e.verified = true
-        e.verifiedAt = Date()
-        e.uploadDate = Date()
-        if let remoteFileID { e.remoteFileID = remoteFileID }
-        if let remoteURL { e.remoteURL = remoteURL }
-        if let providerType { e.providerType = providerType }
-        if let providerType { e.uploadProvider = providerType }
-        if let remotePath { e.uploadRemotePath = remotePath }
-        entries[fileName] = e
-        persist()
+        queue.sync {
+            var e = entries[fileName] ?? MediaIndexEntry()
+            e.uploadStatus = .verified
+            e.verified = true
+            e.verifiedAt = Date()
+            e.uploadDate = Date()
+            if let remoteFileID { e.remoteFileID = remoteFileID }
+            if let remoteURL { e.remoteURL = remoteURL }
+            if let providerType { e.providerType = providerType }
+            if let providerType { e.uploadProvider = providerType }
+            if let remotePath { e.uploadRemotePath = remotePath }
+            entries[fileName] = e
+        }
+        notifyAndPersist()
     }
 
     func markLocalDeleted(_ fileName: String) {
-        var e = entry(for: fileName)
-        e.localOriginalExists = false
-        e.localDeletedAt = Date()
-        e.uploadStatus = .localDeleted
-        entries[fileName] = e
-        persist()
+        queue.sync {
+            var e = entries[fileName] ?? MediaIndexEntry()
+            e.localOriginalExists = false
+            e.localDeletedAt = Date()
+            e.uploadStatus = .localDeleted
+            entries[fileName] = e
+        }
+        notifyAndPersist()
     }
 
     func setProtected(_ protected: Bool, for fileName: String) {
-        var e = entry(for: fileName)
-        e.protected = protected
-        entries[fileName] = e
-        persist()
+        queue.sync {
+            var e = entries[fileName] ?? MediaIndexEntry()
+            e.protected = protected
+            entries[fileName] = e
+        }
+        notifyAndPersist()
     }
 
     func setThumbnailPath(_ path: String, for fileName: String) {
-        var e = entry(for: fileName)
-        e.thumbnailPath = path
-        entries[fileName] = e
-        persist()
+        queue.sync {
+            var e = entries[fileName] ?? MediaIndexEntry()
+            e.thumbnailPath = path
+            entries[fileName] = e
+        }
+        notifyAndPersist()
     }
 
     func pendingUploadItems() -> [String] {
-        entries.filter { $0.value.uploadStatus == .queued || $0.value.uploadStatus == .uploading }.map { $0.key }
+        queue.sync { entries.filter { $0.value.uploadStatus == .queued || $0.value.uploadStatus == .uploading }.map { $0.key } }
     }
 
     func verifiedItems() -> [String] {
-        entries.filter { $0.value.verified }.map { $0.key }
+        queue.sync { entries.filter { $0.value.verified }.map { $0.key } }
     }
 
     func localDeletedItems() -> [String] {
-        entries.filter { !$0.value.localOriginalExists }.map { $0.key }
+        queue.sync { entries.filter { !$0.value.localOriginalExists }.map { $0.key } }
     }
 
     // MARK: - Cleanup
 
     func removeEntry(for fileName: String) {
-        entries.removeValue(forKey: fileName)
-        persist()
+        queue.sync { _ = entries.removeValue(forKey: fileName) }
+        notifyAndPersist()
     }
 
     func removeEntries(for fileNames: [String]) {
-        for name in fileNames {
-            entries.removeValue(forKey: name)
+        queue.sync {
+            for name in fileNames {
+                entries.removeValue(forKey: name)
+            }
         }
-        persist()
+        notifyAndPersist()
     }
 
     /// Reconcile index with actual files on disk.
@@ -207,30 +230,27 @@ final class MediaIndexStore: ObservableObject {
         var orphansRemoved = 0
         var missingAdded = 0
 
-        // Remove orphan entries (index exists but file doesn't)
-        // BUT preserve archived entries (verified upload + local deleted) and protected entries
-        let orphans = entries.keys.filter { !allFileNames.contains($0) }
-        for orphan in orphans {
-            let entry = entries[orphan]!
-            // Keep archived entries: verified upload where local was intentionally deleted
-            if entry.verified && !entry.localOriginalExists { continue }
-            // Keep protected entries
-            if entry.protected { continue }
-            entries.removeValue(forKey: orphan)
-            orphansRemoved += 1
-        }
+        queue.sync {
+            let orphans = entries.keys.filter { !allFileNames.contains($0) }
+            for orphan in orphans {
+                let entry = entries[orphan]!
+                if entry.verified && !entry.localOriginalExists { continue }
+                if entry.protected { continue }
+                entries.removeValue(forKey: orphan)
+                orphansRemoved += 1
+            }
 
-        // Add missing entries (file exists but no index)
-        for fileName in allFileNames {
-            if entries[fileName] == nil {
-                let source: MediaSource = fileName.hasPrefix("Photo_") ? .manual : .manual
-                entries[fileName] = MediaIndexEntry(source: source)
-                missingAdded += 1
+            for fileName in allFileNames {
+                if entries[fileName] == nil {
+                    let source: MediaSource = fileName.hasPrefix("Photo_") ? .manual : .manual
+                    entries[fileName] = MediaIndexEntry(source: source)
+                    missingAdded += 1
+                }
             }
         }
 
         if orphansRemoved > 0 || missingAdded > 0 {
-            persist()
+            notifyAndPersist()
             if orphansRemoved > 0 {
                 ActivityLogManager.shared.info(.media, "Cleaned \(orphansRemoved) orphan index entries")
             }
@@ -244,11 +264,21 @@ final class MediaIndexStore: ObservableObject {
 
     private func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
-        entries = (try? JSONDecoder().decode([String: MediaIndexEntry].self, from: data)) ?? [:]
+        let decoded = (try? JSONDecoder().decode([String: MediaIndexEntry].self, from: data)) ?? [:]
+        entries = decoded
+    }
+
+    private func notifyAndPersist() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.objectWillChange.send()
+        }
+        persist()
     }
 
     private func persist() {
-        guard let data = try? JSONEncoder().encode(entries) else { return }
+        let snapshot = queue.sync { entries }
+        guard let data = try? JSONEncoder().encode(snapshot) else { return }
         _ = MediaLibraryManager.shared.writeAtomically(data, to: fileURL)
     }
 }

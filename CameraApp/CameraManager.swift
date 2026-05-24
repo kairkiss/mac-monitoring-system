@@ -93,6 +93,7 @@ final class CameraManager: NSObject, ObservableObject {
     private let sampleBufferQueue = DispatchQueue(label: "camera.sampleBuffer")
     private var latestJPEGData: Data?
     private var latestJPEGDate: Date = .distantPast
+    private var isCapturingPhoto = false
 
     private(set) var isSessionRunning = false
     var isVideoRecording: Bool { movieOutput.isRecording }
@@ -362,6 +363,15 @@ final class CameraManager: NSObject, ObservableObject {
     // MARK: - Photo Capture
 
     func capturePhoto(completion: ((Result<URL, CameraCaptureError>) -> Void)? = nil) {
+        guard !isCapturingPhoto else {
+            completion?(.failure(.cameraNotReady))
+            return
+        }
+        isCapturingPhoto = true
+        let wrappedCompletion: ((Result<URL, CameraCaptureError>) -> Void) = { [weak self] result in
+            self?.isCapturingPhoto = false
+            completion?(result)
+        }
         if !isSessionRunning {
             startSession()
             var attempts = 0
@@ -371,24 +381,27 @@ final class CameraManager: NSObject, ObservableObject {
                 attempts += 1
                 if self.isSessionRunning {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        self.doCapturePhoto(completion: completion)
+                        self.doCapturePhoto(completion: wrappedCompletion)
                     }
                 } else if attempts < 30 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { check?() }
                 } else {
                     self.status = .error(Strings.cameraStopped)
-                    completion?(.failure(.cameraNotReady))
+                    wrappedCompletion(.failure(.cameraNotReady))
                 }
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { check() }
             return
         }
-        doCapturePhoto(completion: completion)
+        doCapturePhoto(completion: wrappedCompletion)
     }
 
     private func doCapturePhoto(completion: ((Result<URL, CameraCaptureError>) -> Void)?) {
-        guard let sampleBuffer = latestSampleBuffer,
-              let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+        let imageBuffer: CVImageBuffer? = sampleBufferQueue.sync {
+            guard let sb = latestSampleBuffer else { return nil }
+            return CMSampleBufferGetImageBuffer(sb)
+        }
+        guard let imageBuffer else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 self?.doCapturePhotoDirect(completion: completion)
             }
@@ -398,8 +411,11 @@ final class CameraManager: NSObject, ObservableObject {
     }
 
     private func doCapturePhotoDirect(completion: ((Result<URL, CameraCaptureError>) -> Void)?) {
-        guard let sampleBuffer = latestSampleBuffer,
-              let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+        let imageBuffer: CVImageBuffer? = sampleBufferQueue.sync {
+            guard let sb = latestSampleBuffer else { return nil }
+            return CMSampleBufferGetImageBuffer(sb)
+        }
+        guard let imageBuffer else {
             status = .error(Strings.noVideoFrame)
             completion?(.failure(.noVideoFrame))
             return

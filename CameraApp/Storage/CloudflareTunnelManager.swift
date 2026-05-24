@@ -8,12 +8,18 @@ enum TunnelStatus: String {
     case error
 }
 
+enum TunnelMode: String, Codable {
+    case quick    // cloudflared tunnel --url (temporary URL)
+    case named    // cloudflared tunnel run <name> (persistent domain)
+}
+
 final class CloudflareTunnelManager: ObservableObject {
     static let shared = CloudflareTunnelManager()
 
     @Published private(set) var status: TunnelStatus = .stopped
     @Published private(set) var lastOutput: String = ""
     @Published private(set) var lastError: String = ""
+    @Published private(set) var quickTunnelURL: String = ""
 
     private var process: Process?
     private var outputPipe: Pipe?
@@ -31,7 +37,6 @@ final class CloudflareTunnelManager: ObservableObject {
             "/usr/bin/cloudflared"
         ]
 
-        // Check configured path first
         let configured = settings.cloudflaredPath
         if !configured.isEmpty && FileManager.default.isExecutableFile(atPath: configured) {
             if let version = getVersion(at: configured) {
@@ -39,7 +44,6 @@ final class CloudflareTunnelManager: ObservableObject {
             }
         }
 
-        // Check common paths
         for path in candidates {
             if FileManager.default.isExecutableFile(atPath: path) {
                 if let version = getVersion(at: path) {
@@ -48,7 +52,6 @@ final class CloudflareTunnelManager: ObservableObject {
             }
         }
 
-        // Try which
         let whichResult = shell("which cloudflared")
         if !whichResult.isEmpty {
             let trimmed = whichResult.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -62,16 +65,9 @@ final class CloudflareTunnelManager: ObservableObject {
         return (false, nil, nil)
     }
 
-    func startTunnel() {
-        let tunnelName = settings.cloudflareTunnelName
-        let hostname = settings.cloudflareHostname
+    func startTunnel(mode: TunnelMode? = nil) {
+        let effectiveMode = mode ?? settings.cloudflareTunnelMode
         let localPort = settings.webServerPort
-
-        guard !tunnelName.isEmpty else {
-            lastError = "Tunnel name not configured"
-            status = .error
-            return
-        }
 
         let detection = detectCloudflared()
         guard detection.detected, let path = detection.path else {
@@ -80,7 +76,6 @@ final class CloudflareTunnelManager: ObservableObject {
             return
         }
 
-        // Save detected path
         if settings.cloudflaredPath != path {
             settings.cloudflaredPath = path
         }
@@ -88,15 +83,30 @@ final class CloudflareTunnelManager: ObservableObject {
         status = .starting
         lastError = ""
         lastOutput = ""
+        quickTunnelURL = ""
 
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: path)
 
-        var args = ["tunnel", "run"]
-        if !hostname.isEmpty {
-            args += ["--url", "http://127.0.0.1:\(localPort)"]
+        var args: [String]
+        switch effectiveMode {
+        case .quick:
+            args = ["tunnel", "--url", "http://127.0.0.1:\(localPort)"]
+        case .named:
+            let tunnelName = settings.cloudflareTunnelName
+            guard !tunnelName.isEmpty else {
+                lastError = "Tunnel name not configured"
+                status = .error
+                return
+            }
+            args = ["tunnel", "run"]
+            let hostname = settings.cloudflareHostname
+            if !hostname.isEmpty {
+                args += ["--url", "http://127.0.0.1:\(localPort)"]
+            }
+            args.append(tunnelName)
         }
-        args.append(tunnelName)
+
         proc.arguments = args
 
         let outPipe = Pipe()
@@ -110,9 +120,12 @@ final class CloudflareTunnelManager: ObservableObject {
             if let str = String(data: data, encoding: .utf8) {
                 DispatchQueue.main.async {
                     self?.lastOutput += str
-                    // Check for connection established
                     if str.contains("Registered connection") || str.contains("connection established") {
                         self?.status = .running
+                    }
+                    // Parse quick tunnel URL
+                    if let url = self?.parseQuickTunnelURL(from: str) {
+                        self?.quickTunnelURL = url
                     }
                 }
             }
@@ -124,6 +137,10 @@ final class CloudflareTunnelManager: ObservableObject {
             if let str = String(data: data, encoding: .utf8) {
                 DispatchQueue.main.async {
                     self?.lastOutput += str
+                    // Quick tunnel URL often appears on stderr
+                    if let url = self?.parseQuickTunnelURL(from: str) {
+                        self?.quickTunnelURL = url
+                    }
                     if str.lowercased().contains("error") || str.lowercased().contains("failed") {
                         self?.lastError = str.trimmingCharacters(in: .whitespacesAndNewlines)
                     }
@@ -164,14 +181,11 @@ final class CloudflareTunnelManager: ObservableObject {
         }
 
         status = .stopping
-
-        // SIGTERM first
         proc.terminate()
 
-        // Wait 5s, then SIGKILL
         DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak self] in
             guard let self, let proc = self.process, proc.isRunning else { return }
-            proc.interrupt() // SIGKILL equivalent for Process
+            proc.interrupt()
         }
     }
 
@@ -187,17 +201,49 @@ final class CloudflareTunnelManager: ObservableObject {
 
     func autoStartIfNeeded() {
         guard settings.cloudflareAutoStart else { return }
-        guard !settings.cloudflareTunnelName.isEmpty else { return }
         guard !isRunning else { return }
-        startTunnel()
+
+        let mode = settings.cloudflareTunnelMode
+        switch mode {
+        case .quick:
+            startTunnel(mode: .quick)
+        case .named:
+            guard !settings.cloudflareTunnelName.isEmpty else { return }
+            startTunnel(mode: .named)
+        }
+    }
+
+    func diagnostics() -> [String: String] {
+        let detection = detectCloudflared()
+        var diag: [String: String] = [:]
+        diag["cloudflaredDetected"] = detection.detected ? "Yes" : "No"
+        diag["cloudflaredPath"] = detection.path ?? "Not found"
+        diag["cloudflaredVersion"] = detection.version ?? "Unknown"
+        diag["tunnelMode"] = settings.cloudflareTunnelMode.rawValue
+        diag["tunnelStatus"] = status.rawValue
+        diag["tunnelName"] = settings.cloudflareTunnelName
+        diag["hostname"] = settings.cloudflareHostname
+        diag["pid"] = pid.map { String($0) } ?? "N/A"
+        if !quickTunnelURL.isEmpty {
+            diag["quickTunnelURL"] = quickTunnelURL
+        }
+        return diag
     }
 
     // MARK: - Helpers
 
+    private func parseQuickTunnelURL(from text: String) -> String? {
+        // Quick tunnel outputs: "Your quick Tunnel has been created! Visit it at https://xxx.trycloudflare.com"
+        let pattern = "https?://[a-zA-Z0-9\\-]+\\.trycloudflare\\.com"
+        if let range = text.range(of: pattern, options: .regularExpression) {
+            return String(text[range])
+        }
+        return nil
+    }
+
     private func getVersion(at path: String) -> String? {
         let result = shell("\(path) --version")
         guard !result.isEmpty else { return nil }
-        // Parse "cloudflared version 2024.1.0"
         let parts = result.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: " ")
         if parts.count >= 3 {
             return parts.last

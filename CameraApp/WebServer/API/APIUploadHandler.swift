@@ -40,7 +40,7 @@ struct APIUploadHandler {
         }
 
         // Retry a specific job
-        router.addRoute(method: "POST", path: "/api/upload/retry") { request in
+        router.addRoute(method: "POST", path: "/api/upload/retry", requiredRole: .operatorRole) { request in
             guard let body = request.body,
                   let json = try? JSONSerialization.jsonObject(with: body) as? [String: String],
                   let jobID = json["jobID"] else {
@@ -51,7 +51,7 @@ struct APIUploadHandler {
         }
 
         // Cancel a specific job
-        router.addRoute(method: "POST", path: "/api/upload/cancel") { request in
+        router.addRoute(method: "POST", path: "/api/upload/cancel", requiredRole: .operatorRole) { request in
             guard let body = request.body,
                   let json = try? JSONSerialization.jsonObject(with: body) as? [String: String],
                   let jobID = json["jobID"] else {
@@ -62,19 +62,19 @@ struct APIUploadHandler {
         }
 
         // Retry all failed jobs
-        router.addRoute(method: "POST", path: "/api/upload/retry-failed") { _ in
+        router.addRoute(method: "POST", path: "/api/upload/retry-failed", requiredRole: .operatorRole) { _ in
             UploadQueueManager.shared.retryAllFailed()
             return HTTPResponse.ok()
         }
 
         // Pause all uploads
-        router.addRoute(method: "POST", path: "/api/upload/pause") { _ in
+        router.addRoute(method: "POST", path: "/api/upload/pause", requiredRole: .operatorRole) { _ in
             UploadQueueManager.shared.pauseAll()
             return HTTPResponse.ok()
         }
 
         // Resume all uploads
-        router.addRoute(method: "POST", path: "/api/upload/resume") { _ in
+        router.addRoute(method: "POST", path: "/api/upload/resume", requiredRole: .operatorRole) { _ in
             UploadQueueManager.shared.resumeAll()
             return HTTPResponse.ok()
         }

@@ -1,5 +1,34 @@
 # Changelog
 
+## v2.4.1 (2026-05-24)
+
+Productization Completion Hotfix — real task action types, admin-only API enforcement, audit logging, stability hardening.
+
+### New Features
+
+- **TaskActionType** — tasks now have `actionType` (.photo or .video); video tasks start recording for `durationMinutes` then stop and save
+- **Telegram video sending** — `sendVideo()` method using `/sendVideo` API with 120s timeout and retry
+- **Admin-only API enforcement** — 20+ mutating routes now require `operatorRole` or `admin`; tunnel/retention routes require `admin`
+- **Audit log with user tracking** — `AuditLogManager` now records the authenticated username on every request; new `/api/audit` endpoint (admin-only)
+- **Audit log web page** — new `audit.html` with table + mobile card view, auto-refresh, clear button
+- **Cloudflare quick tunnel** — `TunnelMode` enum (.quick vs .named); quick tunnel parses `*.trycloudflare.com` URL from output; mode selector in web settings
+- **SettingsView real sidebar split** — `switch selectedSection` controlling detail pane with modular section views
+- **Web mobile-first card layouts** — `.task-cards` for tasks and uploads on mobile; tables hidden on small screens
+
+### Stability
+
+- **MediaIndexStore thread safety** — serial `DispatchQueue` protects all reads/writes of `entries` dictionary; eliminates data races from concurrent upload + retention + UI access
+- **Camera photo capture re-entry guard** — `isCapturingPhoto` flag prevents concurrent captures; `latestSampleBuffer` reads now go through `sampleBufferQueue`
+- **Retention upload safety** — cleanup now skips files with `uploadStatus == .uploading` or `.queued`, preventing deletion of in-flight uploads
+- **Web permission denied logging** — router logs `ActivityLogManager.warning(.security, ...)` when a user's role is insufficient for a route
+
+### Bug Fixes
+
+- Audit log now records authenticated user instead of `nil`
+- `markUploadVerified` sets `uploadDate` (carried from v2.4.0)
+
+---
+
 ## v2.4.0 (2026-05-24)
 
 Productization & Secure Cloud Upload — adds OAuth security hardening, task-level upload control, Cloudflare tunnel management, web responsive design, and settings navigation redesign.
