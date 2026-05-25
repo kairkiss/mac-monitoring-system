@@ -73,6 +73,14 @@ final class CloudflareTunnelManager: ObservableObject {
     private var errorPipe: Pipe?
     private let settings = SettingsStore.shared
 
+    // Intent flags — distinguish user action from unexpected process exit
+    private var isUserStopping = false
+    private var isRestartingFlow = false
+
+    // Timeout work items so we can cancel them
+    private var startupTimeoutWork: DispatchWorkItem?
+    private var stopTimeoutWork: DispatchWorkItem?
+
     private init() {}
 
     // MARK: - Public API
@@ -116,6 +124,19 @@ final class CloudflareTunnelManager: ObservableObject {
         let effectiveMode = mode ?? settings.cloudflareTunnelMode
         let localPort = settings.webServerPort
 
+        // Prevent duplicate processes — kill existing one first
+        if let existingProc = process, existingProc.isRunning {
+            isUserStopping = true
+            existingProc.terminate()
+            // Give it a moment to die, then continue with start
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                self?.isUserStopping = false
+                self?.process = nil
+                self?.startTunnel(mode: effectiveMode)
+            }
+            return
+        }
+
         let detection = detectCloudflared()
         guard detection.detected, let path = detection.path else {
             lastError = "cloudflared not found"
@@ -131,6 +152,7 @@ final class CloudflareTunnelManager: ObservableObject {
         lastError = ""
         lastOutput = ""
         quickTunnelURL = ""
+        isUserStopping = false
 
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: path)
@@ -168,13 +190,7 @@ final class CloudflareTunnelManager: ObservableObject {
             if let str = String(data: data, encoding: .utf8) {
                 DispatchQueue.main.async {
                     self?.lastOutput += str
-                    if str.contains("Registered connection") || str.contains("connection established") {
-                        self?.status = .running
-                    }
-                    // Parse quick tunnel URL
-                    if let url = self?.parseQuickTunnelURL(from: str) {
-                        self?.quickTunnelURL = url
-                    }
+                    self?.checkForRunningSignal(str)
                 }
             }
         }
@@ -185,10 +201,7 @@ final class CloudflareTunnelManager: ObservableObject {
             if let str = String(data: data, encoding: .utf8) {
                 DispatchQueue.main.async {
                     self?.lastOutput += str
-                    // Quick tunnel URL often appears on stderr
-                    if let url = self?.parseQuickTunnelURL(from: str) {
-                        self?.quickTunnelURL = url
-                    }
+                    self?.checkForRunningSignal(str)
                     if str.lowercased().contains("error") || str.lowercased().contains("failed") {
                         self?.lastError = str.trimmingCharacters(in: .whitespacesAndNewlines)
                     }
@@ -199,12 +212,37 @@ final class CloudflareTunnelManager: ObservableObject {
         proc.terminationHandler = { [weak self] process in
             DispatchQueue.main.async {
                 guard let self else { return }
-                if self.status == .running || self.status == .starting {
+                // Cancel any pending timeout checks
+                self.startupTimeoutWork?.cancel()
+                self.startupTimeoutWork = nil
+                self.stopTimeoutWork?.cancel()
+                self.stopTimeoutWork = nil
+
+                let exitCode = process.terminationStatus
+
+                // If user explicitly stopped or we're in restart flow → .stopped
+                if self.isUserStopping || self.isRestartingFlow {
+                    self.status = .stopped
+                    self.isUserStopping = false
+                    // Don't reset isRestartingFlow here — restartTunnel handles it
+                } else if self.status == .stopping {
+                    // terminationHandler caught the stop
+                    self.status = .stopped
+                } else if self.status == .running || self.status == .starting {
+                    // Unexpected exit while running or starting
+                    if exitCode != 0 {
+                        self.status = .error
+                        if self.lastError.isEmpty {
+                            self.lastError = "Process exited with code \(exitCode)"
+                        }
+                    } else {
+                        self.status = .stopped
+                    }
+                } else {
+                    // Fallback: any other state → stopped
                     self.status = .stopped
                 }
-                if process.terminationStatus != 0 && !self.lastError.isEmpty {
-                    self.status = .error
-                }
+
                 self.process = nil
                 self.outputPipe = nil
                 self.errorPipe = nil
@@ -216,6 +254,20 @@ final class CloudflareTunnelManager: ObservableObject {
             process = proc
             outputPipe = outPipe
             errorPipe = errPipe
+
+            // Startup timeout: if still in .starting after 10s, check if process is alive
+            // and assume running (cloudflared may output to a stream we're not reading)
+            let timeout10 = DispatchWorkItem { [weak self] in
+                DispatchQueue.main.async {
+                    guard let self, self.status == .starting else { return }
+                    if let proc = self.process, proc.isRunning {
+                        // Process is alive but we never detected a running signal — assume running
+                        self.status = .running
+                    }
+                }
+            }
+            startupTimeoutWork = timeout10
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: timeout10)
         } catch {
             lastError = "Failed to start: \(error.localizedDescription)"
             status = .error
@@ -225,27 +277,44 @@ final class CloudflareTunnelManager: ObservableObject {
     func stopTunnel() {
         guard let proc = process, proc.isRunning else {
             status = .stopped
+            process = nil
+            outputPipe = nil
+            errorPipe = nil
             return
         }
 
+        isUserStopping = true
         status = .stopping
         proc.terminate()
 
+        // Escalate to interrupt after 5s if still alive
         DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak self] in
             guard let self, let proc = self.process, proc.isRunning else { return }
             proc.interrupt()
         }
+
+        // Stop timeout: if still in .stopping after 8s, force reset
+        let timeout8 = DispatchWorkItem { [weak self] in
+            DispatchQueue.main.async {
+                guard let self, self.status == .stopping else { return }
+                self.forceStop()
+            }
+        }
+        stopTimeoutWork = timeout8
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: timeout8)
     }
 
     func restartTunnel(mode: TunnelMode? = nil) {
         let effectiveMode = mode ?? settings.cloudflareTunnelMode
         guard status != .restarting else { return }
 
+        isRestartingFlow = true
         status = .restarting
         lastError = ""
 
         // Stop if running
         if let proc = process, proc.isRunning {
+            isUserStopping = true
             proc.terminate()
         }
 
@@ -258,7 +327,11 @@ final class CloudflareTunnelManager: ObservableObject {
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
                 guard let self else { return }
+                self.isUserStopping = false
+                self.isRestartingFlow = false
                 self.process = nil
+                self.outputPipe = nil
+                self.errorPipe = nil
                 self.startTunnel(mode: effectiveMode)
                 ActivityLogManager.shared.info(.webServer, "Tunnel restarted: mode=\(effectiveMode.rawValue)")
             }
@@ -481,6 +554,100 @@ final class CloudflareTunnelManager: ObservableObject {
             diag["quickTunnelURL"] = quickTunnelURL
         }
         return diag
+    }
+
+    // MARK: - State Machine Helpers
+
+    /// Check log output for signals that the tunnel is running.
+    private func checkForRunningSignal(_ str: String) {
+        guard status == .starting || status == .restarting else { return }
+
+        // Quick tunnel URL detection → tunnel is running
+        if let url = parseQuickTunnelURL(from: str) {
+            quickTunnelURL = url
+            status = .running
+            startupTimeoutWork?.cancel()
+            startupTimeoutWork = nil
+            return
+        }
+
+        // Named tunnel running signals (stdout and stderr)
+        let runningSignals = [
+            "Registered connection",
+            "connection established",
+            "Connection registered",
+            "connIndex",
+            "Starting tunnel",
+            "Tunnel started",
+            "INF Connection registered"
+        ]
+        for signal in runningSignals {
+            if str.contains(signal) {
+                status = .running
+                startupTimeoutWork?.cancel()
+                startupTimeoutWork = nil
+                return
+            }
+        }
+    }
+
+    /// Force reset to stopped state — kills process if alive, clears all state.
+    func forceStop() {
+        // Cancel timeouts
+        startupTimeoutWork?.cancel()
+        startupTimeoutWork = nil
+        stopTimeoutWork?.cancel()
+        stopTimeoutWork = nil
+
+        // Kill process if still alive
+        if let proc = process {
+            if proc.isRunning {
+                proc.terminate()
+                // Give it 1s then force kill
+                DispatchQueue.global().asyncAfter(deadline: .now() + 1) { [weak self] in
+                    guard let self, let p = self.process, p.isRunning else { return }
+                    p.interrupt()
+                    DispatchQueue.main.async {
+                        self.process = nil
+                        self.outputPipe = nil
+                        self.errorPipe = nil
+                        self.status = .stopped
+                        self.isUserStopping = false
+                        self.isRestartingFlow = false
+                    }
+                }
+                return
+            }
+        }
+
+        process = nil
+        outputPipe = nil
+        errorPipe = nil
+        status = .stopped
+        isUserStopping = false
+        isRestartingFlow = false
+    }
+
+    /// Check the real process state and correct the UI status if it's stale.
+    func reconcileStatus() {
+        let realRunning = process?.isRunning ?? false
+
+        if realRunning && (status == .stopped || status == .error) {
+            // Process is alive but UI says stopped — fix it
+            status = .running
+        } else if !realRunning && (status == .running || status == .starting || status == .stopping) {
+            // Process is dead but UI says running/starting/stopping — fix it
+            startupTimeoutWork?.cancel()
+            startupTimeoutWork = nil
+            stopTimeoutWork?.cancel()
+            stopTimeoutWork = nil
+            process = nil
+            outputPipe = nil
+            errorPipe = nil
+            status = .stopped
+            isUserStopping = false
+            isRestartingFlow = false
+        }
     }
 
     // MARK: - Helpers

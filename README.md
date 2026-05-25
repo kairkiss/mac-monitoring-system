@@ -4,7 +4,7 @@ MacMonitor turns the app into a local camera node with a web dashboard, storage 
 
 Mac监控系统将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
 
-> **v2.4.6** — Web Settings Crash Hotfix. Fixed crash when opening Settings → Web & Remote Access. Extracted Cloudflare panel into standalone view with safe URL/PID rendering. All visible buttons preserved. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **v2.4.7** — Cloudflare State Machine Hotfix. Fixed status stuck in starting/stopping. Restart button no longer permanently disabled. Added Force Stop and Reset Status emergency buttons. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 

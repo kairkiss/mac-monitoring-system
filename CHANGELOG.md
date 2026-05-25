@@ -1,5 +1,31 @@
 # Changelog
 
+## v2.4.7 (2026-05-25)
+
+Cloudflare State Machine Hotfix — fixed status getting permanently stuck in "starting" or "stopping" after tunnel start/stop. The Restart button is no longer permanently disabled. Added Force Stop and Reset Status emergency buttons.
+
+### Fixed
+
+- **Fixed status stuck in starting** — `terminationHandler` now handles `.stopping` state and intent flags (`isUserStopping`, `isRestartingFlow`) to distinguish user action from unexpected process exit
+- **Fixed status stuck in stopping** — stop timeout (8s) auto-calls `forceStop()` if the process doesn't exit cleanly
+- **Expanded running detection** — recognizes 7 log signals (was 2): "Registered connection", "Connection registered", "connIndex", "Starting tunnel", "Tunnel started", "INF Connection registered", plus quick tunnel URLs on both stdout and stderr
+- **Startup timeout fallback** — if process is alive after 10s but no running signal detected, assumes running
+- **Fixed Restart permanently disabled** — Restart is now only disabled when `.restarting`, not when `.starting` or `.stopping`
+- **Added Force Stop button** — appears when status is busy or error; kills process and resets to stopped
+- **Added Reset Status button** — calls `reconcileStatus()` to check real process state and correct the UI
+- **Prevent duplicate processes** — `startTunnel()` kills any existing process before launching a new one
+- **`reconcileStatus()` method** — checks actual process state vs UI status; fixes stale status on refresh
+- **`forceStop()` method** — kills process with terminate→interrupt escalation, clears all state
+- **Intent flags** — `isUserStopping` and `isRestartingFlow` flags prevent terminationHandler from misinterpreting a user-initiated stop as a crash
+- **Timeout cancellation** — startup/stop timeouts are cancelled when terminationHandler fires, preventing stale timeout actions
+
+### Added
+
+- Force Stop and Reset Status emergency buttons in CloudflareControlPanelView (appear when status is busy or error)
+- `reconcileStatus()` called automatically on every `refreshStatus()` call
+
+---
+
 ## v2.4.6 (2026-05-25)
 
 Web Settings Crash Hotfix — fixed crash when opening Settings → Web & Remote Access. Extracted Cloudflare panel into standalone view with all force unwraps removed and async-safe status refresh.

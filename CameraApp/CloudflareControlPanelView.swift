@@ -175,33 +175,61 @@ struct CloudflareControlPanelView: View {
         let isRunning = tunnel.status == .running
         let isBusy = tunnel.status == .starting || tunnel.status == .restarting || tunnel.status == .stopping
 
-        return HStack(spacing: 12) {
-            Button {
-                tunnel.stopTunnel(); refreshAfterDelay()
-            } label: {
-                Label(Strings.cfStopTunnel, systemImage: "stop.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .disabled(!isRunning && tunnel.status != .starting)
+        return VStack(spacing: 8) {
+            HStack(spacing: 12) {
+                Button {
+                    tunnel.stopTunnel(); refreshAfterDelay()
+                } label: {
+                    Label(Strings.cfStopTunnel, systemImage: "stop.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!isRunning && tunnel.status != .starting)
 
-            Button {
-                tunnel.restartTunnel(mode: settings.cloudflareTunnelMode); refreshAfterDelay(5)
-            } label: {
-                Label(Strings.cfRestartTunnel, systemImage: "arrow.clockwise")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
-            .disabled(isBusy || !cloudflaredDetected)
+                Button {
+                    tunnel.restartTunnel(mode: settings.cloudflareTunnelMode); refreshAfterDelay(5)
+                } label: {
+                    Label(Strings.cfRestartTunnel, systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+                .disabled(tunnel.status == .restarting || !cloudflaredDetected)
 
-            Button {
-                refreshStatus()
-            } label: {
-                Label(Strings.cfRefreshStatus, systemImage: "arrow.triangle.2.circlepath")
-                    .frame(maxWidth: .infinity)
+                Button {
+                    refreshStatus()
+                } label: {
+                    Label(Strings.cfRefreshStatus, systemImage: "arrow.triangle.2.circlepath")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.bordered)
+
+            // Emergency row: Force Stop and Reset Status
+            if isBusy || tunnel.status == .error {
+                HStack(spacing: 12) {
+                    Button {
+                        tunnel.forceStop()
+                        refreshAfterDelay(1)
+                    } label: {
+                        Label("Force Stop", systemImage: "xmark.octagon.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+
+                    Button {
+                        tunnel.reconcileStatus()
+                        refreshStatus()
+                    } label: {
+                        Label("Reset Status", systemImage: "arrow.uturn.backward")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.orange)
+                }
+                .font(.caption)
+            }
         }
     }
 
@@ -388,6 +416,7 @@ struct CloudflareControlPanelView: View {
         isRefreshing = true
         Task.detached {
             let tunnel = CloudflareTunnelManager.shared
+            tunnel.reconcileStatus()
             let detection = tunnel.detectCloudflared()
             let setup = tunnel.setupStatus()
             await MainActor.run {
