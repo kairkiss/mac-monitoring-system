@@ -2,28 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title data-i18n="macMonitorSystem">Mac监控系统 - Activity Log</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title data-i18n="macMonitorSystem">Mac Monitor - Activity Log</title>
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<nav class="sidebar">
-    <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
-    <a href="/" class="nav-item" data-i18n="dashboard">Dashboard</a>
-    <a href="/live.html" class="nav-item" data-i18n="liveView">Live View</a>
-    <a href="/media.html" class="nav-item" data-i18n="mediaLibrary">Media Library</a>
-    <a href="/tasks.html" class="nav-item" data-i18n="automation">Automation</a>
-    <a href="/uploads.html" class="nav-item" data-i18n="uploadQueue">Upload Queue</a>
-    <a href="/health.html" class="nav-item" data-i18n="health">Health</a>
-    <a href="/logs.html" class="nav-item active" data-i18n="activityLog">Activity Log</a>
-    <a href="/audit.html" class="nav-item" data-i18n="auditLog">Audit Log</a>
-    <a href="/settings.html" class="nav-item" data-i18n="settings">Settings</a>
-    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
-</nav>
-<main class="content">
-    <button class="hamburger" id="menuBtn">&#9776;</button>
+<nav class="sidebar"></nav>
+<main class="content has-cards">
     <h1 data-i18n="activityLog">Activity Log</h1>
+    
     <div class="toolbar">
         <input type="text" id="searchInput" placeholder="Search..." data-i18n="searchPlaceholder">
         <select id="categoryFilter">
@@ -35,14 +23,30 @@
             <option value="webServer">Web Server</option>
             <option value="upload">Upload</option>
         </select>
-        <button class="secondary" onclick="loadLogs()" data-i18n="refresh">Refresh</button>
-        <a href="/api/logs/export" class="btn secondary" target="_blank" data-i18n="export">Export</a>
+        <button class="secondary" onclick="loadLogs()" data-i18n="refresh" style="min-height:38px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span data-i18n="refresh">Refresh</span>
+        </button>
+        <a href="/api/logs/export" class="btn secondary" target="_blank" data-i18n="export" style="min-height:38px; text-decoration:none;">Export</a>
     </div>
-    <table>
-        <thead><tr><th data-i18n="time">Time</th><th data-i18n="level">Level</th><th data-i18n="category">Category</th><th data-i18n="message">Message</th></tr></thead>
-        <tbody id="logList"></tbody>
-    </table>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th data-i18n="time">Time</th>
+                    <th data-i18n="level">Level</th>
+                    <th data-i18n="category">Category</th>
+                    <th data-i18n="message">Message</th>
+                </tr>
+            </thead>
+            <tbody id="logList"></tbody>
+        </table>
+    </div>
+    
+    <div class="task-cards" id="logCards"></div>
 </main>
+
 <script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
 <script>
@@ -58,14 +62,43 @@ async function loadLogs() {
     if (cat) url += `&category=${cat}`;
     const data = await api(url);
     if (!data) return;
+    
     document.getElementById('logList').innerHTML = data.logs.map(l => {
-        const lvlColor = l.level === 'error' ? 'badge-red' : l.level === 'warning' ? 'badge-orange' : 'badge-green';
-        return `<tr><td>${l.timestamp}</td><td><span class="badge ${lvlColor}">${l.level}</span></td><td>${l.category}</td><td>${l.message}${l.detail ? ' — '+l.detail : ''}</td></tr>`;
+        const lvlClass = l.level === 'error' ? 'badge-red' : l.level === 'warning' ? 'badge-orange' : 'badge-green';
+        return `<tr>
+            <td style="font-size:13px; color:var(--text-secondary);">${l.timestamp}</td>
+            <td><span class="badge ${lvlClass}">${l.level}</span></td>
+            <td><strong>${l.category}</strong></td>
+            <td><span style="font-weight:600; color:var(--text-primary);">${l.message}${l.detail ? ' — '+l.detail : ''}</span></td>
+        </tr>`;
+    }).join('');
+    
+    // Mobile cards
+    document.getElementById('logCards').innerHTML = data.logs.map(l => {
+        const lvlClass = l.level === 'error' ? 'badge-red' : l.level === 'warning' ? 'badge-orange' : 'badge-green';
+        return `<div class="task-card">
+            <div class="task-card-header">
+                <span class="badge ${lvlClass}">${l.level}</span>
+                <span style="font-size:12px; color:var(--text-secondary);">${l.timestamp}</span>
+            </div>
+            <div style="font-size:14px; color:var(--text-primary); font-weight:600; margin-top:4px; line-height:1.45;">
+                ${l.message}${l.detail ? ' — ' + l.detail : ''}
+            </div>
+            <div class="task-card-meta">
+                <span>Category: <strong>${l.category}</strong></span>
+            </div>
+        </div>`;
     }).join('');
 }
+
 document.getElementById('searchInput').addEventListener('input', debounce(loadLogs, 300));
 document.getElementById('categoryFilter').addEventListener('change', loadLogs);
-function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+function debounce(fn, ms) {
+    let t;
+    return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
 loadLogs();
 </script>
 </body>

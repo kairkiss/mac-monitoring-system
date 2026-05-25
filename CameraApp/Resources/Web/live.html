@@ -2,44 +2,53 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title data-i18n="macMonitorSystem">Mac监控系统 - Live View</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title data-i18n="macMonitorSystem">Mac Monitor - Live View</title>
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<nav class="sidebar">
-    <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
-    <a href="/" class="nav-item" data-i18n="dashboard">Dashboard</a>
-    <a href="/live.html" class="nav-item active" data-i18n="liveView">Live View</a>
-    <a href="/media.html" class="nav-item" data-i18n="mediaLibrary">Media Library</a>
-    <a href="/tasks.html" class="nav-item" data-i18n="automation">Automation</a>
-    <a href="/uploads.html" class="nav-item" data-i18n="uploadQueue">Upload Queue</a>
-    <a href="/health.html" class="nav-item" data-i18n="health">Health</a>
-    <a href="/logs.html" class="nav-item" data-i18n="activityLog">Activity Log</a>
-    <a href="/audit.html" class="nav-item" data-i18n="auditLog">Audit Log</a>
-    <a href="/settings.html" class="nav-item" data-i18n="settings">Settings</a>
-    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
-</nav>
+<nav class="sidebar"></nav>
 <main class="content">
-    <button class="hamburger" id="menuBtn">&#9776;</button>
     <h1 data-i18n="liveView">Live View</h1>
-    <div class="card" style="max-width:640px;padding:16px;">
-        <div id="snapshotWrap" style="text-align:center;min-height:360px;display:flex;align-items:center;justify-content:center;">
-            <img id="snapshot" src="" alt="Live snapshot" style="max-width:100%;border-radius:var(--radius);display:none;">
-            <p id="snapshotPlaceholder" style="color:var(--fg2);" data-i18n="connectingCamera">Connecting to camera...</p>
+    
+    <div class="live-container">
+        <div class="live-preview-card">
+            <img id="snapshot" src="" alt="Live snapshot" style="display:none;">
+            <p id="snapshotPlaceholder" style="color:var(--text-secondary); font-weight:600;" data-i18n="connectingCamera">Connecting to camera...</p>
         </div>
-        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
-            <span id="deviceName" style="color:var(--fg2);font-size:13px;"></span>
-            <span id="snapshotInfo" style="color:var(--fg2);font-size:12px;"></span>
+        
+        <div class="card" style="margin-top: 16px; padding: 14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span class="status-dot dot-gray" id="cameraStatusDot"></span>
+                <span id="deviceName" style="font-weight:600; font-size:14px; color:var(--text-primary);">Camera: -</span>
+            </div>
+            <span id="snapshotInfo" style="color:var(--text-secondary); font-size:12px; font-weight:500;">-</span>
         </div>
-    </div>
-    <div style="margin-top:16px;display:flex;gap:8px;align-items:center;">
-        <button id="captureBtn" data-i18n="capturePhoto">Capture Photo</button>
-        <button id="recordBtn" style="background:#e53935;" data-i18n="startRecording">Start Recording</button>
-        <span id="recordStatus" style="color:#a0a0a0;font-size:13px;"></span>
+        
+        <!-- Action controls -->
+        <div class="live-controls">
+            <button id="captureBtn" class="secondary" style="min-height: 48px; font-size: 15px;">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                <span data-i18n="capturePhoto">Capture Photo</span>
+            </button>
+            <button id="recordBtn" style="background:var(--danger); min-height: 48px; font-size: 15px;">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg>
+                <span data-i18n="startRecording">Start Recording</span>
+            </button>
+            <span id="recordStatus" style="font-size:14px; font-weight:600; color:var(--danger); margin-left: 8px;"></span>
+        </div>
+
+        <!-- Note Banner -->
+        <div class="card" style="margin-top: 24px; border-left: 4px solid var(--accent); background:rgba(0,122,255,0.04); padding: 16px;">
+            <p style="font-size: 13px; font-weight: 500; color:var(--text-secondary); line-height: 1.45;">
+                <strong style="color:var(--text-primary);" data-i18n="localOnly">Local Only</strong>: 
+                手动拍摄的照片和视频默认仅保存在本地设备上，并不会自动触发云端（Google Drive）上传。
+            </p>
+        </div>
     </div>
 </main>
+
 <script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
 <script>
@@ -61,26 +70,26 @@ async function refreshSnapshot() {
     const img = document.getElementById('snapshot');
     const placeholder = document.getElementById('snapshotPlaceholder');
     const info = document.getElementById('snapshotInfo');
+    const camDot = document.getElementById('cameraStatusDot');
     try {
         const token = getToken();
         const res = await fetch('/api/camera/snapshot.jpg', {
             headers: { 'Authorization': 'Bearer ' + token },
             cache: 'no-cache'
         });
-        if (!res.ok) {
-            throw new Error('HTTP ' + res.status);
-        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
-        // Revoke previous URL to avoid memory leak
         if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
         img.src = url;
         img.style.display = 'block';
         placeholder.style.display = 'none';
         consecutiveErrors = 0;
+        if (camDot) {
+            camDot.className = 'status-dot dot-green';
+        }
         const now = new Date();
         info.textContent = now.toLocaleTimeString();
-        // Restore fast refresh if it was slowed down
         if (refreshInterval !== 2000) {
             refreshInterval = 2000;
             startSnapshotRefresh();
@@ -91,7 +100,9 @@ async function refreshSnapshot() {
             placeholder.textContent = t('cameraNotAvailable');
             placeholder.style.display = 'block';
             img.style.display = 'none';
-            // Slow down polling on persistent errors
+            if (camDot) {
+                camDot.className = 'status-dot dot-red';
+            }
             if (refreshInterval !== 5000) {
                 refreshInterval = 5000;
                 startSnapshotRefresh();
@@ -105,17 +116,16 @@ async function refreshStatus() {
         const data = await api('/api/camera/record/status');
         if (!data) return;
         isRecording = data.isRecording;
-        document.getElementById('deviceName').textContent = data.deviceName ? 'Camera: ' + data.deviceName : '';
+        document.getElementById('deviceName').textContent = data.deviceName ? t('camera') + ': ' + data.deviceName : '';
         const btn = document.getElementById('recordBtn');
         const status = document.getElementById('recordStatus');
         if (isRecording) {
-            btn.textContent = t('stopRecording');
-            btn.style.background = '#666';
+            btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2" fill="currentColor"></rect></svg> <span>${t('stopRecording')}</span>`;
+            btn.style.background = 'var(--text-tertiary)';
             status.textContent = t('recording') + '...';
-            status.style.color = '#f44336';
         } else {
-            btn.textContent = t('startRecording');
-            btn.style.background = '#e53935';
+            btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg> <span>${t('startRecording')}</span>`;
+            btn.style.background = 'var(--danger)';
             status.textContent = '';
         }
     } catch (e) {}
@@ -124,7 +134,7 @@ async function refreshStatus() {
 document.getElementById('captureBtn').addEventListener('click', async () => {
     try {
         const data = await api('/api/camera/capture', { method: 'POST', body: {} });
-        if (data) toast(t('captured') + ': ' + data.fileName);
+        if (data) toast(t('captured') + ': ' + data.fileName, 'success');
     } catch (e) {}
 });
 
@@ -133,13 +143,12 @@ document.getElementById('recordBtn').addEventListener('click', async () => {
     try {
         const data = await api(url, { method: 'POST', body: {} });
         if (data) {
-            toast(data.status === 'recording' ? t('recordingStarted') : t('recordingSaved') + ': ' + data.fileName);
+            toast(data.status === 'recording' ? t('recordingStarted') : t('recordingSaved') + ': ' + data.fileName, 'success');
             refreshStatus();
         }
     } catch (e) {}
 });
 
-// Slow down when tab is hidden, restore when visible
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
         refreshInterval = 5000;

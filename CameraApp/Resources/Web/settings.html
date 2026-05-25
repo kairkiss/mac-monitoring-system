@@ -2,168 +2,189 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title data-i18n="macMonitorSystem">Mac监控系统 - Settings</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title data-i18n="macMonitorSystem">Mac Monitor - Settings</title>
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<nav class="sidebar">
-    <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
-    <a href="/" class="nav-item" data-i18n="dashboard">Dashboard</a>
-    <a href="/live.html" class="nav-item" data-i18n="liveView">Live View</a>
-    <a href="/media.html" class="nav-item" data-i18n="mediaLibrary">Media Library</a>
-    <a href="/tasks.html" class="nav-item" data-i18n="automation">Automation</a>
-    <a href="/uploads.html" class="nav-item" data-i18n="uploadQueue">Upload Queue</a>
-    <a href="/health.html" class="nav-item" data-i18n="health">Health</a>
-    <a href="/logs.html" class="nav-item" data-i18n="activityLog">Activity Log</a>
-    <a href="/audit.html" class="nav-item" data-i18n="auditLog">Audit Log</a>
-    <a href="/settings.html" class="nav-item active" data-i18n="settings">Settings</a>
-    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
-</nav>
+<nav class="sidebar"></nav>
 <main class="content">
-    <button class="hamburger" id="menuBtn">&#9776;</button>
     <h1 data-i18n="settings">Settings</h1>
 
-    <div class="card">
+    <!-- Storage Section -->
+    <div class="card" style="margin-bottom: 20px;">
         <h3 data-i18n="storage">Storage</h3>
-        <div id="storageInfo" style="color:var(--fg2)">Loading...</div>
+        <div id="storageInfo" style="color:var(--text-secondary); line-height: 1.6; font-size:14px;">Loading...</div>
     </div>
 
-    <div class="card">
+    <!-- Web Users Card -->
+    <div class="card" style="margin-bottom: 20px;">
         <h3 data-i18n="webUsers">Web Users</h3>
-        <table>
-            <thead><tr><th data-i18n="username">Username</th><th data-i18n="role">Role</th><th data-i18n="enabled">Enabled</th></tr></thead>
-            <tbody id="userList"></tbody>
-        </table>
-    </div>
-
-    <div class="card">
-        <h3 data-i18n="storageProviders">Storage Providers</h3>
-        <div id="providerList"></div>
-    </div>
-
-    <div class="card">
-        <h3 data-i18n="storageDiagnostics">Storage Diagnostics</h3>
-        <div id="diagInfo" style="color:var(--fg2);font-size:13px;" data-i18n="loading">Loading...</div>
-        <div style="margin-top:10px;">
-            <button onclick="runTestConnection()" data-i18n="connectionTest">Test Connection</button>
+        <div class="table-container" style="margin-bottom: 0; border: none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th data-i18n="username">Username</th>
+                        <th data-i18n="role">Role</th>
+                        <th data-i18n="enabled">Enabled</th>
+                    </tr>
+                </thead>
+                <tbody id="userList"></tbody>
+            </table>
         </div>
-        <div id="testResult" style="margin-top:8px;font-size:13px;"></div>
     </div>
 
-    <div class="card">
+    <!-- Storage Providers Card -->
+    <div class="card" style="margin-bottom: 20px;">
+        <h3 data-i18n="storageProviders">Storage Providers</h3>
+        <div id="providerList" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+
+    <!-- Storage Diagnostics -->
+    <div class="card" style="margin-bottom: 20px;">
+        <h3 data-i18n="storageDiagnostics">Storage Diagnostics</h3>
+        <div id="diagInfo" style="color:var(--text-secondary); font-size:14px; margin-bottom: 12px;" data-i18n="loading">Loading...</div>
+        <button onclick="runTestConnection()" data-i18n="connectionTest">Test Connection</button>
+        <div id="testResult" style="margin-top:12px; font-size:13px; font-weight: 500;"></div>
+    </div>
+
+    <!-- Retention Preview -->
+    <div class="card" style="margin-bottom: 20px;">
         <h3 data-i18n="dryRunPreview">Retention Preview</h3>
-        <p style="color:var(--fg2);font-size:13px;margin-bottom:8px;">Preview what retention cleanup would delete.</p>
+        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:12px; line-height:1.4;">Preview what retention cleanup would delete.</p>
         <button onclick="runDryRun()" data-i18n="runDryRun">Preview Cleanup</button>
-        <div id="dryRunResult" style="margin-top:8px;font-size:13px;"></div>
+        <div id="dryRunResult" style="margin-top:12px; font-size:13px; white-space: pre-wrap; font-family: monospace; background:rgba(0,0,0,0.2); padding: 8px; border-radius:6px; max-height: 200px; overflow-y: auto; display:none;"></div>
     </div>
 
-    <div class="card">
+    <!-- Remote Access (Cloudflare) -->
+    <div class="card" style="margin-bottom: 20px;" id="remote">
         <h3 data-i18n="remoteAccess">Remote Access</h3>
-        <p style="color:var(--fg2);font-size:13px;margin-bottom:8px;" data-i18n="remoteAccessDesc">Securely access your monitoring system from the internet via Cloudflare Tunnel.</p>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-            <span style="color:#4caf50;font-size:20px;">&#128274;</span>
-            <span style="font-size:13px;color:var(--fg2);" data-i18n="cloudflareDoubleProtection">Double protection: Cloudflare Access + App Login</span>
+        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:14px; line-height:1.45;" data-i18n="remoteAccessDesc">Securely access your monitoring system from the internet via Cloudflare Tunnel.</p>
+        
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px; background:rgba(48,209,88,0.05); padding:10px 14px; border-radius:var(--radius-md); border:1px solid rgba(48,209,88,0.15);">
+            <span style="color:var(--success); font-size:18px;">&#128274;</span>
+            <span style="font-size:13px; color:var(--text-primary); font-weight:600;" data-i18n="cloudflareDoubleProtection">Double protection: Cloudflare Access + App Login</span>
         </div>
 
         <!-- Setup Status Banner -->
-        <div id="setupBanner" style="padding:10px 12px;border-radius:8px;margin-bottom:12px;font-size:13px;display:none;"></div>
+        <div id="setupBanner" style="padding:12px 14px; border-radius:var(--radius-md); margin-bottom:16px; font-size:13px; font-weight:600; display:none;"></div>
 
         <!-- Tunnel Mode Selector -->
-        <div style="margin-bottom:10px;">
-            <label style="font-size:13px;color:var(--fg2);display:block;margin-bottom:4px;" data-i18n="tunnelMode">Tunnel Mode</label>
-            <select id="tunnelModeSelect" style="width:auto;margin-bottom:8px;" onchange="updateTunnelModeUI()">
+        <div class="form-group" style="margin-bottom:16px;">
+            <label data-i18n="tunnelMode">Tunnel Mode</label>
+            <select id="tunnelModeSelect" style="width:auto; margin-bottom:8px;" onchange="updateTunnelModeUI()">
                 <option value="quick" data-i18n="quickTunnel">Quick Tunnel</option>
                 <option value="named" data-i18n="namedTunnel">Named Tunnel</option>
             </select>
-            <div id="quickTunnelDesc" style="font-size:12px;color:var(--fg2);" data-i18n="quickTunnelDesc">Temporary URL, changes on restart</div>
-            <div id="namedTunnelDesc" style="font-size:12px;color:var(--fg2);display:none;" data-i18n="namedTunnelDesc">Persistent domain, requires Cloudflare account</div>
+            <div id="quickTunnelDesc" style="font-size:12px; color:var(--text-secondary);" data-i18n="quickTunnelDesc">Temporary URL, changes on restart</div>
+            <div id="namedTunnelDesc" style="font-size:12px; color:var(--text-secondary); display:none;" data-i18n="namedTunnelDesc">Persistent domain, requires Cloudflare account</div>
         </div>
 
         <!-- Named Tunnel Config Fields -->
-        <div id="namedConfigFields" style="display:none;margin-bottom:12px;">
-            <div style="display:flex;flex-direction:column;gap:8px;max-width:400px;">
-                <div>
-                    <label style="font-size:12px;color:var(--fg2);display:block;margin-bottom:2px;">Tunnel Name</label>
-                    <input type="text" id="tunnelNameInput" placeholder="e.g. mac-monitor" style="font-size:13px;">
+        <div id="namedConfigFields" style="display:none; margin-bottom:16px; background:rgba(255,255,255,0.02); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
+            <div style="display:flex; flex-direction:column; gap:12px; max-width:400px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label style="margin-bottom: 4px;">Tunnel Name</label>
+                    <input type="text" id="tunnelNameInput" placeholder="e.g. mac-monitor" style="margin-bottom:0;">
                 </div>
-                <div>
-                    <label style="font-size:12px;color:var(--fg2);display:block;margin-bottom:2px;">Hostname</label>
-                    <input type="text" id="hostnameInput" placeholder="e.g. monitor.yourdomain.com" style="font-size:13px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label style="margin-bottom: 4px;">Hostname</label>
+                    <input type="text" id="hostnameInput" placeholder="e.g. monitor.yourdomain.com" style="margin-bottom:0;">
                 </div>
-                <button onclick="saveTunnelSettings()" style="width:auto;align-self:flex-start;">Save Settings</button>
+                <button onclick="saveTunnelSettings()" style="width:auto; align-self:flex-start; min-height:36px; padding: 6px 14px;">Save Settings</button>
             </div>
         </div>
 
         <!-- Setup Steps (for named tunnel) -->
-        <div id="setupSteps" style="display:none;margin-bottom:12px;"></div>
+        <div id="setupSteps" style="display:none; margin-bottom:16px;"></div>
 
         <!-- Config Preview -->
-        <div id="configPreview" style="display:none;margin-bottom:12px;">
-            <div style="font-size:12px;color:var(--fg2);margin-bottom:4px;">Generated config.yml:</div>
-            <pre style="background:var(--bg);padding:10px;border-radius:6px;font-size:11px;overflow-x:auto;max-height:200px;overflow-y:auto;margin:0;"><code id="configContent"></code></pre>
-            <div style="display:flex;gap:8px;margin-top:8px;">
-                <button onclick="copyConfig()" class="secondary" style="font-size:12px;">Copy</button>
-                <button onclick="writeConfig()" style="font-size:12px;">Write to ~/.cloudflared/config.yml</button>
+        <div id="configPreview" style="display:none; margin-bottom:16px;">
+            <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">Generated config.yml:</div>
+            <pre style="background:#000; padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); font-size:12px; overflow-x:auto; max-height:200px; margin:0; font-family:monospace;"><code id="configContent"></code></pre>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button onclick="copyConfig()" class="secondary" style="font-size:13px; min-height:34px; padding: 4px 12px;">Copy</button>
+                <button onclick="writeConfig()" style="font-size:13px; min-height:34px; padding: 4px 12px;">Write to ~/.cloudflared/config.yml</button>
             </div>
-            <div id="writeResult" style="font-size:12px;margin-top:4px;"></div>
+            <div id="writeResult" style="font-size:13px; margin-top:8px; font-weight: 600;"></div>
         </div>
 
         <!-- Tunnel Status + Controls -->
-        <div id="tunnelStatus" style="font-size:13px;color:var(--fg2);margin-bottom:10px;">Loading...</div>
-        <div id="quickTunnelURLBox" style="display:none;margin-bottom:10px;padding:8px;background:var(--bg);border-radius:6px;">
-            <span style="font-size:12px;color:var(--fg2);" data-i18n="tunnelURL">Tunnel URL</span>:
-            <a id="quickTunnelLink" href="#" target="_blank" style="color:var(--accent);font-size:13px;word-break:break-all;"></a>
+        <div id="tunnelStatus" style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:12px; display:flex; align-items:center;">Loading...</div>
+        
+        <div id="quickTunnelURLBox" style="display:none; margin-bottom:14px; padding:12px 14px; background:rgba(0,0,0,0.2); border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
+            <span style="font-size:12px; color:var(--text-secondary); font-weight:600;" data-i18n="tunnelURL">Tunnel URL</span>:
+            <a id="quickTunnelLink" href="#" target="_blank" style="color:var(--accent); font-size:13px; word-break:break-all; font-weight:600; margin-left: 4px;"></a>
         </div>
-        <div style="display:flex;gap:8px;">
+        
+        <div style="display:flex; gap:10px;">
             <button onclick="startTunnel()" id="tunnelStartBtn" data-i18n="cloudflareStart">Start Tunnel</button>
             <button class="danger" onclick="stopTunnel()" id="tunnelStopBtn" data-i18n="cloudflareStop" style="display:none;">Stop Tunnel</button>
         </div>
-        <div id="tunnelOutput" style="margin-top:8px;font-size:11px;color:var(--fg2);max-height:100px;overflow-y:auto;white-space:pre-wrap;font-family:monospace;"></div>
+        <div id="tunnelOutput" style="margin-top:12px; font-size:11px; color:var(--text-secondary); max-height:120px; overflow-y:auto; white-space:pre-wrap; font-family:monospace; background:rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;"></div>
 
-        <!-- Diagnostics -->
-        <details style="margin-top:12px;">
-            <summary style="cursor:pointer;font-size:12px;color:var(--fg2);">Diagnostics</summary>
-            <div id="tunnelDiag" style="font-size:11px;color:var(--fg2);margin-top:6px;"></div>
+        <!-- Diagnostics dropdown -->
+        <details style="margin-top:16px; border-top: 1px solid var(--border-subtle); padding-top:12px;">
+            <summary style="cursor:pointer; font-size:13px; color:var(--text-secondary); font-weight:600; user-select:none;">Cloudflare Diagnostics</summary>
+            <div id="tunnelDiag" style="font-size:12px; color:var(--text-secondary); margin-top:10px; line-height: 1.5; font-family:monospace;"></div>
         </details>
     </div>
 
-    <div class="card">
+    <!-- Security Change Password -->
+    <div class="card" style="margin-bottom: 20px;">
         <h3 data-i18n="changePassword">Change Password</h3>
-        <div id="currentUserCard" style="margin-bottom:12px;color:var(--fg2);font-size:13px;"></div>
-        <div style="display:flex;flex-direction:column;gap:8px;max-width:320px;">
-            <input type="password" id="currentPassword" placeholder="Current Password" data-i18n="currentPassword" autocomplete="current-password">
-            <input type="password" id="newPassword" placeholder="New Password" data-i18n="newPassword" autocomplete="new-password">
-            <input type="password" id="confirmPassword" placeholder="Confirm Password" data-i18n="confirmPassword" autocomplete="new-password">
+        <div id="currentUserCard" style="margin-bottom:14px; color:var(--text-secondary); font-size:14px;"></div>
+        <div style="display:flex; flex-direction:column; gap:4px; max-width:360px;">
+            <div class="form-group" style="margin-bottom: 8px;">
+                <input type="password" id="currentPassword" placeholder="Current Password" data-i18n="currentPassword" autocomplete="current-password" style="margin-bottom:0;">
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+                <input type="password" id="newPassword" placeholder="New Password" data-i18n="newPassword" autocomplete="new-password" style="margin-bottom:0;">
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <input type="password" id="confirmPassword" placeholder="Confirm Password" data-i18n="confirmPassword" autocomplete="new-password" style="margin-bottom:0;">
+            </div>
             <button onclick="changePassword()" data-i18n="savePassword">Save Password</button>
-            <p id="passwordMsg" style="font-size:13px;margin:0;"></p>
+            <p id="passwordMsg" style="font-size:13px; margin-top:10px; font-weight:600;"></p>
         </div>
     </div>
 
-    <div class="card" id="changeUsernameCard" style="display:none;">
+    <!-- Change Username Card (Admin only) -->
+    <div class="card" style="margin-bottom: 20px;" id="changeUsernameCard" style="display:none;">
         <h3 data-i18n="changeUsername">Change Username</h3>
-        <div style="display:flex;flex-direction:column;gap:8px;max-width:320px;">
-            <input type="text" id="newUsername" placeholder="New Username" data-i18n="newUsername" autocomplete="username">
+        <div style="display:flex; flex-direction:column; gap:4px; max-width:360px;">
+            <div class="form-group" style="margin-bottom: 12px;">
+                <input type="text" id="newUsername" placeholder="New Username" data-i18n="newUsername" autocomplete="username" style="margin-bottom:0;">
+            </div>
             <button onclick="changeUsername()" data-i18n="saveUsername">Save Username</button>
-            <p id="usernameMsg" style="font-size:13px;margin:0;"></p>
+            <p id="usernameMsg" style="font-size:13px; margin-top:10px; font-weight:600;"></p>
         </div>
     </div>
 
-    <div class="card">
+    <!-- Language Selection -->
+    <div class="card" style="margin-bottom: 20px;">
         <h3 data-i18n="language">Language</h3>
-        <div style="display:flex;gap:8px;">
-            <button onclick="setLanguage('en')" data-i18n="english">English</button>
-            <button onclick="setLanguage('zh')" data-i18n="chinese">中文</button>
+        <div style="display:flex; gap:10px;">
+            <button onclick="setLanguage('en')" data-i18n="english" class="secondary" style="flex:1; max-width:180px;">English</button>
+            <button onclick="setLanguage('zh')" data-i18n="chinese" class="secondary" style="flex:1; max-width:180px;">中文</button>
         </div>
     </div>
 </main>
+
 <script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('settings');
     loadCurrentUser();
+    loadStorage();
+    loadUsers();
+    loadProviders();
+    loadDiagnostics();
+    loadTunnelConfig();
+    pollTunnelStatus();
+    setInterval(pollTunnelStatus, 5000);
 });
 
 async function loadCurrentUser() {
@@ -171,7 +192,7 @@ async function loadCurrentUser() {
         const data = await api('/api/auth/me');
         if (!data) return;
         const card = document.getElementById('currentUserCard');
-        card.innerHTML = '<p>' + t('currentUser') + ': <strong>' + data.username + '</strong> (' + t('role') + ': ' + data.role + ')</p>';
+        card.innerHTML = '<p>' + t('currentUser') + ': <strong>' + data.username + '</strong> (' + t('role') + ': <strong>' + data.role + '</strong>)</p>';
         if (data.role === 'admin') {
             document.getElementById('changeUsernameCard').style.display = 'block';
         }
@@ -184,7 +205,7 @@ async function changePassword() {
     const newPwd = document.getElementById('newPassword').value;
     const confirm = document.getElementById('confirmPassword').value;
     msgEl.textContent = '';
-    msgEl.style.color = 'var(--red)';
+    msgEl.style.color = 'var(--danger)';
     if (newPwd.length < 8) { msgEl.textContent = t('passwordTooShort'); return; }
     if (newPwd !== confirm) { msgEl.textContent = t('passwordMismatch'); return; }
     try {
@@ -195,7 +216,7 @@ async function changePassword() {
         });
         const data = await res.json();
         if (res.ok) {
-            msgEl.style.color = 'var(--green)';
+            msgEl.style.color = 'var(--success)';
             msgEl.textContent = t('passwordChanged');
             localStorage.removeItem('token');
             setTimeout(() => { window.location.href = '/login.html'; }, 2000);
@@ -211,7 +232,7 @@ async function changeUsername() {
     const msgEl = document.getElementById('usernameMsg');
     const newU = document.getElementById('newUsername').value.trim();
     msgEl.textContent = '';
-    msgEl.style.color = 'var(--red)';
+    msgEl.style.color = 'var(--danger)';
     if (newU.length < 3 || newU.length > 32 || !/^[a-zA-Z0-9_-]+$/.test(newU)) {
         msgEl.textContent = t('usernameInvalid'); return;
     }
@@ -223,7 +244,7 @@ async function changeUsername() {
         });
         const data = await res.json();
         if (res.ok) {
-            msgEl.style.color = 'var(--green)';
+            msgEl.style.color = 'var(--success)';
             msgEl.textContent = t('usernameChanged');
             localStorage.removeItem('token');
             setTimeout(() => { window.location.href = '/login.html'; }, 2000);
@@ -240,290 +261,280 @@ async function loadStorage() {
     if (!data) return;
     const sizeMB = (data.totalStorageBytes / 1048576).toFixed(1);
     document.getElementById('storageInfo').innerHTML =
-        `<p>${t('activeProvider')}: <strong>${data.providerDisplayName}</strong></p>` +
-        `<p>${t('photos')}: ${data.totalPhotos} | ${t('videos')}: ${data.totalVideos}</p>` +
-        `<p>${t('storageUsed')}: ${sizeMB} MB | ${t('free')}: ${data.diskFreeMB} MB</p>`;
+        `<div class="diag-item"><span class="diag-label">${t('activeProvider')}</span><span class="diag-value">${data.providerDisplayName}</span></div>` +
+        `<div class="diag-item"><span class="diag-label">${t('photos')} / ${t('videos')}</span><span class="diag-value">📸 ${data.totalPhotos} | 🎥 ${data.totalVideos}</span></div>` +
+        `<div class="diag-item"><span class="diag-label">${t('storageUsed')} / ${t('free')}</span><span class="diag-value">${sizeMB} MB / ${data.diskFreeMB} MB</span></div>`;
 }
 
 async function loadUsers() {
     const data = await api('/api/auth/users');
     if (!data) return;
-    document.getElementById('userList').innerHTML = data.users.map(u =>
-        `<tr><td>${u.username}</td><td>${u.role}</td><td>${u.enabled ? t('yes') : t('no')}</td></tr>`
-    ).join('');
+    document.getElementById('userList').innerHTML = data.users.map(u => {
+        const activeBadge = u.isEnabled ? '<span class="badge badge-green">' + t('enabled') + '</span>' : '<span class="badge badge-red">' + t('disabled') + '</span>';
+        return `<tr>
+            <td><strong>${u.username}</strong></td>
+            <td><span class="badge badge-neutral">${u.role}</span></td>
+            <td>${activeBadge}</td>
+        </tr>`;
+    }).join('');
 }
 
 async function loadProviders() {
     const data = await api('/api/storage/providers');
     if (!data) return;
     document.getElementById('providerList').innerHTML = data.providers.map(p => {
-        let badge = '';
-        if (p.isPlanned) {
-            badge = '<span style="color:#ff9800;font-size:12px;">' + t('planned') + '</span>';
-        } else if (p.isActive) {
-            badge = '<span style="color:#4caf50;font-size:12px;">' + t('active') + '</span>';
-        } else if (p.isAvailable) {
-            badge = '<span style="color:#4caf50;font-size:12px;">' + t('available') + '</span>';
-        }
-        const detail = p.detail ? `<span style="color:var(--fg2);font-size:12px;margin-left:8px;">${p.detail}</span>` : '';
-        return `<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">` +
-               `<div><span>${p.displayName}</span>${detail}</div>${badge}</div>`;
+        const isCurrent = p.isCurrent ? '<span class="badge badge-green" style="margin-left:8px;">Active</span>' : '';
+        const connected = p.isConnected ? '<span class="badge badge-blue">Connected</span>' : p.needsReconnect ? '<span class="badge badge-orange">Needs Reconnect</span>' : '<span class="badge badge-neutral">Offline</span>';
+        return `<div class="card" style="padding:12px 16px; background:rgba(255,255,255,0.02); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+                <strong style="color:var(--text-primary);">${p.displayName}</strong> ${isCurrent}
+                <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">${p.email || p.type}</div>
+            </div>
+            <div>${connected}</div>
+        </div>`;
     }).join('');
-}
-
-async function loadStatus() {
-    const data = await api('/api/status');
-    if (data && data.storage && data.storage.port) {
-        const portEl = document.getElementById('cfPort');
-        if (portEl) portEl.textContent = data.storage.port;
-    }
-}
-
-function copyCmd(btn) {
-    const code = btn.parentElement.querySelector('code');
-    if (code) {
-        navigator.clipboard.writeText(code.textContent).then(() => {
-            btn.textContent = t('copiedToClipboard') || 'Copied';
-            setTimeout(() => { btn.textContent = t('copyCommand') || 'Copy'; }, 2000);
-        });
-    }
 }
 
 async function loadDiagnostics() {
     const data = await api('/api/storage/diagnostics');
-    const el = document.getElementById('diagInfo');
-    if (!data) { el.textContent = t('connectionError'); return; }
-    let html = '';
-    html += '<div class="diag-item"><span class="diag-label">' + t('provider') + '</span><span class="diag-value">' + data.providerType + '</span></div>';
-    html += '<div class="diag-item"><span class="diag-label">' + t('status') + '</span><span class="diag-value" style="color:' + (data.isConnected ? '#4caf50' : '#f44336') + ';">' + (data.isConnected ? t('ok') : t('failed')) + '</span></div>';
-    if (data.authenticatedEmail) html += '<div class="diag-item"><span class="diag-label">Email</span><span class="diag-value">' + data.authenticatedEmail + '</span></div>';
-    if (data.quotaUsedGB !== undefined) html += '<div class="diag-item"><span class="diag-label">' + t('quotaInfo') + '</span><span class="diag-value">' + data.quotaUsedGB + ' / ' + data.quotaTotalGB + ' GB</span></div>';
-    if (data.rootFolderName) html += '<div class="diag-item"><span class="diag-label">Root Folder</span><span class="diag-value">' + data.rootFolderName + (data.rootFolderExists ? ' &#10003;' : ' &#10007;') + '</span></div>';
-    html += '<div class="diag-item"><span class="diag-label">' + t('lastSuccessfulUpload') + '</span><span class="diag-value">' + data.recentUploadCount + ' recent, ' + data.recentFailureCount + ' failed</span></div>';
-    if (data.lastTestError) html += '<div class="diag-item"><span class="diag-label">' + t('error') + '</span><span class="diag-value" style="color:#f44336;">' + (data.lastTestErrorClass ? '<span class="error-class-badge">' + data.lastTestErrorClass + '</span> ' : '') + data.lastTestError + '</span></div>';
-    el.innerHTML = html;
+    if (!data) return;
+    document.getElementById('diagInfo').innerHTML = 
+        `<div class="diag-item"><span class="diag-label">Queue Jobs Total</span><span class="diag-value">${data.queueJobsTotal}</span></div>` +
+        `<div class="diag-item"><span class="diag-label">Active GDrive uploaders</span><span class="diag-value">${data.activeUploaders}</span></div>` +
+        `<div class="diag-item"><span class="diag-label">Network Reachable</span><span class="diag-value">${data.isNetworkReachable ? '✅ Yes' : '❌ No'}</span></div>`;
 }
 
 async function runTestConnection() {
     const el = document.getElementById('testResult');
-    el.innerHTML = '<span style="color:var(--fg2);">Testing...</span>';
-    const data = await api('/api/storage/test', { method: 'POST' });
-    if (!data) { el.innerHTML = '<span style="color:#f44336;">' + t('connectionError') + '</span>'; return; }
-    let html = '';
-    if (data.connected) {
-        html += '<span style="color:#4caf50;">&#10003; ' + t('ok') + '</span>';
-        if (data.email) html += ' &mdash; ' + data.email;
-        if (data.quotaUsedGB !== undefined) html += ' &mdash; ' + data.quotaUsedGB + '/' + data.quotaTotalGB + ' GB';
-    } else {
-        html += '<span style="color:#f44336;">&#10007; ' + t('failed') + '</span>';
-        if (data.errorClass) html += ' <span class="error-class-badge">' + data.errorClass + '</span>';
-        if (data.error) html += ' &mdash; ' + data.error;
+    el.textContent = 'Testing connection...';
+    el.style.color = 'var(--text-secondary)';
+    try {
+        const data = await api('/api/storage/test-connection', { method: 'POST' });
+        if (data) {
+            el.textContent = data.success ? '✅ Success: ' + data.message : '❌ Failed: ' + data.message;
+            el.style.color = data.success ? 'var(--success)' : 'var(--danger)';
+        }
+    } catch(e) {
+        el.textContent = 'Connection test failed';
+        el.style.color = 'var(--danger)';
     }
-    el.innerHTML = html;
-    loadDiagnostics();
 }
 
 async function runDryRun() {
     const el = document.getElementById('dryRunResult');
-    el.innerHTML = '<span style="color:var(--fg2);">Running...</span>';
-    const data = await api('/api/storage/retention/dry-run', { method: 'POST' });
-    if (!data) { el.innerHTML = '<span style="color:#f44336;">' + t('connectionError') + '</span>'; return; }
-    let html = '<div class="diag-item"><span class="diag-label">' + t('willDeleteCount') + '</span><span class="diag-value" style="color:#f44336;">' + data.wouldDelete + ' ' + t('files') + '</span></div>';
-    html += '<div class="diag-item"><span class="diag-label">' + t('skipped') + '</span><span class="diag-value">' + data.skipped + '</span></div>';
-    if (data.reason) html += '<div class="diag-item"><span class="diag-label">' + t('reason') + '</span><span class="diag-value">' + data.reason + '</span></div>';
-    if (data.files && data.files.length > 0) {
-        html += '<div style="margin-top:6px;font-size:12px;color:var(--fg2);max-height:120px;overflow-y:auto;">';
-        data.files.forEach(f => { html += '<div>' + f + '</div>'; });
-        html += '</div>';
-    }
-    el.innerHTML = html;
-}
-
-async function checkCloudflared() {
-    const el = document.getElementById('cloudflaredStatus');
-    const data = await api('/api/storage/cloudflared');
-    if (!data) { el.textContent = t('connectionError'); return; }
-    if (data.detected) {
-        el.innerHTML = '<span style="color:#4caf50;">&#10003; ' + t('cloudflaredDetected') + '</span><br><span style="font-size:12px;color:var(--fg2);">' + data.path + '</span>';
-    } else {
-        el.innerHTML = '<span style="color:#ff9800;">&#9888; ' + t('cloudflaredNotDetected') + '</span>';
+    el.textContent = 'Running dry-run retention preview...';
+    el.style.display = 'block';
+    try {
+        const data = await api('/api/storage/retention/dry-run', { method: 'POST' });
+        if (data) {
+            let html = `Plan: Delete ${data.deletedFilesCount} files (Total size: ${(data.freedBytes/1048576).toFixed(2)} MB)\n\n`;
+            if (data.details && data.details.length > 0) {
+                html += data.details.map(d => `[${d.action}] ${d.fileName} (${(d.sizeBytes/1024).toFixed(1)} KB) - Reason: ${d.reason}`).join('\n');
+            } else {
+                html += 'No files would be deleted.';
+            }
+            el.textContent = html;
+        }
+    } catch (e) {
+        el.textContent = 'Failed to execute dry run retention cleanup preview.';
     }
 }
 
-loadStorage();
-loadUsers();
-loadProviders();
-loadStatus();
-loadDiagnostics();
-loadSetupStatus();
+// Cloudflare Tunnel API Logic
+let tunnelMode = 'quick';
+
+async function loadTunnelConfig() {
+    try {
+        const status = await api('/api/cloudflare/status');
+        if (!status) return;
+        tunnelMode = status.mode || 'quick';
+        document.getElementById('tunnelModeSelect').value = tunnelMode;
+        document.getElementById('tunnelNameInput').value = status.configName || '';
+        document.getElementById('hostnameInput').value = status.hostname || '';
+        updateTunnelModeUI();
+    } catch (e) {}
+}
 
 function updateTunnelModeUI() {
-    const mode = document.getElementById('tunnelModeSelect').value;
-    document.getElementById('quickTunnelDesc').style.display = mode === 'quick' ? '' : 'none';
-    document.getElementById('namedTunnelDesc').style.display = mode === 'named' ? '' : 'none';
-    document.getElementById('namedConfigFields').style.display = mode === 'named' ? '' : 'none';
-    document.getElementById('setupSteps').style.display = mode === 'named' ? '' : 'none';
-    document.getElementById('configPreview').style.display = 'none';
-}
-
-async function loadSetupStatus() {
-    const data = await api('/api/remote/setup-status');
-    if (!data) return;
-
-    const modeSelect = document.getElementById('tunnelModeSelect');
-    const banner = document.getElementById('setupBanner');
-    const statusEl = document.getElementById('tunnelStatus');
-    const startBtn = document.getElementById('tunnelStartBtn');
-    const stopBtn = document.getElementById('tunnelStopBtn');
-    const urlBox = document.getElementById('quickTunnelURLBox');
-    const urlLink = document.getElementById('quickTunnelLink');
-    const outputEl = document.getElementById('tunnelOutput');
-    const stepsEl = document.getElementById('setupSteps');
-    const diagEl = document.getElementById('tunnelDiag');
-
-    // Sync mode selector + config fields
-    if (data.tunnelMode) {
-        modeSelect.value = data.tunnelMode;
-        updateTunnelModeUI();
+    tunnelMode = document.getElementById('tunnelModeSelect').value;
+    document.getElementById('quickTunnelDesc').style.display = tunnelMode === 'quick' ? 'block' : 'none';
+    document.getElementById('namedTunnelDesc').style.display = tunnelMode === 'named' ? 'block' : 'none';
+    document.getElementById('namedConfigFields').style.display = tunnelMode === 'named' ? 'block' : 'none';
+    document.getElementById('setupSteps').style.display = tunnelMode === 'named' ? 'block' : 'none';
+    document.getElementById('configPreview').style.display = tunnelMode === 'named' ? 'block' : 'none';
+    if (tunnelMode === 'named') {
+        refreshSetupWizard();
     }
-    document.getElementById('tunnelNameInput').value = data.tunnelName || '';
-    document.getElementById('hostnameInput').value = data.hostname || '';
-
-    // Setup status banner
-    const status = data.status;
-    let bannerColor = '#666', bannerBg = 'rgba(255,255,255,0.05)';
-    if (status === 'ready') { bannerColor = '#4caf50'; bannerBg = 'rgba(76,175,80,0.1)'; }
-    else if (status === 'running') { bannerColor = '#4caf50'; bannerBg = 'rgba(76,175,80,0.15)'; }
-    else if (status === 'notInstalled' || status === 'credentialsMissing' || status === 'error') { bannerColor = '#f44336'; bannerBg = 'rgba(244,67,54,0.1)'; }
-    else { bannerColor = '#ff9800'; bannerBg = 'rgba(255,152,0,0.1)'; }
-    banner.style.display = '';
-    banner.style.background = bannerBg;
-    banner.style.border = '1px solid ' + bannerColor;
-    banner.innerHTML = '<span style="color:' + bannerColor + ';font-weight:500;">' + data.statusDisplay + '</span>';
-
-    // Named tunnel setup steps
-    if (data.tunnelMode === 'named') {
-        let stepsHtml = '';
-        stepsHtml += renderStep(1, 'Install cloudflared', data.cloudflaredDetected === 'true' || data.cloudflaredDetected === true, data.cloudflaredPath || '', 'brew install cloudflared');
-        stepsHtml += renderStep(2, 'Login to Cloudflare', data.credentialsExist === 'true' || data.credentialsExist === true, '', 'cloudflared tunnel login');
-        stepsHtml += renderStep(3, 'Create Tunnel + Name', !!(data.tunnelName), data.tunnelName || 'Not set', '');
-        stepsHtml += renderStep(4, 'Set Hostname', !!(data.hostname), data.hostname || 'Not set', '');
-        stepsHtml += renderStep(5, 'Config file', data.configExists === 'true' || data.configExists === true, data.configService || '', '');
-        if (status === 'ingressMismatch') {
-            stepsHtml += '<div style="color:#f44336;font-size:12px;margin-top:6px;">Service port mismatch: config=' + (data.configServicePort||'?') + ', web server=' + data.webServerPort + '. Generate and rewrite config.</div>';
-        }
-        if (status !== 'running' && status !== 'ready') {
-            stepsHtml += '<button onclick="showConfigPreview()" style="margin-top:8px;font-size:12px;">Generate Config Preview</button>';
-        }
-        stepsEl.innerHTML = stepsHtml;
-    }
-
-    // Tunnel status line
-    let statusColor = '#666';
-    let statusText = data.isRunning ? t('cloudflareRunning') : (status === 'error' ? t('error') : t('cloudflareStopped'));
-    if (data.isRunning) statusColor = '#4caf50';
-    else if (status === 'error') statusColor = '#f44336';
-    let html = '<span style="color:' + statusColor + ';">' + statusText + '</span>';
-    if (data.tunnelMode === 'named' && data.tunnelName) html += ' &mdash; ' + data.tunnelName;
-    if (data.hostname) html += ' (' + data.hostname + ')';
-    if (data.cloudflaredVersion) html += ' <span style="font-size:11px;color:var(--fg2);">v' + data.cloudflaredVersion + '</span>';
-    if (data.lastError) html += '<br><span style="color:#f44336;">' + data.lastError + '</span>';
-    statusEl.innerHTML = html;
-
-    // Quick tunnel URL
-    if (data.quickTunnelURL) {
-        urlBox.style.display = '';
-        urlLink.href = data.quickTunnelURL;
-        urlLink.textContent = data.quickTunnelURL;
-    } else {
-        urlBox.style.display = 'none';
-    }
-
-    // Start/Stop buttons
-    if (data.isRunning) {
-        startBtn.style.display = 'none';
-        stopBtn.style.display = '';
-    } else {
-        startBtn.style.display = '';
-        stopBtn.style.display = 'none';
-    }
-
-    // Diagnostics
-    let diagHtml = '';
-    for (const [k, v] of Object.entries(data)) {
-        if (!['status','statusDisplay','tunnelMode','tunnelName','hostname','webServerPort','isRunning','quickTunnelURL','lastError','lastOutput'].includes(k)) {
-            diagHtml += '<div>' + k + ': ' + v + '</div>';
-        }
-    }
-    diagEl.innerHTML = diagHtml;
-
-    // Load tunnel output from /api/remote/status
-    const statusData = await api('/api/remote/status');
-    if (statusData && statusData.lastOutput) outputEl.textContent = statusData.lastOutput;
-}
-
-function renderStep(num, title, done, detail, cmd) {
-    const icon = done ? '<span style="color:#4caf50;">&#10003;</span>' : '<span style="color:#ff9800;">&#9679;</span>';
-    let html = '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">' + icon + '<div>';
-    html += '<span style="font-size:13px;' + (done ? 'color:var(--fg2);' : '') + '">' + title + '</span>';
-    if (detail) html += '<span style="font-size:11px;color:var(--fg2);margin-left:8px;">' + detail + '</span>';
-    if (cmd && !done) html += '<div class="cf-cmd" style="margin-top:2px;"><code>' + cmd + '</code> <button onclick="copyCmd(this)" class="copy-btn" style="font-size:11px;">Copy</button></div>';
-    html += '</div></div>';
-    return html;
 }
 
 async function saveTunnelSettings() {
-    const name = document.getElementById('tunnelNameInput').value.trim();
-    const host = document.getElementById('hostnameInput').value.trim();
-    await api('/api/remote/settings', { method: 'POST', body: { cloudflareTunnelName: name, cloudflareHostname: host, cloudflareTunnelMode: 'named' } });
-    loadSetupStatus();
+    const configName = document.getElementById('tunnelNameInput').value.trim();
+    const hostname = document.getElementById('hostnameInput').value.trim();
+    try {
+        const res = await api('/api/cloudflare/config', {
+            method: 'POST',
+            body: { configName, hostname }
+        });
+        if (res) {
+            toast('Settings saved successfully', 'success');
+            refreshSetupWizard();
+        }
+    } catch(e){}
 }
 
-async function generateConfig() {
-    const data = await api('/api/remote/generate-config', { method: 'POST', body: {} });
-    if (!data) return null;
-    return data;
+async function refreshSetupWizard() {
+    try {
+        const data = await api('/api/cloudflare/wizard');
+        if (!data) return;
+        
+        // Show configuration steps
+        const stepsEl = document.getElementById('setupSteps');
+        stepsEl.innerHTML = data.steps.map(s => {
+            const stepNum = s.step;
+            const title = s.title;
+            const desc = s.description;
+            const cmd = s.command;
+            
+            let cmdHTML = '';
+            if (cmd) {
+                cmdHTML = `<div class="cf-cmd"><code>${cmd}</code><button class="copy-btn" onclick="copyText('${cmd.replace(/'/g, "\\'")}')">${t('copyCommand')}</button></div>`;
+            }
+            
+            return `<div class="cf-step">
+                <div class="cf-step-num">${stepNum}</div>
+                <div class="cf-step-detail">
+                    <div class="cf-step-title">${title}</div>
+                    <div class="cf-step-desc">${desc}</div>
+                    ${cmdHTML}
+                </div>
+            </div>`;
+        }).join('');
+
+        // Config preview
+        if (data.configContent) {
+            document.getElementById('configContent').textContent = data.configContent;
+            document.getElementById('configPreview').style.display = 'block';
+        } else {
+            document.getElementById('configPreview').style.display = 'none';
+        }
+        
+        // Setup banner status
+        const banner = document.getElementById('setupBanner');
+        if (data.isSetupComplete) {
+            banner.textContent = '✅ Cloudflare Named Tunnel Setup is complete. Ready to run!';
+            banner.style.display = 'block';
+            banner.style.background = 'rgba(48,209,88,0.05)';
+            banner.style.color = 'var(--success)';
+            banner.style.border = '1px solid rgba(48,209,88,0.15)';
+        } else {
+            banner.textContent = '⚠️ Tunnel setup is incomplete. Follow the steps below to configure.';
+            banner.style.display = 'block';
+            banner.style.background = 'rgba(255,159,10,0.05)';
+            banner.style.color = 'var(--warning)';
+            banner.style.border = '1px solid rgba(255,159,10,0.15)';
+        }
+    } catch(e){}
 }
 
-async function showConfigPreview() {
-    const data = await generateConfig();
-    if (!data) return;
-    document.getElementById('configContent').textContent = data.content;
-    document.getElementById('configPreview').style.display = '';
+async function pollTunnelStatus() {
+    try {
+        const data = await api('/api/cloudflare/status');
+        if (!data) return;
+        
+        const statusEl = document.getElementById('tunnelStatus');
+        const startBtn = document.getElementById('tunnelStartBtn');
+        const stopBtn = document.getElementById('tunnelStopBtn');
+        
+        let statusStr = t('status') + ': ';
+        if (data.isRunning) {
+            statusStr += dot('green') + t('running');
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'inline-flex';
+        } else {
+            statusStr += dot('red') + t('stopped');
+            startBtn.style.display = 'inline-flex';
+            stopBtn.style.display = 'none';
+        }
+        
+        // Mode badge
+        const modeBadge = data.mode === 'named' ? '<span class="badge badge-blue" style="margin-left:8px;">Named</span>' : '<span class="badge badge-neutral" style="margin-left:8px;">Quick</span>';
+        statusEl.innerHTML = statusStr + modeBadge;
+
+        // Public URL Link
+        const urlBox = document.getElementById('quickTunnelURLBox');
+        const link = document.getElementById('quickTunnelLink');
+        if (data.isRunning && data.publicURL) {
+            link.href = data.publicURL;
+            link.textContent = data.publicURL;
+            urlBox.style.display = 'block';
+        } else {
+            urlBox.style.display = 'none';
+        }
+
+        // Live logs output
+        const logEl = document.getElementById('tunnelOutput');
+        if (data.lastLogs && data.lastLogs.length > 0) {
+            logEl.textContent = data.lastLogs.join('\n');
+            logEl.style.display = 'block';
+        } else {
+            logEl.style.display = 'none';
+        }
+
+        // Diagnostics
+        const diagEl = document.getElementById('tunnelDiag');
+        diagEl.innerHTML = 
+            `Is cloudflared Installed: <strong>${data.isInstalled ? 'Yes' : 'No'}</strong><br>` +
+            `Config Path: <strong>${data.configPath || '-'}</strong><br>` +
+            `Credentials Path: <strong>${data.credentialsPath || '-'}</strong><br>` +
+            `Process ID: <strong>${data.pid || 'None'}</strong>`;
+            
+    } catch(e){}
 }
 
-async function copyConfig() {
-    const content = document.getElementById('configContent').textContent;
-    navigator.clipboard.writeText(content).then(() => {
-        const btn = document.querySelector('#configPreview button.secondary');
-        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 2000); }
-    });
+async function startTunnel() {
+    try {
+        await api('/api/cloudflare/start', { method: 'POST', body: { mode: tunnelMode } });
+        toast('Starting Cloudflare tunnel...', 'success');
+        pollTunnelStatus();
+    } catch(e){}
+}
+
+async function stopTunnel() {
+    try {
+        await api('/api/cloudflare/stop', { method: 'POST' });
+        toast('Stopping tunnel...', 'success');
+        pollTunnelStatus();
+    } catch(e){}
 }
 
 async function writeConfig() {
     const el = document.getElementById('writeResult');
-    el.innerHTML = '<span style="color:var(--fg2);">Writing...</span>';
-    const data = await api('/api/remote/write-config', { method: 'POST', body: {} });
-    if (!data) { el.innerHTML = '<span style="color:#f44336;">Failed</span>'; return; }
-    el.innerHTML = '<span style="color:#4caf50;">&#10003; Written</span>' + (data.backupPath ? ' (backup: ' + data.backupPath + ')' : '');
-    loadSetupStatus();
+    el.textContent = 'Writing config file...';
+    el.style.color = 'var(--text-secondary)';
+    try {
+        const data = await api('/api/cloudflare/write-config', { method: 'POST' });
+        if (data) {
+            el.textContent = data.success ? '✅ Success: ' + data.message : '❌ Failed: ' + data.message;
+            el.style.color = data.success ? 'var(--success)' : 'var(--danger)';
+            refreshSetupWizard();
+        }
+    } catch(e) {
+        el.textContent = 'Failed to write config file.';
+        el.style.color = 'var(--danger)';
+    }
 }
 
-async function startTunnel() {
-    const btn = document.getElementById('tunnelStartBtn');
-    const mode = document.getElementById('tunnelModeSelect').value;
-    btn.disabled = true;
-    await api('/api/remote/start', { method: 'POST', body: { mode: mode } });
-    setTimeout(loadSetupStatus, 2000);
-    btn.disabled = false;
+function copyConfig() {
+    const content = document.getElementById('configContent').textContent;
+    copyText(content);
 }
 
-async function stopTunnel() {
-    const btn = document.getElementById('tunnelStopBtn');
-    btn.disabled = true;
-    await api('/api/remote/stop', { method: 'POST', body: {} });
-    setTimeout(loadSetupStatus, 1000);
-    btn.disabled = false;
+function copyText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        toast(t('copiedToClipboard'), 'success');
+    }).catch(() => {
+        toast('Failed to copy', 'error');
+    });
 }
 </script>
 </body>

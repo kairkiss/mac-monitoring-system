@@ -2,52 +2,49 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title data-i18n="macMonitorSystem">Mac监控系统 - Audit Log</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title data-i18n="macMonitorSystem">Mac Monitor - Audit Log</title>
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<nav class="sidebar">
-    <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
-    <a href="/" class="nav-item" data-i18n="dashboard">Dashboard</a>
-    <a href="/live.html" class="nav-item" data-i18n="liveView">Live View</a>
-    <a href="/media.html" class="nav-item" data-i18n="mediaLibrary">Media Library</a>
-    <a href="/tasks.html" class="nav-item" data-i18n="automation">Automation</a>
-    <a href="/uploads.html" class="nav-item" data-i18n="uploadQueue">Upload Queue</a>
-    <a href="/health.html" class="nav-item" data-i18n="health">Health</a>
-    <a href="/logs.html" class="nav-item" data-i18n="activityLog">Activity Log</a>
-    <a href="/audit.html" class="nav-item active" data-i18n="auditLog">Audit Log</a>
-    <a href="/settings.html" class="nav-item" data-i18n="settings">Settings</a>
-    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
-</nav>
-<main class="content">
-    <button class="hamburger" id="menuBtn">&#9776;</button>
+<nav class="sidebar"></nav>
+<main class="content has-cards">
     <h1 data-i18n="auditLog">Audit Log</h1>
+    
     <div class="stats-bar">
         <div class="stat"><span class="stat-value" id="totalEntries">0</span><span class="stat-label" data-i18n="total">Total</span></div>
     </div>
-    <div style="margin-bottom:16px; display:flex; gap:8px;">
-        <button onclick="loadAudit()" data-i18n="refresh">Refresh</button>
-        <button class="danger" onclick="clearAudit()" data-i18n="clear">Clear</button>
+    
+    <div style="margin-bottom:20px; display:flex; gap:10px;">
+        <button onclick="loadAudit()" style="min-height: 38px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span data-i18n="refresh">Refresh</span>
+        </button>
+        <button class="danger" onclick="clearAudit()" style="min-height: 38px;" data-i18n="clear">Clear</button>
     </div>
-    <div class="card">
+    
+    <div class="table-container">
         <table>
-            <thead><tr>
-                <th data-i18n="time">Time</th>
-                <th>Method</th>
-                <th>Path</th>
-                <th>Status</th>
-                <th data-i18n="user">User</th>
-                <th>IP</th>
-                <th>ms</th>
-            </tr></thead>
+            <thead>
+                <tr>
+                    <th data-i18n="time">Time</th>
+                    <th>Method</th>
+                    <th>Path</th>
+                    <th>Status</th>
+                    <th data-i18n="user">User</th>
+                    <th>IP</th>
+                    <th>ms</th>
+                </tr>
+            </thead>
             <tbody id="auditList"></tbody>
         </table>
-        <div class="task-cards" id="auditCards"></div>
-        <p id="emptyMsg" style="color:var(--fg2);display:none;text-align:center;padding:20px;">No audit entries.</p>
     </div>
+    
+    <div class="task-cards" id="auditCards"></div>
+    <p id="emptyMsg" style="color:var(--text-secondary); display:none; text-align:center; padding:60px 0; font-weight:600;">No audit entries.</p>
 </main>
+
 <script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
 <script>
@@ -62,9 +59,9 @@ function statusColor(s) {
 }
 
 function methodColor(m) {
-    if (m === 'DELETE') return 'color:#f44336';
+    if (m === 'DELETE') return 'color:var(--danger)';
     if (m === 'POST' || m === 'PUT') return 'color:var(--accent)';
-    return 'color:var(--fg2)';
+    return 'color:var(--text-secondary)';
 }
 
 async function loadAudit() {
@@ -73,31 +70,47 @@ async function loadAudit() {
     document.getElementById('totalEntries').textContent = data.total;
     const tbody = document.getElementById('auditList');
     const empty = document.getElementById('emptyMsg');
+    
     if (data.entries.length === 0) {
         tbody.innerHTML = '';
+        document.getElementById('auditCards').innerHTML = '';
         empty.style.display = 'block';
         return;
     }
     empty.style.display = 'none';
+    
     tbody.innerHTML = data.entries.map(e => {
         const d = new Date(e.timestamp);
         const time = d.toLocaleTimeString();
         return '<tr>' +
-            '<td style="font-size:12px;color:var(--fg2);">' + time + '</td>' +
-            '<td style="' + methodColor(e.method) + ';font-weight:600;">' + e.method + '</td>' +
-            '<td style="font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;">' + e.path + '</td>' +
+            '<td style="font-size:13px; color:var(--text-secondary);">' + time + '</td>' +
+            '<td style="' + methodColor(e.method) + '; font-weight:700;">' + e.method + '</td>' +
+            '<td style="font-size:13px; max-width:300px; overflow:hidden; text-overflow:ellipsis;">' + e.path + '</td>' +
             '<td><span class="badge ' + statusColor(e.status) + '">' + e.status + '</span></td>' +
-            '<td>' + (e.user || '-') + '</td>' +
-            '<td style="font-size:11px;color:var(--fg2);">' + e.remoteAddress + '</td>' +
-            '<td style="font-size:11px;color:var(--fg2);">' + e.duration + '</td>' +
+            '<td><strong>' + (e.user || '-') + '</strong></td>' +
+            '<td style="font-size:12px; color:var(--text-secondary);">' + e.remoteAddress + '</td>' +
+            '<td style="font-size:12px; color:var(--text-secondary); font-weight:600;">' + e.duration + ' ms</td>' +
             '</tr>';
     }).join('');
+    
     // Mobile cards
     const cardsEl = document.getElementById('auditCards');
     cardsEl.innerHTML = data.entries.map(e => {
         const d = new Date(e.timestamp);
         const time = d.toLocaleTimeString();
-        return '<div class="task-card"><div class="task-card-header"><span style="' + methodColor(e.method) + ';font-weight:600;">' + e.method + '</span> <span style="font-size:12px;">' + e.path + '</span><span class="badge ' + statusColor(e.status) + '">' + e.status + '</span></div><div class="task-card-meta"><span>' + time + '</span>' + (e.user ? ' &middot; <span>' + e.user + '</span>' : '') + ' &middot; <span>' + e.duration + 'ms</span></div></div>';
+        return `<div class="task-card">
+            <div class="task-card-header">
+                <span style="${methodColor(e.method)}; font-weight:700; font-size:15px;">${e.method}</span>
+                <span class="badge ${statusColor(e.status)}">${e.status}</span>
+            </div>
+            <div style="font-size:13px; color:var(--text-primary); font-weight:600; margin-top:2px; word-break:break-all;">${e.path}</div>
+            <div class="task-card-meta">
+                <span>Time: <strong>${time}</strong></span>
+                <span>User: <strong>${e.user || '-'}</strong></span>
+                <span>IP: <strong>${e.remoteAddress}</strong></span>
+                <span>Duration: <strong>${e.duration} ms</strong></span>
+            </div>
+        </div>`;
     }).join('');
 }
 

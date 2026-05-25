@@ -2,67 +2,67 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title data-i18n="macMonitorSystem">Mac监控系统 - Automation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title data-i18n="macMonitorSystem">Mac Monitor - Automation</title>
 <link rel="stylesheet" href="/css/style.css">
-<style>
-.modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center; }
-.modal-overlay.active { display:flex; }
-.modal { background:#242424; border-radius:12px; padding:24px; width:480px; max-width:90vw; max-height:80vh; overflow-y:auto; }
-.modal h2 { margin:0 0 16px; font-size:18px; }
-.form-group { margin-bottom:12px; }
-.form-group label { display:block; font-size:13px; color:#a0a0a0; margin-bottom:4px; }
-.form-group input, .form-group select { width:100%; padding:8px 10px; background:#1a1a1a; border:1px solid #333; border-radius:6px; color:#e0e0e0; font-size:14px; box-sizing:border-box; }
-.form-row { display:flex; gap:10px; }
-.form-row .form-group { flex:1; }
-.checkbox-group { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-.checkbox-group input { width:auto; }
-.modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
-.weekday-btns { display:flex; gap:4px; }
-.weekday-btns button { width:36px; height:36px; border-radius:50%; border:1px solid #444; background:#1a1a1a; color:#a0a0a0; cursor:pointer; font-size:12px; }
-.weekday-btns button.active { background:#0a84ff; color:#fff; border-color:#0a84ff; }
-</style>
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<nav class="sidebar">
-    <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
-    <a href="/" class="nav-item" data-i18n="dashboard">Dashboard</a>
-    <a href="/live.html" class="nav-item" data-i18n="liveView">Live View</a>
-    <a href="/media.html" class="nav-item" data-i18n="mediaLibrary">Media Library</a>
-    <a href="/tasks.html" class="nav-item active" data-i18n="automation">Automation</a>
-    <a href="/uploads.html" class="nav-item" data-i18n="uploadQueue">Upload Queue</a>
-    <a href="/health.html" class="nav-item" data-i18n="health">Health</a>
-    <a href="/logs.html" class="nav-item" data-i18n="activityLog">Activity Log</a>
-    <a href="/audit.html" class="nav-item" data-i18n="auditLog">Audit Log</a>
-    <a href="/settings.html" class="nav-item" data-i18n="settings">Settings</a>
-    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
-</nav>
+<nav class="sidebar"></nav>
 <main class="content has-cards">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
         <h1 data-i18n="automation" style="margin:0;">Automation Tasks</h1>
-        <button onclick="openCreateModal()" data-i18n="createTask">Create Task</button>
+        <button onclick="openCreateModal()" style="min-height:42px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span data-i18n="createTask">Create Task</span>
+        </button>
     </div>
-    <table>
-        <thead><tr><th data-i18n="taskName">Name</th><th data-i18n="actionType">Action</th><th data-i18n="taskType">Type</th><th data-i18n="status">Status</th><th data-i18n="nextFire">Next Fire</th><th data-i18n="uploadToCloud">Upload</th><th data-i18n="actions">Actions</th></tr></thead>
-        <tbody id="taskList"></tbody>
-    </table>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th data-i18n="taskName">Name</th>
+                    <th data-i18n="actionType">Action</th>
+                    <th data-i18n="taskType">Type</th>
+                    <th data-i18n="status">Status</th>
+                    <th data-i18n="nextFire">Next Fire</th>
+                    <th data-i18n="uploadToCloud">Upload</th>
+                    <th data-i18n="actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="taskList"></tbody>
+        </table>
+    </div>
+    
     <div class="task-cards" id="taskCards"></div>
-    <h2 style="margin-top:24px;font-size:18px;" data-i18n="executionHistory">Execution History</h2>
-    <table>
-        <thead><tr><th data-i18n="taskName">Task</th><th data-i18n="time">Time</th><th data-i18n="result">Result</th><th data-i18n="detail">Detail</th></tr></thead>
-        <tbody id="historyList"></tbody>
-    </table>
+    
+    <h2 style="margin-top:40px;" data-i18n="executionHistory">Execution History</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th data-i18n="taskName">Task</th>
+                    <th data-i18n="time">Time</th>
+                    <th data-i18n="result">Result</th>
+                    <th data-i18n="detail">Detail</th>
+                </tr>
+            </thead>
+            <tbody id="historyList"></tbody>
+        </table>
+    </div>
 </main>
 
 <!-- Task Modal -->
 <div class="modal-overlay" id="taskModal">
 <div class="modal">
     <h2 id="modalTitle" data-i18n="createTask">Create Task</h2>
+    
     <div class="form-group">
         <label data-i18n="taskName">Task Name</label>
         <input type="text" id="taskNameInput" placeholder="e.g. Morning Snapshot">
     </div>
+    
     <div class="form-row">
         <div class="form-group">
             <label data-i18n="actionType">Action Type</label>
@@ -81,7 +81,8 @@
             </select>
         </div>
     </div>
-    <div class="form-row">
+    
+    <div class="form-row" id="timeFields">
         <div class="form-group" id="hourGroup">
             <label>Hour</label>
             <input type="number" id="hourInput" min="0" max="23" value="8">
@@ -91,20 +92,24 @@
             <input type="number" id="minuteInput" min="0" max="59" value="0">
         </div>
     </div>
+    
     <div class="form-group" id="videoDurationGroup" style="display:none;">
         <label data-i18n="videoDuration">Video Duration (sec)</label>
         <input type="number" id="videoDurationInput" min="5" max="3600" value="30">
     </div>
+    
     <div class="form-group" id="weekdayGroup">
         <label>Weekdays</label>
         <div class="weekday-btns" id="weekdayBtns"></div>
     </div>
+    
     <div class="form-row" id="countdownGroup" style="display:none;">
         <div class="form-group">
             <label data-i18n="countdown">Countdown (minutes)</label>
             <input type="number" id="countdownInput" min="1" value="30">
         </div>
     </div>
+    
     <div class="form-row" id="intervalGroup" style="display:none;">
         <div class="form-group">
             <label data-i18n="interval">Interval (minutes)</label>
@@ -115,14 +120,19 @@
             <input type="number" id="intervalRunDurationInput" min="0" value="120">
         </div>
     </div>
-    <div class="checkbox-group">
-        <input type="checkbox" id="telegramInput">
+    
+    <div class="checkbox-group" style="margin-top: 12px;">
+        <input type="checkbox" id="telegramInput" class="ios-toggle">
+        <label for="telegramInput" class="ios-toggle-label" style="margin-right:8px;"></label>
         <label for="telegramInput">Send to Telegram</label>
     </div>
+    
     <div class="checkbox-group">
-        <input type="checkbox" id="uploadInput" onchange="toggleUploadProvider()">
+        <input type="checkbox" id="uploadInput" class="ios-toggle" onchange="toggleUploadProvider()">
+        <label for="uploadInput" class="ios-toggle-label" style="margin-right:8px;"></label>
         <label for="uploadInput" data-i18n="uploadToCloud">Upload to Cloud</label>
     </div>
+    
     <div class="form-group" id="uploadProviderGroup" style="display:none;">
         <label data-i18n="uploadProvider">Upload Provider</label>
         <select id="uploadProviderInput">
@@ -132,10 +142,13 @@
             <option value="googleDrive">Google Drive</option>
         </select>
     </div>
+    
     <div class="checkbox-group">
-        <input type="checkbox" id="enabledInput" checked>
+        <input type="checkbox" id="enabledInput" class="ios-toggle" checked>
+        <label for="enabledInput" class="ios-toggle-label" style="margin-right:8px;"></label>
         <label for="enabledInput" data-i18n="enabled">Enabled</label>
     </div>
+    
     <div class="modal-actions">
         <button class="secondary" onclick="closeModal()" data-i18n="cancelEdit">Cancel</button>
         <button onclick="saveTask()" data-i18n="saveTask">Save Task</button>
@@ -175,21 +188,21 @@ function initWeekdayBtns() {
 
 function updateTypeFields() {
     const type = document.getElementById('taskTypeInput').value;
-    document.getElementById('hourGroup').style.display = (type === 'daily' || type === 'weekly') ? '' : 'none';
-    document.getElementById('minuteGroup').style.display = (type === 'daily' || type === 'weekly') ? '' : 'none';
-    document.getElementById('weekdayGroup').style.display = type === 'weekly' ? '' : 'none';
+    const isScheduled = (type === 'daily' || type === 'weekly');
+    document.getElementById('timeFields').style.display = isScheduled ? 'flex' : 'none';
+    document.getElementById('weekdayGroup').style.display = type === 'weekly' ? 'block' : 'none';
     document.getElementById('countdownGroup').style.display = type === 'countdown' ? 'flex' : 'none';
     document.getElementById('intervalGroup').style.display = type === 'interval' ? 'flex' : 'none';
 }
 
 function updateActionFields() {
     const action = document.getElementById('actionTypeInput').value;
-    document.getElementById('videoDurationGroup').style.display = action === 'video' ? '' : 'none';
+    document.getElementById('videoDurationGroup').style.display = action === 'video' ? 'block' : 'none';
 }
 
 function toggleUploadProvider() {
     const checked = document.getElementById('uploadInput').checked;
-    document.getElementById('uploadProviderGroup').style.display = checked ? '' : 'none';
+    document.getElementById('uploadProviderGroup').style.display = checked ? 'block' : 'none';
 }
 
 function openCreateModal() {
@@ -279,16 +292,16 @@ async function loadTasks() {
         const typeLabel = task.type === 'daily' ? t('daily') : task.type === 'weekly' ? t('weekly') : task.type === 'countdown' ? t('countdown') : t('interval');
         const actionLabel = task.actionType === 'video' ? t('video') : t('photo');
         const providerLabel = task.uploadProvider === 'googleDrive' ? 'Google Drive' : task.uploadProvider === 'localFolder' ? 'Local Folder' : task.uploadProvider === 'mountedFolder' ? 'Mounted Folder' : (task.uploadProvider || '');
-        const uploadBadge = task.uploadToCloud ? '<span class="badge badge-blue">' + t('uploadToCloud') + (providerLabel ? ' (' + providerLabel + ')' : '') + '</span>' : '<span class="badge">' + t('localOnlyBadge') + '</span>';
+        const uploadBadge = task.uploadToCloud ? '<span class="badge badge-blue">' + t('uploadToCloud') + (providerLabel ? ' (' + providerLabel + ')' : '') + '</span>' : '<span class="badge badge-neutral">' + t('localOnly') + '</span>';
         return `<tr>
-            <td>${task.name || typeLabel}</td>
-            <td>${actionLabel}</td>
+            <td><strong>${task.name || typeLabel}</strong></td>
+            <td><span class="badge ${task.actionType === 'video' ? 'badge-orange' : 'badge-blue'}">${actionLabel}</span></td>
             <td>${typeLabel}</td>
             <td>${task.isEnabled ? '<span class="badge badge-green">' + t('enabled') + '</span>' : '<span class="badge badge-red">' + t('disabled') + '</span>'}</td>
             <td>${task.nextFireTime ? new Date(task.nextFireTime).toLocaleString() : '-'}</td>
             <td>${uploadBadge}</td>
             <td>
-                <button class="secondary" onclick="editTask('${task.id}')" style="margin-right:4px;">${t('editTask')}</button>
+                <button class="secondary" onclick="editTask('${task.id}')" style="margin-right:4px;">${t('edit')}</button>
                 <button class="secondary" onclick="toggleTask('${task.id}')" style="margin-right:4px;">${t('toggle')}</button>
                 <button class="danger" onclick="deleteTask('${task.id}')">${t('delete')}</button>
             </td>
@@ -299,7 +312,7 @@ async function loadTasks() {
         const typeLabel = task.type === 'daily' ? t('daily') : task.type === 'weekly' ? t('weekly') : task.type === 'countdown' ? t('countdown') : t('interval');
         const actionLabel = task.actionType === 'video' ? t('video') : t('photo');
         const providerLabel = task.uploadProvider === 'googleDrive' ? 'Google Drive' : task.uploadProvider === 'localFolder' ? 'Local Folder' : task.uploadProvider === 'mountedFolder' ? 'Mounted Folder' : (task.uploadProvider || '');
-        const uploadBadge = task.uploadToCloud ? '<span class="badge badge-blue">' + t('uploadToCloud') + (providerLabel ? ' (' + providerLabel + ')' : '') + '</span>' : '<span class="badge">' + t('localOnlyBadge') + '</span>';
+        const uploadBadge = task.uploadToCloud ? '<span class="badge badge-blue">' + t('uploadToCloud') + (providerLabel ? ' (' + providerLabel + ')' : '') + '</span>' : '<span class="badge badge-neutral">' + t('localOnly') + '</span>';
         const statusBadge = task.isEnabled ? '<span class="badge badge-green">' + t('enabled') + '</span>' : '<span class="badge badge-red">' + t('disabled') + '</span>';
         const nextFire = task.nextFireTime ? new Date(task.nextFireTime).toLocaleString() : '-';
         return `<div class="task-card">
@@ -308,22 +321,29 @@ async function loadTasks() {
                 ${statusBadge}
             </div>
             <div class="task-card-meta">
-                <span>${actionLabel}</span> &middot; <span>${typeLabel}</span> &middot; <span>${nextFire}</span>
+                <span><span class="badge ${task.actionType === 'video' ? 'badge-orange' : 'badge-blue'}" style="font-size:9px; padding:1px 4px;">${actionLabel}</span></span>
+                <span>Type: <strong>${typeLabel}</strong></span>
+                <span>Next: <strong>${nextFire}</strong></span>
                 ${uploadBadge}
             </div>
             <div class="task-card-actions">
-                <button class="secondary" onclick="editTask('${task.id}')">${t('editTask')}</button>
+                <button class="secondary" onclick="editTask('${task.id}')">${t('edit')}</button>
                 <button class="secondary" onclick="toggleTask('${task.id}')">${t('toggle')}</button>
                 <button class="danger" onclick="deleteTask('${task.id}')">${t('delete')}</button>
             </div>
         </div>`;
     }).join('');
+    
+    // Execution History List
     const hist = await api('/api/tasks/history');
     if (hist) {
         document.getElementById('historyList').innerHTML = hist.history.map(h =>
-            `<tr><td>${h.taskName}</td><td>${new Date(h.executedAt).toLocaleString()}</td>
-            <td>${h.success ? '<span class="badge badge-green">' + t('ok') + '</span>' : '<span class="badge badge-red">' + t('failed') + '</span>'}</td>
-            <td>${h.detail}</td></tr>`
+            `<tr>
+                <td><strong>${h.taskName}</strong></td>
+                <td>${new Date(h.executedAt).toLocaleString()}</td>
+                <td>${h.success ? '<span class="badge badge-green">' + t('ok') + '</span>' : '<span class="badge badge-red">' + t('failed') + '</span>'}</td>
+                <td style="font-size:13px; color:var(--text-secondary);">${h.detail}</td>
+            </tr>`
         ).join('');
     }
 }

@@ -2,63 +2,52 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title data-i18n="macMonitorSystem">Mac监控系统 - Media Library</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title data-i18n="macMonitorSystem">Mac Monitor - Media Library</title>
 <link rel="stylesheet" href="/css/style.css">
-<style>
-.detail-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 50;
-    display: flex; align-items: center; justify-content: center;
-}
-.detail-card {
-    background: var(--bg2); border: 1px solid var(--bg3); border-radius: 12px;
-    width: 90vw; max-width: 800px; max-height: 90vh; overflow: auto; position: relative;
-}
-.detail-card .preview-area { min-height: 200px; display: flex; align-items: center; justify-content: center; background: #000; border-radius: 12px 12px 0 0; }
-.detail-card .preview-area img, .detail-card .preview-area video { max-width: 100%; max-height: 60vh; display: block; border-radius: 12px 12px 0 0; }
-.detail-body { padding: 16px 20px; }
-.detail-body h2 { font-size: 14px; word-break: break-all; margin-bottom: 12px; }
-.detail-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color: var(--fg2); margin-bottom: 16px; }
-.detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.detail-actions button { font-size: 13px; padding: 6px 14px; }
-.close-btn { position: absolute; top: 12px; right: 16px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer; z-index: 2; }
-.archived-badge { background: rgba(255,152,0,0.15); color: var(--orange); font-size: 11px; padding: 2px 6px; border-radius: 8px; margin-left: 6px; }
-.thumb-placeholder { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; color: var(--fg2); font-size: 12px; background: var(--bg3); }
-.media-item img { width: 100%; height: 100%; object-fit: cover; }
-.media-item img.loading { display: none; }
-</style>
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<nav class="sidebar">
-    <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
-    <a href="/" class="nav-item" data-i18n="dashboard">Dashboard</a>
-    <a href="/live.html" class="nav-item" data-i18n="liveView">Live View</a>
-    <a href="/media.html" class="nav-item active" data-i18n="mediaLibrary">Media Library</a>
-    <a href="/tasks.html" class="nav-item" data-i18n="automation">Automation</a>
-    <a href="/uploads.html" class="nav-item" data-i18n="uploadQueue">Upload Queue</a>
-    <a href="/health.html" class="nav-item" data-i18n="health">Health</a>
-    <a href="/logs.html" class="nav-item" data-i18n="activityLog">Activity Log</a>
-    <a href="/audit.html" class="nav-item" data-i18n="auditLog">Audit Log</a>
-    <a href="/settings.html" class="nav-item" data-i18n="settings">Settings</a>
-    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
-</nav>
+<nav class="sidebar"></nav>
 <main class="content">
-    <button class="hamburger" id="menuBtn">&#9776;</button>
-    <h1><span data-i18n="mediaLibrary">Media Library</span> <span id="totalCount" style="font-size:14px;color:var(--fg2);font-weight:400;"></span></h1>
+    <h1>
+        <span data-i18n="mediaLibrary">Media Library</span>
+        <span id="totalCount" style="font-size:14px; color:var(--text-secondary); font-weight:400; margin-left: 6px;"></span>
+    </h1>
+    
     <div class="toolbar">
-        <input type="text" id="searchInput" placeholder="Search filename..." data-i18n="search" style="width:180px;">
-        <select id="typeFilter"><option value="" data-i18n="allTypes">All Types</option><option value="photo" data-i18n="photos">Photos</option><option value="video" data-i18n="videos">Videos</option></select>
-        <select id="sourceFilter"><option value="" data-i18n="allSources">All Sources</option><option value="manual" data-i18n="manual">Manual</option><option value="automation" data-i18n="automationSrc">Automation</option><option value="motion" data-i18n="motion">Motion</option></select>
-        <select id="statusFilter"><option value="" data-i18n="allStatus">All Status</option><option value="notQueued" data-i18n="notUploaded">Not uploaded</option><option value="queued" data-i18n="queued">Queued</option><option value="uploading" data-i18n="uploading">Uploading</option><option value="completed" data-i18n="uploaded">Uploaded</option><option value="failed" data-i18n="failed">Failed</option></select>
-        <label style="display:flex;align-items:center;gap:4px;font-size:13px;color:var(--fg2);cursor:pointer;">
-            <input type="checkbox" id="favFilter" style="width:auto;margin:0;"> <span data-i18n="favorites">Favorites</span>
+        <input type="text" id="searchInput" placeholder="Search filename..." data-i18n="search">
+        <select id="typeFilter">
+            <option value="" data-i18n="allTypes">All Types</option>
+            <option value="photo" data-i18n="photos">Photos</option>
+            <option value="video" data-i18n="videos">Videos</option>
+        </select>
+        <select id="sourceFilter">
+            <option value="" data-i18n="allSources">All Sources</option>
+            <option value="manual" data-i18n="manual">Manual</option>
+            <option value="automation" data-i18n="automationSrc">Automation</option>
+            <option value="motion" data-i18n="motion">Motion</option>
+        </select>
+        <select id="statusFilter">
+            <option value="" data-i18n="allStatus">All Status</option>
+            <option value="notQueued" data-i18n="notUploaded">Not uploaded</option>
+            <option value="queued" data-i18n="queued">Queued</option>
+            <option value="uploading" data-i18n="uploading">Uploading</option>
+            <option value="completed" data-i18n="uploaded">Uploaded</option>
+            <option value="failed" data-i18n="failed">Failed</option>
+        </select>
+        <label style="display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-secondary); cursor:pointer; user-select:none;">
+            <input type="checkbox" id="favFilter" style="width:18px; height:18px; margin:0;">
+            <span data-i18n="favorites">Favorites</span>
         </label>
     </div>
+    
     <div class="media-grid" id="mediaGrid"></div>
     <div class="pagination" id="pagination"></div>
 </main>
+
 <div id="detailModal"></div>
+
 <script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
 <script>
@@ -115,20 +104,22 @@ async function loadMedia() {
     document.getElementById('totalCount').textContent = '(' + data.total + ')';
     const grid = document.getElementById('mediaGrid');
     if (data.items.length === 0) {
-        grid.innerHTML = '<p style="color:var(--fg2);padding:40px 0;text-align:center;">' + t('noMediaFound') + '</p>';
+        grid.innerHTML = '<p style="color:var(--text-secondary); grid-column:1/-1; padding:60px 0; text-align:center; font-weight:500;">' + t('noMediaFound') + '</p>';
     } else {
         grid.innerHTML = data.items.map(item => {
             const archived = !item.localOriginalExists && item.verified;
             const badges = [];
-            if (item.isFavorite) badges.push('<span style="color:#f44336;">&#9829;</span>');
+            if (item.isFavorite) badges.push('<span style="color:var(--danger);">&#9829;</span>');
             if (item.protected) badges.push('<span style="color:var(--accent);">&#128274;</span>');
-            if (item.verified) badges.push('<span class="verified-badge">' + t('verifiedBadge') + '</span>');
-            if (item.remoteFileID) badges.push('<span class="cloud-badge">' + t('cloudBadge') + '</span>');
-            if (archived) badges.push('<span class="archived-badge">' + t('archivedBadge') + '</span>');
+            if (item.verified) badges.push('<span class="verified-badge" style="margin-left:2px; font-size:9px; padding:1px 4px;">' + t('verified') + '</span>');
+            if (item.remoteFileID) badges.push('<span class="cloud-badge" style="margin-left:2px; font-size:9px; padding:1px 4px;">Cloud</span>');
+            if (archived) badges.push('<span class="archived-badge" style="margin-left:2px; font-size:9px; padding:1px 4px;">' + t('archived') + '</span>');
+            
+            let iconText = item.type === 'video' ? 'VIDEO' : 'PHOTO';
             return '<div class="media-item" onclick="showDetail(\'' + item.fileName + '\')">' +
                 '<div class="thumb-placeholder">' + t('noPreview') + '</div>' +
                 '<img class="loading" data-file="' + item.fileName + '" alt="">' +
-                '<div class="overlay"><span>' + item.type + '</span> ' + badges.join(' ') + '</div></div>';
+                '<div class="overlay"><span style="font-weight:700; font-size:10px; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">' + iconText + '</span> <div style="display:flex; gap:2px; align-items:center;">' + badges.join('') + '</div></div></div>';
         }).join('');
         loadVisibleThumbnails(data.items);
     }
@@ -162,7 +153,7 @@ async function loadVisibleThumbnails(items) {
 function renderPagination(page, totalPages) {
     const el = document.getElementById('pagination');
     if (totalPages <= 1) { el.innerHTML = ''; return; }
-    let html = '<span style="font-size:13px;color:var(--fg2);">' + t('page') + ' ' + page + ' / ' + totalPages + '</span>';
+    let html = '<span style="font-size:13px; color:var(--text-secondary); font-weight:500;">' + t('page') + ' ' + page + ' / ' + totalPages + '</span>';
     if (page > 1) html += '<button class="secondary" onclick="goPage(' + (page-1) + ')">' + t('prev') + '</button>';
     if (page < totalPages) html += '<button class="secondary" onclick="goPage(' + (page+1) + ')">' + t('next') + '</button>';
     el.innerHTML = html;
@@ -174,17 +165,17 @@ async function showDetail(fileName) {
     const data = await api('/api/media/' + encodeURIComponent(fileName));
     if (!data) return;
     const archived = !data.localOriginalExists && data.verified;
-    const statusColors = { notQueued:'var(--fg2)', queued:'var(--accent)', uploading:'var(--orange)', completed:'var(--green)', failed:'var(--red)', retrying:'var(--orange)' };
-    const statusColor = statusColors[data.uploadStatus] || 'var(--fg2)';
+    const statusColors = { notQueued:'var(--text-secondary)', queued:'var(--accent)', uploading:'var(--warning)', completed:'var(--success)', failed:'var(--danger)', retrying:'var(--warning)' };
+    const statusColor = statusColors[data.uploadStatus] || 'var(--text-secondary)';
 
     let actions = '';
     if (data.localOriginalExists) {
         actions += '<button onclick="downloadFile(\'' + fileName + '\')">' + t('download') + '</button>';
     } else if (archived) {
-        actions += '<button disabled style="opacity:0.4;cursor:not-allowed;">' + t('download') + '</button>';
+        actions += '<button disabled style="opacity:0.4; cursor:not-allowed;">' + t('download') + '</button>';
     }
     if (data.remoteURL) {
-        actions += '<button class="secondary" onclick="window.open(\'' + data.remoteURL + '\',\'_blank\')">' + t('openInGoogleDrive') + '</button>';
+        actions += '<button class="secondary" onclick="window.open(\'' + data.remoteURL + '\',\'_blank\')">GDrive</button>';
     }
     actions += '<button class="secondary" onclick="toggleFav(\'' + fileName + '\')">' + (data.isFavorite ? t('unfavorite') : t('favorite')) + '</button>';
     actions += '<button class="secondary" onclick="toggleProtect(\'' + fileName + '\')">' + (data.protected ? t('unprotect') : t('protect')) + '</button>';
@@ -195,24 +186,29 @@ async function showDetail(fileName) {
         actions += '<button class="danger" onclick="deleteMedia(\'' + fileName + '\')">' + t('delete') + '</button>';
     }
 
-    const previewHTML = '<div class="preview-area" id="detailPreview"><span style="color:var(--fg2);">' + t('loadingPreview') + '</span></div>';
+    const previewHTML = '<div class="preview-area" id="detailPreview"><span style="color:var(--text-secondary); font-weight:600;">' + t('loadingPreview') + '</span></div>';
     const modal = document.getElementById('detailModal');
+    
+    // Status Display
+    let statusText = t(data.uploadStatus) || data.uploadStatus;
+    if (archived) statusText = t('archived');
+
     modal.innerHTML = '<div class="detail-overlay" onclick="closeDetail(event)">' +
         '<div class="detail-card" onclick="event.stopPropagation()">' +
         '<button class="close-btn" onclick="document.getElementById(\'detailModal\').innerHTML=\'\'">&times;</button>' +
         previewHTML +
         '<div class="detail-body">' +
-        '<h2>' + fileName + (data.verified ? ' <span class="verified-badge">' + t('verifiedBadge') + '</span>' : '') + (data.remoteFileID ? ' <span class="cloud-badge">' + t('cloudBadge') + '</span>' : '') + (archived ? ' <span class="archived-badge">' + t('archivedBadge') + '</span>' : '') + '</h2>' +
+        '<h2>' + fileName + (data.verified ? ' <span class="verified-badge">' + t('verified') + '</span>' : '') + (data.remoteFileID ? ' <span class="cloud-badge">Cloud</span>' : '') + (archived ? ' <span class="archived-badge">' + t('archived') + '</span>' : '') + '</h2>' +
         '<div class="detail-meta">' +
-        '<span>' + t('type') + ': ' + data.type + '</span>' +
-        '<span>' + t('source') + ': ' + data.source + '</span>' +
-        '<span>' + t('size') + ': ' + formatSize(data.fileSize) + '</span>' +
-        '<span>' + t('status') + ': <span style="color:' + statusColor + ';">' + data.uploadStatus + '</span></span>' +
-        '<span>' + t('provider') + ': ' + (data.uploadProvider || '-') + '</span>' +
-        '<span>' + t('verified') + ': ' + (data.verified ? t('yes') : t('no')) + '</span>' +
-        (data.remoteURL ? '<span style="grid-column:span 2;word-break:break-all;">' + t('remote') + ': <a href="' + data.remoteURL + '" target="_blank" style="color:var(--accent);">' + data.remoteURL + '</a></span>' : '') +
-        (data.uploadDate ? '<span>' + t('uploadedAt') + ': ' + new Date(data.uploadDate).toLocaleString() + '</span>' : '') +
-        (data.localDeletedAt ? '<span>' + t('localDeleted') + ': ' + new Date(data.localDeletedAt).toLocaleString() + '</span>' : '') +
+        '<span>' + t('type') + ': <strong>' + data.type + '</strong></span>' +
+        '<span>' + t('source') + ': <strong>' + data.source + '</strong></span>' +
+        '<span>' + t('size') + ': <strong>' + formatSize(data.fileSize) + '</strong></span>' +
+        '<span>' + t('status') + ': <strong style="color:' + statusColor + ';">' + statusText + '</strong></span>' +
+        '<span>' + t('provider') + ': <strong>' + (data.uploadProvider || '-') + '</strong></span>' +
+        '<span>' + t('verified') + ': <strong>' + (data.verified ? t('yes') : t('no')) + '</strong></span>' +
+        (data.remoteURL ? '<span style="grid-column:1/-1; word-break:break-all;">' + t('remote') + ': <a href="' + data.remoteURL + '" target="_blank" style="color:var(--accent);">' + data.remoteURL + '</a></span>' : '') +
+        (data.uploadDate ? '<span>' + t('uploadedAt') + ': <strong>' + new Date(data.uploadDate).toLocaleString() + '</strong></span>' : '') +
+        (data.localDeletedAt ? '<span>' + t('localDeleted') + ': <strong>' + new Date(data.localDeletedAt).toLocaleString() + '</strong></span>' : '') +
         '</div>' +
         '<div class="detail-actions">' + actions + '</div>' +
         '</div></div>';
@@ -220,14 +216,20 @@ async function showDetail(fileName) {
     loadDetailPreview(fileName, data);
 }
 
+function closeDetail(event) {
+    if (event.target.classList.contains('detail-overlay')) {
+        document.getElementById('detailModal').innerHTML = '';
+    }
+}
+
 async function loadDetailPreview(fileName, data) {
     const el = document.getElementById('detailPreview');
     if (!el) return;
 
     if (!data.localOriginalExists) {
-        el.innerHTML = '<div style="padding:60px 20px;text-align:center;color:var(--fg2);">' +
-            '<p style="margin-bottom:8px;">' + t('originalArchived') + '</p>' +
-            (data.remoteURL ? '<a href="' + data.remoteURL + '" target="_blank" style="color:var(--accent);">' + t('openRemote') + '</a>' : '') +
+        el.innerHTML = '<div style="padding:60px 20px; text-align:center; color:var(--text-secondary);">' +
+            '<p style="margin-bottom:12px; font-weight:600;">' + t('originalArchived') + '</p>' +
+            (data.remoteURL ? '<a href="' + data.remoteURL + '" target="_blank" class="btn">' + t('openRemote') + '</a>' : '') +
             '</div>';
         return;
     }
@@ -241,98 +243,96 @@ async function loadDetailPreview(fileName, data) {
             el.innerHTML = '<img src="' + url + '" alt="' + fileName + '">';
         } else if (data.type === 'video') {
             if (fileSize > maxPreviewBytes) {
-                // Large video: show thumbnail instead
                 try {
                     const thumbURL = await fetchBlobURL('/api/media/' + encodeURIComponent(fileName) + '/thumbnail');
-                    el.innerHTML = '<img src="' + thumbURL + '" alt="' + fileName + '" style="max-height:400px;">' +
-                        '<div style="padding:12px;text-align:center;color:var(--fg2);">' + t('largeVideoPreviewDisabled') + ' (' + formatSize(fileSize) + ')</div>';
+                    el.innerHTML = '<img src="' + thumbURL + '" alt="' + fileName + '">' +
+                        '<div class="video-notice">' + t('largeVideoPreviewDisabled') + ' (' + formatSize(fileSize) + ')</div>';
                 } catch {
-                    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--fg2);">' + t('videoPreviewLimited') + ' (' + formatSize(fileSize) + ')</div>';
+                    el.innerHTML = '<div style="padding:60px; text-align:center; color:var(--text-secondary);">' + t('videoPreviewLimited') + ' (' + formatSize(fileSize) + ')</div>';
                 }
             } else {
                 const url = await fetchBlobURL('/api/media/' + encodeURIComponent(fileName) + '/file');
-                el.innerHTML = '<video controls src="' + url + '" style="max-width:100%;max-height:60vh;"></video>';
+                el.innerHTML = '<video src="' + url + '" controls autoplay playsinline loop></video>';
             }
         }
-    } catch (e) {
-        el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--red);">' + t('previewFailed') + ': ' + e.message + '</div>';
+    } catch (err) {
+        el.innerHTML = '<div style="padding:60px 20px; text-align:center; color:var(--danger); font-weight:600;">' + t('previewFailed') + '</div>';
     }
-}
-
-function closeDetail(e) {
-    if (e.target.classList.contains('detail-overlay')) document.getElementById('detailModal').innerHTML = '';
 }
 
 async function downloadFile(fileName) {
-    try {
-        const res = await authFetch('/api/media/' + encodeURIComponent(fileName) + '/file');
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (e) {
-        toast(t('downloadFailed') + ': ' + e.message, 'error');
-    }
+    const token = getToken();
+    const url = '/api/media/' + encodeURIComponent(fileName) + '/file';
+    const a = document.createElement('a');
+    a.href = url + '?token=' + encodeURIComponent(token);
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 }
 
 async function toggleFav(fileName) {
-    await api('/api/media/' + encodeURIComponent(fileName) + '/favorite', { method: 'POST', body: {} });
-    showDetail(fileName);
-    loadMedia();
+    try {
+        const data = await api('/api/media/' + encodeURIComponent(fileName) + '/favorite', { method: 'POST' });
+        if (data) {
+            toast(data.isFavorite ? t('favorite') + ' ' + t('success') : t('unfavorite') + ' ' + t('success'), 'success');
+            showDetail(fileName);
+            loadMedia();
+        }
+    } catch(e){}
 }
 
 async function toggleProtect(fileName) {
-    await api('/api/media/' + encodeURIComponent(fileName) + '/protect', { method: 'POST', body: {} });
-    showDetail(fileName);
-    loadMedia();
+    try {
+        const data = await api('/api/media/' + encodeURIComponent(fileName) + '/protect', { method: 'POST' });
+        if (data) {
+            toast(data.protected ? t('protect') + ' ' + t('success') : t('unprotect') + ' ' + t('success'), 'success');
+            showDetail(fileName);
+            loadMedia();
+        }
+    } catch(e){}
 }
 
 async function queueUpload(fileName) {
     try {
-        await api('/api/media/' + encodeURIComponent(fileName) + '/upload', { method: 'POST', body: {} });
-        toast(t('queuedForUpload'));
-        showDetail(fileName);
-    } catch (e) {}
+        const data = await api('/api/media/' + encodeURIComponent(fileName) + '/upload', { method: 'POST' });
+        if (data) {
+            toast(t('queuedForUpload'), 'success');
+            showDetail(fileName);
+            loadMedia();
+        }
+    } catch(e){}
 }
 
 async function deleteMedia(fileName) {
-    if (!confirm(t('deleteConfirm'))) return;
+    if (!confirm(t('deleteConfirm') + '\n' + fileName)) return;
     try {
         await api('/api/media/' + encodeURIComponent(fileName), { method: 'DELETE' });
+        toast(t('deletedSuccess'), 'success');
         document.getElementById('detailModal').innerHTML = '';
-        toast(t('deletedSuccess'));
         loadMedia();
-    } catch (e) {}
+    } catch(e){}
 }
 
 function formatSize(bytes) {
-    if (!bytes || bytes === 0) return '-';
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
-    if (bytes < 1073741824) return (bytes/1048576).toFixed(1) + ' MB';
-    return (bytes/1073741824).toFixed(1) + ' GB';
+    if (!bytes) return '-';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Debounce search
-let searchTimer;
-document.getElementById('searchInput').addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => { currentPage = 1; loadMedia(); }, 300);
-});
+// Bind search and filter triggers
+document.getElementById('searchInput').addEventListener('input', debounce(loadMedia, 300));
 document.getElementById('typeFilter').addEventListener('change', () => { currentPage = 1; loadMedia(); });
 document.getElementById('sourceFilter').addEventListener('change', () => { currentPage = 1; loadMedia(); });
 document.getElementById('statusFilter').addEventListener('change', () => { currentPage = 1; loadMedia(); });
 document.getElementById('favFilter').addEventListener('change', () => { currentPage = 1; loadMedia(); });
 
-// ESC to close modal
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') document.getElementById('detailModal').innerHTML = '';
-});
+function debounce(fn, ms) {
+    let t;
+    return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
 
 loadMedia();
 </script>

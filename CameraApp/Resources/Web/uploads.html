@@ -2,63 +2,55 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title data-i18n="macMonitorSystem">Mac监控系统 - Upload Queue</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title data-i18n="macMonitorSystem">Mac Monitor - Upload Queue</title>
 <link rel="stylesheet" href="/css/style.css">
-<style>
-.progress-bar { width: 100%; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
-.progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
-.retry-countdown { color: var(--orange); font-size: 12px; }
-</style>
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<nav class="sidebar">
-    <div class="sidebar-header" data-i18n="appName">Mac监控系统</div>
-    <a href="/" class="nav-item" data-i18n="dashboard">Dashboard</a>
-    <a href="/live.html" class="nav-item" data-i18n="liveView">Live View</a>
-    <a href="/media.html" class="nav-item" data-i18n="mediaLibrary">Media Library</a>
-    <a href="/tasks.html" class="nav-item" data-i18n="automation">Automation</a>
-    <a href="/uploads.html" class="nav-item active" data-i18n="uploadQueue">Upload Queue</a>
-    <a href="/health.html" class="nav-item" data-i18n="health">Health</a>
-    <a href="/logs.html" class="nav-item" data-i18n="activityLog">Activity Log</a>
-    <a href="/audit.html" class="nav-item" data-i18n="auditLog">Audit Log</a>
-    <a href="/settings.html" class="nav-item" data-i18n="settings">Settings</a>
-    <div class="sidebar-footer"><span id="userInfo"></span><a href="#" id="logoutBtn" class="logout" data-i18n="logout">Logout</a></div>
-</nav>
-<main class="content">
-    <button class="hamburger" id="menuBtn">&#9776;</button>
+<nav class="sidebar"></nav>
+<main class="content has-cards">
     <h1 data-i18n="uploadQueue">Upload Queue</h1>
+    
     <div class="stats-bar">
         <div class="stat"><span class="stat-value" id="totalCount">0</span><span class="stat-label" data-i18n="total">Total</span></div>
         <div class="stat"><span class="stat-value" id="pendingCount">0</span><span class="stat-label" data-i18n="pending">Pending</span></div>
         <div class="stat"><span class="stat-value" id="retryingCount">0</span><span class="stat-label" data-i18n="retrying">Retrying</span></div>
         <div class="stat"><span class="stat-value" id="failedCount">0</span><span class="stat-label" data-i18n="failed">Failed</span></div>
         <div class="stat"><span class="stat-value" id="waitingCount">0</span><span class="stat-label" data-i18n="waitingForProvider">Waiting</span></div>
-        <div class="stat"><span class="stat-value" id="pauseStatus" data-i18n="active">Active</span><span class="stat-label" data-i18n="status">Status</span></div>
+        <div class="stat"><span class="stat-value" id="pauseStatus" data-i18n="active" style="color:var(--success);">Active</span><span class="stat-label" data-i18n="status">Status</span></div>
     </div>
-    <div style="margin-bottom:16px; display:flex; gap:8px;">
-        <button onclick="retryFailed()" data-i18n="retryAllFailed">Retry All Failed</button>
-        <button onclick="togglePause()" id="pauseBtn" data-i18n="pause">Pause</button>
+    
+    <div style="margin-bottom:20px; display:flex; gap:10px;">
+        <button onclick="retryFailed()" style="min-height: 40px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span data-i18n="retryAllFailed">Retry All Failed</span>
+        </button>
+        <button onclick="togglePause()" id="pauseBtn" class="secondary" style="min-height: 40px;">Pause</button>
     </div>
-    <div class="card">
+    
+    <div class="table-container">
         <table>
-            <thead><tr>
-                <th data-i18n="taskName">File</th>
-                <th data-i18n="status">Status</th>
-                <th data-i18n="provider">Provider</th>
-                <th data-i18n="progress">Progress</th>
-                <th data-i18n="attempts">Attempts</th>
-                <th data-i18n="retryAt">Retry At</th>
-                <th data-i18n="error">Error</th>
-                <th data-i18n="actions">Actions</th>
-            </tr></thead>
+            <thead>
+                <tr>
+                    <th data-i18n="taskName">File</th>
+                    <th data-i18n="status">Status</th>
+                    <th data-i18n="provider">Provider</th>
+                    <th data-i18n="progress">Progress</th>
+                    <th data-i18n="attempts">Attempts</th>
+                    <th data-i18n="retryAt">Retry At</th>
+                    <th data-i18n="error">Error</th>
+                    <th data-i18n="actions">Actions</th>
+                </tr>
+            </thead>
             <tbody id="queueList"></tbody>
         </table>
-        <div class="task-cards" id="queueCards"></div>
-        <p id="emptyMsg" style="color:var(--fg2);display:none;text-align:center;padding:20px;" data-i18n="noUploadJobs">No upload jobs in queue.</p>
     </div>
+    
+    <div class="task-cards" id="queueCards"></div>
+    <p id="emptyMsg" style="color:var(--text-secondary); display:none; text-align:center; padding:60px 0; font-weight:600;" data-i18n="noUploadJobs">No upload jobs in queue.</p>
 </main>
+
 <script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
 <script>
@@ -86,13 +78,13 @@ function retryCountdown(nextRetryAt) {
 }
 
 function progressDisplay(progress, status) {
-    if (status === 'completed') return '100%';
+    if (status === 'completed') return '<span class="badge badge-green">100%</span>';
     if (status !== 'uploading' && status !== 'retrying') return '-';
     const pct = Math.round((progress || 0) * 100);
-    if (pct > 0) {
-        return '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div><span style="font-size:11px;color:var(--fg2);">' + pct + '%</span>';
-    }
-    return '0%';
+    return '<div style="display:flex; flex-direction:column; gap:4px; min-width:80px;">' +
+        '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+        '<span style="font-size:11px; color:var(--text-secondary); font-weight:600;">' + pct + '%</span>' +
+        '</div>';
 }
 
 async function loadQueue() {
@@ -104,54 +96,62 @@ async function loadQueue() {
     document.getElementById('retryingCount').textContent = data.retryingCount || 0;
     document.getElementById('failedCount').textContent = data.failedCount;
     document.getElementById('waitingCount').textContent = data.waitingCount || 0;
-    document.getElementById('pauseStatus').textContent = isPaused ? t('paused') : t('active');
+    
+    const statusVal = document.getElementById('pauseStatus');
+    statusVal.textContent = isPaused ? t('paused') : t('active');
+    statusVal.style.color = isPaused ? 'var(--warning)' : 'var(--success)';
+    
     document.getElementById('pauseBtn').textContent = isPaused ? t('resume') : t('pause');
 
     const tbody = document.getElementById('queueList');
     const empty = document.getElementById('emptyMsg');
+    
     if (data.jobs.length === 0) {
         tbody.innerHTML = '';
+        document.getElementById('queueCards').innerHTML = '';
         empty.style.display = 'block';
         return;
     }
     empty.style.display = 'none';
+    
     tbody.innerHTML = data.jobs.map(j => {
         const statusColors = {
-            failed: 'color:#f44336', completed: 'color:#4caf50',
-            uploading: 'color:var(--accent)', retrying: 'color:var(--orange)',
-            cancelled: 'color:var(--fg2)', waitingForProvider: 'color:#ff9800'
+            failed: 'badge-red', completed: 'badge-green',
+            uploading: 'badge-blue', retrying: 'badge-orange',
+            cancelled: 'badge-neutral', waitingForProvider: 'badge-orange'
         };
-        const statusClass = statusColors[j.status] || '';
+        const badgeClass = statusColors[j.status] || 'badge-neutral';
         const statusText = t(j.status) || j.status;
 
         let actions = '';
         if (j.status === 'failed' || j.status === 'retrying' || j.status === 'waitingForProvider') {
-            actions += '<button onclick="retryJob(\'' + j.id + '\')">' + t('retry') + '</button>';
+            actions += '<button onclick="retryJob(\'' + j.id + '\')" style="padding:4px 10px; min-height:28px; font-size:12px;">' + t('retry') + '</button>';
         }
         if (j.status !== 'completed' && j.status !== 'cancelled') {
-            actions += ' <button class="secondary" onclick="cancelJob(\'' + j.id + '\')">' + t('cancel') + '</button>';
+            actions += ' <button class="secondary" onclick="cancelJob(\'' + j.id + '\')" style="padding:4px 10px; min-height:28px; font-size:12px;">' + t('cancel') + '</button>';
         }
 
         const retryInfo = j.status === 'retrying' && j.nextRetryAt
-            ? '<div class="retry-countdown">' + t('retryAt') + ' ' + retryCountdown(j.nextRetryAt) + '</div>'
+            ? '<div class="retry-countdown">' + retryCountdown(j.nextRetryAt) + '</div>'
             : '';
 
         return '<tr>' +
-            '<td>' + j.fileName + '</td>' +
-            '<td style="' + statusClass + '">' + statusText + '</td>' +
-            '<td>' + j.provider + '</td>' +
+            '<td><strong>' + j.fileName + '</strong></td>' +
+            '<td><span class="badge ' + badgeClass + '">' + statusText + '</span></td>' +
+            '<td><strong>' + j.provider + '</strong></td>' +
             '<td>' + progressDisplay(j.progress, j.status) + '</td>' +
-            '<td>' + j.attempts + '/' + j.maxRetries + '</td>' +
+            '<td><strong>' + j.attempts + '/' + j.maxRetries + '</strong></td>' +
             '<td>' + retryInfo + '</td>' +
-            '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">' + (j.errorClass ? '<span class="error-class-badge">' + j.errorClass + '</span> ' : '') + (j.lastError || '-') + '</td>' +
-            '<td>' + actions + '</td>' +
+            '<td style="max-width:200px; overflow:hidden; text-overflow:ellipsis">' + (j.errorClass ? '<span class="error-class-badge" style="margin-right:4px;">' + j.errorClass + '</span>' : '') + '<span style="font-size:12px; color:var(--text-secondary);">' + (j.lastError || '-') + '</span></td>' +
+            '<td><div style="display:flex; gap:4px;">' + actions + '</div></td>' +
             '</tr>';
     }).join('');
+    
     // Mobile cards
     const cardsEl = document.getElementById('queueCards');
     cardsEl.innerHTML = data.jobs.map(j => {
         const statusBadgeColors = { failed: 'badge-red', completed: 'badge-green', uploading: 'badge-blue', retrying: 'badge-orange', waitingForProvider: 'badge-orange' };
-        const badgeClass = statusBadgeColors[j.status] || '';
+        const badgeClass = statusBadgeColors[j.status] || 'badge-neutral';
         const statusText = t(j.status) || j.status;
         let actions = '';
         if (j.status === 'failed' || j.status === 'retrying' || j.status === 'waitingForProvider') {
@@ -160,7 +160,18 @@ async function loadQueue() {
         if (j.status !== 'completed' && j.status !== 'cancelled') {
             actions += '<button class="secondary" onclick="cancelJob(\'' + j.id + '\')">' + t('cancel') + '</button>';
         }
-        return '<div class="task-card"><div class="task-card-header"><span class="task-card-title">' + j.fileName + '</span><span class="badge ' + badgeClass + '">' + statusText + '</span></div><div class="task-card-meta"><span>' + j.provider + '</span> &middot; <span>' + j.attempts + '/' + j.maxRetries + '</span>' + (j.errorClass ? ' &middot; <span class="error-class-badge">' + j.errorClass + '</span>' : '') + '</div>' + (j.lastError ? '<div style="font-size:12px;color:var(--red);margin-bottom:6px;">' + j.lastError + '</div>' : '') + '<div class="task-card-actions">' + actions + '</div></div>';
+        
+        let progressSection = '';
+        if (j.status === 'uploading' || j.status === 'retrying') {
+            const pct = Math.round((j.progress || 0) * 100);
+            progressSection = '<div style="margin: 8px 0 4px;"><div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div><span style="font-size:11px; color:var(--text-secondary); font-weight:600;">' + pct + '%</span></div>';
+        }
+
+        const retryInfo = j.status === 'retrying' && j.nextRetryAt
+            ? '<span style="color:var(--warning); font-size:12px;">Retry: ' + retryCountdown(j.nextRetryAt) + '</span>'
+            : '';
+
+        return '<div class="task-card"><div class="task-card-header"><span class="task-card-title" style="word-break:break-all;">' + j.fileName + '</span><span class="badge ' + badgeClass + '">' + statusText + '</span></div><div class="task-card-meta"><span>Provider: <strong>' + j.provider + '</strong></span> &middot; <span>Attempts: <strong>' + j.attempts + '/' + j.maxRetries + '</strong></span>' + (j.errorClass ? ' &middot; <span class="error-class-badge">' + j.errorClass + '</span>' : '') + ' ' + retryInfo + '</div>' + progressSection + (j.lastError ? '<div style="font-size:12px; color:var(--danger); margin-bottom:8px; line-height:1.4;">' + j.lastError + '</div>' : '') + '<div class="task-card-actions">' + actions + '</div></div>';
     }).join('');
 }
 

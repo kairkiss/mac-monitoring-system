@@ -2,6 +2,7 @@
 const I18N = {
   en: {
     appName: "Mac Monitor",
+    more: "More",
     dashboard: "Dashboard",
     liveView: "Live View",
     mediaLibrary: "Media Library",
@@ -268,6 +269,7 @@ const I18N = {
   },
   zh: {
     appName: "Mac监控系统",
+    more: "更多",
     dashboard: "仪表盘",
     liveView: "实时画面",
     mediaLibrary: "媒体库",
