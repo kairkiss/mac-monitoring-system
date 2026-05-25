@@ -1,6 +1,6 @@
 # MacMonitor · Mac监控系统
 
-v2.4.11 — Web API Route & Media Thumbnail Hotfix
+v2.4.12 — Web Optional API & Thumbnail Fallback Hotfix
 
 > [!TIP]
 > 如果 Telegram 内置小程序仍显示旧样式，请关闭并重新打开 Telegram 小程序，或清理 Telegram 内置浏览器缓存。

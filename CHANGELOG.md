@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.4.12 (2026-05-25)
+
+Web Optional API & Thumbnail Fallback Hotfix:
+- Fixed Not Found toast still appearing on Web Dashboard load.
+- Switched optional dashboard remote status checks to silent optional API calls.
+- Prevented remote status polling from showing disruptive Not Found toasts.
+- Fixed media library photo previews by falling back from /thumbnail to /file.
+- Added safer placeholders for video, archived, local-missing, and large photo items.
+- Preserved Telegram WebView rendering fixes and v2.4.9+ UI redesign.
+
 ## v2.4.11 (2026-05-25)
 
 Web API Route & Media Thumbnail Hotfix:

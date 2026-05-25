@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title data-i18n="macMonitorSystem">Mac Monitor - Dashboard</title>
-<link rel="stylesheet" href="/css/style.css?v=2.4.11">
+<link rel="stylesheet" href="/css/style.css?v=2.4.12">
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -165,8 +165,8 @@
     </div>
 </main>
 
-<script src="/js/i18n.js?v=2.4.11"></script>
-<script src="/js/app.js?v=2.4.11"></script>
+<script src="/js/i18n.js?v=2.4.12"></script>
+<script src="/js/app.js?v=2.4.12"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('dashboard');
@@ -179,28 +179,30 @@ let isTunnelRunning = false;
 
 async function refreshStatus() {
     // 1. Fetch Cloudflare Status
-    try {
-        const cfData = await api('/api/cloudflare/status');
-        if (cfData) {
-            isTunnelRunning = cfData.isRunning;
-            document.getElementById('heroTunnelStatus').textContent = `Tunnel: ${cfData.isRunning ? t('active') : t('stopped')}`;
-            
-            const remVal = document.getElementById('remoteStatus');
-            const remSub = document.getElementById('remoteSub');
-            if (cfData.isRunning) {
-                remVal.innerHTML = dot('green') + t('active');
-                remSub.textContent = cfData.publicURL ? cfData.publicURL : t('quickTunnel');
-            } else {
-                remVal.innerHTML = dot('red') + t('stopped');
-                remSub.textContent = '';
-            }
+    let cfData = await optionalApi('/api/remote/status') || await optionalApi('/api/cloudflare/status');
+    if (cfData) {
+        isTunnelRunning = cfData.isRunning;
+        document.getElementById('heroTunnelStatus').textContent = `Tunnel: ${cfData.isRunning ? t('active') : t('stopped')}`;
+        
+        const remVal = document.getElementById('remoteStatus');
+        const remSub = document.getElementById('remoteSub');
+        if (cfData.isRunning) {
+            remVal.innerHTML = dot('green') + t('active');
+            remSub.textContent = cfData.quickTunnelURL || cfData.publicURL || t('quickTunnel');
+        } else {
+            remVal.innerHTML = dot('red') + t('stopped');
+            remSub.textContent = '';
         }
-    } catch (e) {
+    } else {
         document.getElementById('heroTunnelStatus').textContent = 'Tunnel: Offline';
+        const remVal = document.getElementById('remoteStatus');
+        const remSub = document.getElementById('remoteSub');
+        if (remVal) remVal.innerHTML = dot('red') + t('stopped');
+        if (remSub) remSub.textContent = 'Unavailable';
     }
 
     // 2. Fetch General Status
-    const data = await api('/api/status');
+    const data = await optionalApi('/api/status');
     if (!data) return;
 
     // Camera Status
@@ -316,7 +318,7 @@ async function triggerQuickAction(action) {
 
 async function refreshHealth() {
     try {
-        const data = await api('/api/health');
+        const data = await optionalApi('/api/health');
         if (!data) return;
         const el = document.getElementById('healthStatus');
         const sub = document.getElementById('healthSub');
@@ -339,7 +341,7 @@ async function refreshHealth() {
 
 async function refreshLastCapture() {
     try {
-        const data = await api('/api/media?perPage=1&sortBy=date');
+        const data = await optionalApi('/api/media?perPage=1&sortBy=date');
         if (!data || !data.items || data.items.length === 0) return;
         const item = data.items[0];
         document.getElementById('lastCaptureStatus').textContent = item.fileName || '-';
@@ -349,7 +351,7 @@ async function refreshLastCapture() {
 
 async function refreshLastUpload() {
     try {
-        const data = await api('/api/uploads');
+        const data = await optionalApi('/api/upload/queue') || await optionalApi('/api/uploads');
         if (!data || !data.jobs) return;
         const completed = data.jobs.filter(j => j.status === 'completed' || j.status === 'verified');
         if (completed.length > 0) {
@@ -365,7 +367,7 @@ async function refreshLastUpload() {
 
 async function loadUptime() {
     try {
-        const h = await api('/api/health');
+        const h = await optionalApi('/api/health');
         if (h && h.uptimeSeconds) {
             const uptime = Math.round(h.uptimeSeconds / 3600);
             document.getElementById('systemUptime').textContent = `Uptime: ${uptime}h`;

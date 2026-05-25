@@ -1,11 +1,11 @@
 // Web UI Version Diagnostics & Safe Reload
-window.WEB_UI_VERSION = '2.4.11';
+window.WEB_UI_VERSION = '2.4.12';
 console.info('[Mac Monitor] Web UI version:', window.WEB_UI_VERSION);
 
 (function() {
     function initDiagnostics() {
         if (!document.body) return;
-        document.body.dataset.webUiVersion = '2.4.11';
+        document.body.dataset.webUiVersion = '2.4.12';
         
         if (window.Telegram?.WebApp) {
             document.body.classList.add('telegram-webview');
@@ -89,6 +89,10 @@ async function optionalApi(url, options = {}) {
         console.warn('[Optional API failed]', url, e);
         return null;
     }
+}
+
+async function apiSilent(url, options = {}) {
+    return optionalApi(url, options);
 }
 
 // Toast notifications
