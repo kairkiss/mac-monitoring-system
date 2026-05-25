@@ -1,11 +1,11 @@
 // Web UI Version Diagnostics & Safe Reload
-window.WEB_UI_VERSION = '2.4.10';
+window.WEB_UI_VERSION = '2.4.11';
 console.info('[Mac Monitor] Web UI version:', window.WEB_UI_VERSION);
 
 (function() {
     function initDiagnostics() {
         if (!document.body) return;
-        document.body.dataset.webUiVersion = '2.4.10';
+        document.body.dataset.webUiVersion = '2.4.11';
         
         if (window.Telegram?.WebApp) {
             document.body.classList.add('telegram-webview');
@@ -64,6 +64,30 @@ async function api(url, options = {}) {
         console.error('API Error:', err);
         toast(err.message, 'error');
         throw err;
+    }
+}
+
+async function optionalApi(url, options = {}) {
+    const token = getToken();
+    const headers = { ...(options.headers || {}) };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (options.body && typeof options.body === 'object') {
+        headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(options.body);
+    }
+    try {
+        const res = await fetch(url, { ...options, headers });
+        if (res.status === 401) { logout(); return null; }
+        if (!res.ok) {
+            console.warn('[Optional API]', url, res.status);
+            return null;
+        }
+        const contentType = res.headers.get('Content-Type') || '';
+        if (contentType.includes('json')) return await res.json();
+        return res;
+    } catch (e) {
+        console.warn('[Optional API failed]', url, e);
+        return null;
     }
 }
 

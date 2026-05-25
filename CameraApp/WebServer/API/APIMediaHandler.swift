@@ -313,7 +313,8 @@ struct APIMediaHandler {
 
     /// Sanitize fileName to prevent path traversal
     private static func sanitizeFileName(_ name: String) -> String {
-        let safe = (name as NSString).lastPathComponent
+        let decoded = name.removingPercentEncoding ?? name
+        let safe = (decoded as NSString).lastPathComponent
         if safe.contains("..") || safe.isEmpty { return "" }
         return safe
     }

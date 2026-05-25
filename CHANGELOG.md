@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.4.11 (2026-05-25)
+
+Web API Route & Media Thumbnail Hotfix:
+- Fixed Not Found toast appearing when opening the Web Dashboard.
+- Aligned Web Remote/Cloudflare frontend calls with available backend routes.
+- Made optional dashboard/remote status requests silent and non-disruptive.
+- Fixed media library thumbnails failing when /thumbnail is unavailable.
+- Added photo thumbnail fallback to /file.
+- Added safer video/archived/local-missing placeholders.
+- Preserved Telegram WebView rendering fixes from v2.4.10.
+
 ## v2.4.10 (2026-05-25)
 
 Telegram WebView Cache Busting Hotfix:
