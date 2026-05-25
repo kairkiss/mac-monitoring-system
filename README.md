@@ -4,7 +4,7 @@ MacMonitor turns the app into a local camera node with a web dashboard, storage 
 
 Mac监控系统将本地摄像头工具升级为 Mac 常驻采集节点，支持网页控制台、存储后端、上传队列、云端归档和自动保留策略。
 
-> **v2.4.4** — App Cloudflare Control Panel Hotfix. macOS App now has full Cloudflare Tunnel control: Start Quick/Named, Stop, Restart buttons, public URL copy, config preview/write with backup, state-driven setup hints. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **v2.4.5** — Visible Cloudflare Buttons Hotfix. Cloudflare Control Panel restructured so all buttons (Start Quick/Named, Stop, Restart, Refresh) are immediately visible at the top of Settings → Web & Remote. Config fields moved to collapsible section. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 

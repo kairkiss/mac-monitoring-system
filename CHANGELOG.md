@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.4.5 (2026-05-25)
+
+Visible Cloudflare Buttons Hotfix — restructured Cloudflare Control Panel so all buttons are immediately visible at the top of the section, not buried under config fields.
+
+### Fixed
+
+- **Buttons now visible at top** — Cloudflare Control Panel restructured: Start Quick/Named, Stop, Restart, Refresh buttons appear right after the status badge
+- **Restart Tunnel works when stopped** — Restart button is now enabled when tunnel is stopped (was incorrectly disabled)
+- **Config fields collapsed** — Tunnel name, hostname, credentials, config actions moved into a collapsible "Configuration" DisclosureGroup so they don't push buttons below the fold
+- **Start buttons show both modes** — Both Quick and Named start buttons are always visible (previously only showed the selected mode's button)
+- **Prominent button styling** — Start Quick (blue), Start Named (purple), Restart (orange) with `.borderedProminent` style for high visibility
+- **Public URL hint** — Shows "Start Quick Tunnel to get a public URL" when in quick mode and tunnel is stopped
+
+### What v2.4.4 had (preserved)
+
+- CloudflareTunnelManager with startTunnel/stopTunnel/restartTunnel
+- State-driven setup hints
+- Config generation, preview, copy, write with backup
+- Web API /api/remote/* endpoints
+- Bilingual UI (Chinese/English)
+
+---
+
 ## v2.4.4 (2026-05-25)
 
 App Cloudflare Control Panel Hotfix — macOS App now has full Cloudflare Tunnel control with Start/Stop/Restart buttons, state-driven setup hints, and config management.

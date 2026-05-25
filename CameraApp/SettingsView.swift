@@ -709,63 +709,66 @@ struct SettingsView: View {
             // Status badge
             cfStatusBadge
 
-            // Tunnel mode picker
-            Picker(Strings.tunnelMode, selection: $settings.cloudflareTunnelMode) {
-                Text(Strings.quickTunnel).tag(TunnelMode.quick)
-                Text(Strings.namedTunnel).tag(TunnelMode.named)
-            }
-            .onChange(of: settings.cloudflareTunnelMode) { _ in refreshCFStatus() }
+            // === PRIMARY ACTION BUTTONS (immediately visible) ===
+            let tunnel = CloudflareTunnelManager.shared
+            let isRunning = tunnel.status == .running
+            let isBusy = tunnel.status == .starting || tunnel.status == .restarting || tunnel.status == .stopping
 
-            if settings.cloudflareTunnelMode == .quick {
-                Text(Strings.cfQuickTemporary)
-                    .font(.caption).foregroundStyle(.secondary)
-            } else {
-                Text(Strings.cfNamedRecommended)
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-
-            // Local URL
-            HStack {
-                Label(Strings.cfLocalURL, systemImage: "desktopcomputer")
-                Spacer()
-                Text("http://127.0.0.1:\(settings.webServerPort)")
-                    .font(.caption.monospaced()).foregroundStyle(.secondary)
-                Button { copyToClipboard("http://127.0.0.1:\(settings.webServerPort)"); cfCopiedToast = Strings.cfCopyLocalURL } label: {
-                    Image(systemName: "doc.on.clipboard").font(.caption)
-                }.buttonStyle(.borderless)
-            }
-
-            // cloudflared info
-            HStack {
-                Image(systemName: cloudflaredDetected ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundStyle(cloudflaredDetected ? .green : .red)
-                Text(cloudflaredDetected ? Strings.cloudflaredDetected : Strings.cloudflaredNotDetected)
-                    .font(.caption)
-                if let ver = cfDiagnostics["cloudflaredVersion"], ver != "Unknown" {
-                    Text("v\(ver)").font(.caption2).foregroundStyle(.tertiary)
+            // Start buttons
+            HStack(spacing: 12) {
+                Button {
+                    tunnel.startTunnel(mode: .quick); refreshAfterDelay()
+                } label: {
+                    Label(Strings.cfStartQuick, systemImage: "bolt.fill")
+                        .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
+                .disabled(isRunning || isBusy || !cloudflaredDetected)
+
+                Button {
+                    tunnel.startTunnel(mode: .named); refreshAfterDelay()
+                } label: {
+                    Label(Strings.cfStartNamed, systemImage: "network.badge.shield.half.filled")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.purple)
+                .disabled(isRunning || isBusy || !cloudflaredDetected)
             }
 
-            // Named tunnel config fields
-            if settings.cloudflareTunnelMode == .named {
-                cfNamedConfigFields
-            }
+            // Stop / Restart / Refresh
+            HStack(spacing: 12) {
+                Button {
+                    tunnel.stopTunnel(); refreshAfterDelay()
+                } label: {
+                    Label(Strings.cfStopTunnel, systemImage: "stop.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!isRunning && tunnel.status != .starting)
 
-            // Action buttons
-            cfActionButtons
+                Button {
+                    tunnel.restartTunnel(mode: settings.cloudflareTunnelMode); refreshAfterDelay(5)
+                } label: {
+                    Label(Strings.cfRestartTunnel, systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+                .disabled(isBusy || !cloudflaredDetected)
+
+                Button {
+                    refreshCFStatus()
+                } label: {
+                    Label(Strings.cfRefreshStatus, systemImage: "arrow.triangle.2.circlepath")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
 
             // Public URL display
             cfPublicURLDisplay
-
-            // Config preview
-            if cfShowConfigPreview {
-                cfConfigPreviewView
-            }
-
-            // Write result
-            if !cfWriteResult.isEmpty {
-                Text(cfWriteResult).font(.caption).foregroundStyle(cfWriteResult.contains("Error") ? .red : .green)
-            }
 
             // Copied toast
             if !cfCopiedToast.isEmpty {
@@ -773,28 +776,118 @@ struct SettingsView: View {
                     .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 2) { cfCopiedToast = "" } }
             }
 
-            // Last output / error (collapsible)
+            // Write result
+            if !cfWriteResult.isEmpty {
+                Text(cfWriteResult).font(.caption).foregroundStyle(cfWriteResult.contains("Error") ? .red : .green)
+            }
+
+            // Last error
+            if let lastErr = tunnel.lastError as String?, !lastErr.isEmpty {
+                Label(lastErr, systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.red)
+                    .lineLimit(3)
+            }
+
+            // Setup hint (when not ready)
+            if cfSetupStatus != .ready && cfSetupStatus != .running {
+                cfSetupHint
+            }
+
+            // === CONFIGURATION (collapsible) ===
+            DisclosureGroup {
+                // Tunnel mode picker
+                Picker(Strings.tunnelMode, selection: $settings.cloudflareTunnelMode) {
+                    Text(Strings.quickTunnel).tag(TunnelMode.quick)
+                    Text(Strings.namedTunnel).tag(TunnelMode.named)
+                }
+                .onChange(of: settings.cloudflareTunnelMode) { _ in refreshCFStatus() }
+
+                // cloudflared info
+                HStack {
+                    Image(systemName: cloudflaredDetected ? "checkmark.circle.fill" : "xmark.circle")
+                        .foregroundStyle(cloudflaredDetected ? .green : .red)
+                    Text(cloudflaredDetected ? Strings.cloudflaredDetected : Strings.cloudflaredNotDetected)
+                        .font(.caption)
+                    if let ver = cfDiagnostics["cloudflaredVersion"], ver != "Unknown" {
+                        Text("v\(ver)").font(.caption2).foregroundStyle(.tertiary)
+                    }
+                }
+
+                // Local URL
+                HStack {
+                    Text(Strings.cfLocalURL).font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Text("http://127.0.0.1:\(settings.webServerPort)")
+                        .font(.caption.monospaced()).foregroundStyle(.secondary)
+                    Button { copyToClipboard("http://127.0.0.1:\(settings.webServerPort)"); cfCopiedToast = Strings.cfCopyLocalURL } label: {
+                        Image(systemName: "doc.on.clipboard").font(.caption)
+                    }.buttonStyle(.borderless)
+                }
+
+                // Named tunnel config
+                if settings.cloudflareTunnelMode == .named {
+                    cfNamedConfigFields
+
+                    // Config actions
+                    HStack(spacing: 8) {
+                        Button(Strings.cfGenerateConfig) {
+                            cfConfigPreview = tunnel.generateConfigYML()
+                            cfShowConfigPreview = true
+                        }
+                        .disabled(settings.cloudflareTunnelName.isEmpty || settings.cloudflareHostname.isEmpty)
+
+                        Button(Strings.cfCopyConfig) {
+                            copyToClipboard(tunnel.generateConfigYML())
+                            cfCopiedToast = Strings.cfCopyConfig
+                        }
+                        .disabled(settings.cloudflareTunnelName.isEmpty || settings.cloudflareHostname.isEmpty)
+
+                        Button(Strings.cfWriteConfig) { cfWriteConfirm = true }
+                            .disabled(settings.cloudflareTunnelName.isEmpty || settings.cloudflareHostname.isEmpty)
+
+                        Button(Strings.cfOpenConfigFolder) {
+                            NSWorkspace.shared.open(tunnel.configFilePath().deletingLastPathComponent())
+                        }
+                    }
+
+                    // Config preview
+                    if cfShowConfigPreview {
+                        cfConfigPreviewView
+                    }
+                }
+            } label: {
+                Label("Configuration", systemImage: "gearshape")
+            }
+
+            // Diagnostics (collapsible)
             DisclosureGroup(Strings.tunnelDiagnostics, isExpanded: $cfShowOutput) {
                 VStack(alignment: .leading, spacing: 4) {
-                    if let lastErr = CloudflareTunnelManager.shared.lastError as String?, !lastErr.isEmpty {
-                        Label(lastErr, systemImage: "exclamationmark.triangle")
-                            .font(.caption).foregroundStyle(.red)
-                    }
-                    Text(CloudflareTunnelManager.shared.lastOutput.isEmpty ? "—" : String(CloudflareTunnelManager.shared.lastOutput.suffix(1000)))
+                    Text(tunnel.lastOutput.isEmpty ? "—" : String(tunnel.lastOutput.suffix(1000)))
                         .font(.caption.monospaced()).foregroundStyle(.tertiary)
                         .lineLimit(20)
                 }
-            }
-
-            // Setup steps hint (when not ready)
-            if cfSetupStatus != .ready && cfSetupStatus != .running {
-                cfSetupHint
             }
 
         } header: {
             Label(Strings.cfControlPanel, systemImage: "network.badge.shield.half.filled")
         }
         .onAppear { refreshCFStatus() }
+        .alert(Strings.cfWriteConfirmTitle, isPresented: $cfWriteConfirm) {
+            Button(Strings.cancel, role: .cancel) { }
+            Button(Strings.cfWriteConfig, role: .destructive) {
+                let result = CloudflareTunnelManager.shared.writeConfigWithBackup(content: CloudflareTunnelManager.shared.generateConfigYML())
+                if result.ok {
+                    cfWriteResult = Strings.cfConfigWritten + (result.backupPath != nil ? " (backup: \(result.backupPath!))" : "")
+                    ActivityLogManager.shared.info(.webServer, "Config.yml written from App UI")
+                    refreshCFStatus()
+                } else {
+                    cfWriteResult = "Error: \(result.error ?? "unknown")"
+                }
+            }
+        } message: {
+            let path = CloudflareTunnelManager.shared.configFilePath().path
+            Text("\(Strings.cfWriteConfirmMsg)\n\nPath: \(path)\nTunnel: \(settings.cloudflareTunnelName)\nHostname: \(settings.cloudflareHostname)\nService: http://127.0.0.1:\(settings.webServerPort)")
+        }
     }
 
     // MARK: - Automation Section
@@ -1532,93 +1625,6 @@ struct SettingsView: View {
         }
     }
 
-    private var cfActionButtons: some View {
-        let tunnel = CloudflareTunnelManager.shared
-        let isRunning = tunnel.status == .running || tunnel.status == .starting
-        let isBusy = tunnel.status == .starting || tunnel.status == .restarting || tunnel.status == .stopping
-
-        return VStack(spacing: 8) {
-            // Quick Tunnel row
-            if settings.cloudflareTunnelMode == .quick {
-                HStack(spacing: 8) {
-                    Button(Strings.cfStartQuick) { tunnel.startTunnel(mode: .quick); refreshAfterDelay() }
-                        .disabled(isRunning || isBusy || !cloudflaredDetected)
-                    Spacer()
-                }
-            }
-
-            // Named Tunnel row
-            if settings.cloudflareTunnelMode == .named {
-                HStack(spacing: 8) {
-                    Button(Strings.cfStartNamed) { tunnel.startTunnel(mode: .named); refreshAfterDelay() }
-                        .disabled(isRunning || isBusy || !cloudflaredDetected || cfSetupStatus != .ready)
-                    Spacer()
-                }
-            }
-
-            // Stop / Restart / Refresh row
-            HStack(spacing: 8) {
-                Button(Strings.cfStopTunnel) { tunnel.stopTunnel(); refreshAfterDelay() }
-                    .disabled(!isRunning && tunnel.status != .starting)
-                    .buttonStyle(.bordered)
-
-                Button(Strings.cfRestartTunnel) {
-                    tunnel.restartTunnel(mode: settings.cloudflareTunnelMode)
-                    refreshAfterDelay(5)
-                }
-                .disabled(isBusy || (!isRunning && tunnel.status != .stopped))
-                .buttonStyle(.borderedProminent)
-
-                Button(Strings.cfRefreshStatus) { refreshCFStatus() }
-                    .buttonStyle(.bordered)
-
-                Spacer()
-            }
-
-            // Config actions row
-            if settings.cloudflareTunnelMode == .named {
-                HStack(spacing: 8) {
-                    Button(Strings.cfGenerateConfig) {
-                        cfConfigPreview = tunnel.generateConfigYML()
-                        cfShowConfigPreview = true
-                    }
-                    .disabled(settings.cloudflareTunnelName.isEmpty || settings.cloudflareHostname.isEmpty)
-
-                    Button(Strings.cfCopyConfig) {
-                        copyToClipboard(tunnel.generateConfigYML())
-                        cfCopiedToast = Strings.cfCopyConfig
-                    }
-                    .disabled(settings.cloudflareTunnelName.isEmpty || settings.cloudflareHostname.isEmpty)
-
-                    Button(Strings.cfWriteConfig) { cfWriteConfirm = true }
-                        .disabled(settings.cloudflareTunnelName.isEmpty || settings.cloudflareHostname.isEmpty)
-
-                    Button(Strings.cfOpenConfigFolder) {
-                        NSWorkspace.shared.open(tunnel.configFilePath().deletingLastPathComponent())
-                    }
-
-                    Spacer()
-                }
-            }
-        }
-        .alert(Strings.cfWriteConfirmTitle, isPresented: $cfWriteConfirm) {
-            Button(Strings.cancel, role: .cancel) { }
-            Button(Strings.cfWriteConfig, role: .destructive) {
-                let result = CloudflareTunnelManager.shared.writeConfigWithBackup(content: CloudflareTunnelManager.shared.generateConfigYML())
-                if result.ok {
-                    cfWriteResult = Strings.cfConfigWritten + (result.backupPath != nil ? " (backup: \(result.backupPath!))" : "")
-                    ActivityLogManager.shared.info(.webServer, "Config.yml written from App UI")
-                    refreshCFStatus()
-                } else {
-                    cfWriteResult = "Error: \(result.error ?? "unknown")"
-                }
-            }
-        } message: {
-            let path = CloudflareTunnelManager.shared.configFilePath().path
-            Text("\(Strings.cfWriteConfirmMsg)\n\nPath: \(path)\nTunnel: \(settings.cloudflareTunnelName)\nHostname: \(settings.cloudflareHostname)\nService: http://127.0.0.1:\(settings.webServerPort)")
-        }
-    }
-
     private var cfPublicURLDisplay: some View {
         let tunnel = CloudflareTunnelManager.shared
         let publicURL: String? = {
@@ -1634,12 +1640,19 @@ struct SettingsView: View {
             if let url = publicURL {
                 HStack {
                     Label(Strings.cfPublicURL, systemImage: "globe")
+                        .fontWeight(.medium)
                     Spacer()
                     Link(url, destination: URL(string: url)!)
                         .font(.caption).lineLimit(1)
                     Button { copyToClipboard(url); cfCopiedToast = Strings.cfCopyPublicURL } label: {
                         Image(systemName: "doc.on.clipboard").font(.caption)
                     }.buttonStyle(.borderless)
+                }
+            } else if settings.cloudflareTunnelMode == .quick && tunnel.status == .stopped {
+                HStack(spacing: 4) {
+                    Image(systemName: "info.circle").foregroundStyle(.secondary)
+                    Text("Start Quick Tunnel to get a public URL")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
