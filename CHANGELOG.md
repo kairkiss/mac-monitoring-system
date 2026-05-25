@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.4.6 (2026-05-25)
+
+Web Settings Crash Hotfix — fixed crash when opening Settings → Web & Remote Access. Extracted Cloudflare panel into standalone view with all force unwraps removed and async-safe status refresh.
+
+### Fixed
+
+- **Fixed crash on Web & Remote Access** — removed unsafe force unwraps (`URL(string:)!`, `tunnel.pid!`, `result.backupPath!`) that caused the crash
+- **Extracted CloudflareControlPanelView** — Cloudflare panel is now a standalone view, reducing SettingsView complexity and isolating crash scope
+- **Async-safe status refresh** — `refreshStatus()` now runs `detectCloudflared()` and `setupStatus()` on a background thread via `Task.detached`, preventing main-thread blocking
+- **Safe URL rendering** — Public URL uses `if let safeURL = URL(string: url)` instead of force unwrap; invalid hostnames show as text instead of crashing
+- **Safe PID display** — Uses `if let pid = tunnel.pid` instead of `tunnel.pid!`
+- **Safe backup path** — Write Config result uses `if let backup = result.backupPath` instead of force unwrap
+- **Hostname normalization** — Handles hostnames with `https://` prefix gracefully
+
+### Preserved
+
+- All visible Cloudflare buttons: Start Quick/Named, Stop, Restart, Refresh
+- Copy Public URL, Generate/Copy/Write Config
+- Config fields in collapsible DisclosureGroup
+- Google Drive, automation, upload queue, retention
+
+---
+
 ## v2.4.5 (2026-05-25)
 
 Visible Cloudflare Buttons Hotfix — restructured Cloudflare Control Panel so all buttons are immediately visible at the top of the section, not buried under config fields.

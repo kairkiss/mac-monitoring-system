@@ -23,6 +23,7 @@
 		AA0000000D /* MediaDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000F; };
 		AA0000000E /* AutomationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000010; };
 		AA0000000F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000011; };
+		AA0000003D /* CloudflareControlPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000003D; };
 		AA00000010 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB00000012; };
 		AA00000011 /* ActivityLogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000013; };
 		AA00000012 /* ActivityLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000014; };
@@ -86,6 +87,7 @@
 		AB0000000F /* MediaDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDetailView.swift; sourceTree = "<group>"; };
 		AB00000010 /* AutomationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationView.swift; sourceTree = "<group>"; };
 		AB00000011 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AB0000003D /* CloudflareControlPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudflareControlPanelView.swift; sourceTree = "<group>"; };
 		AB00000012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AB00000013 /* ActivityLogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityLogManager.swift; sourceTree = "<group>"; };
 		AB00000014 /* ActivityLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityLogView.swift; sourceTree = "<group>"; };
@@ -181,6 +183,7 @@
 				AB0000000F /* MediaDetailView.swift */,
 				AB00000010 /* AutomationView.swift */,
 				AB00000011 /* SettingsView.swift */,
+				AB0000003D /* CloudflareControlPanelView.swift */,
 				AB00000013 /* ActivityLogManager.swift */,
 				AB00000014 /* ActivityLogView.swift */,
 				AB00000015 /* KeychainService.swift */,
@@ -348,6 +351,7 @@
 				AA0000000D /* MediaDetailView.swift in Sources */,
 				AA0000000E /* AutomationView.swift in Sources */,
 				AA0000000F /* SettingsView.swift in Sources */,
+				AA0000003D /* CloudflareControlPanelView.swift in Sources */,
 				AA00000011 /* ActivityLogManager.swift in Sources */,
 				AA00000012 /* ActivityLogView.swift in Sources */,
 				AA00000013 /* KeychainService.swift in Sources */,
@@ -455,14 +459,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.4.5;
+				MARKETING_VERSION = 2.4.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -477,14 +481,14 @@
 				CODE_SIGN_ENTITLEMENTS = CameraApp/CameraApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CameraApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.4.5;
+				MARKETING_VERSION = 2.4.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kairkiss.MacMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
