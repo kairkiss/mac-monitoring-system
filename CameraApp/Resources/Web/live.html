@@ -10,40 +10,63 @@
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <nav class="sidebar"></nav>
 <main class="content">
-    <h1 data-i18n="liveView">Live View</h1>
+    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h1 data-i18n="liveView" style="margin:0;">Live View</h1>
+        <button id="refreshBtn" onclick="refreshSnapshot()" class="secondary" style="min-height:36px; padding:0 12px; font-size:13px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span data-i18n="refresh">Refresh</span>
+        </button>
+    </div>
     
-    <div class="live-container">
-        <div class="live-preview-card">
-            <img id="snapshot" src="" alt="Live snapshot" style="display:none;">
-            <p id="snapshotPlaceholder" style="color:var(--text-secondary); font-weight:600;" data-i18n="connectingCamera">Connecting to camera...</p>
-        </div>
-        
-        <div class="card" style="margin-top: 16px; padding: 14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span class="status-dot dot-gray" id="cameraStatusDot"></span>
-                <span id="deviceName" style="font-weight:600; font-size:14px; color:var(--text-primary);">Camera: -</span>
+    <div class="live-container" style="max-width:100%;">
+        <!-- Large full width preview wrapper -->
+        <div class="live-preview-card" style="aspect-ratio: 16/9; background:#000; border-radius:var(--radius-xl); overflow:hidden; border:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:center; position:relative;">
+            <img id="snapshot" src="" alt="Live snapshot" style="display:none; width:100%; height:100%; object-fit:contain;">
+            
+            <!-- fallback empty state -->
+            <div id="snapshotPlaceholder" class="empty-state">
+                <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </div>
+                <div class="empty-state-text" data-i18n="connectingCamera">Connecting to camera...</div>
             </div>
-            <span id="snapshotInfo" style="color:var(--text-secondary); font-size:12px; font-weight:500;">-</span>
         </div>
         
-        <!-- Action controls -->
-        <div class="live-controls">
-            <button id="captureBtn" class="secondary" style="min-height: 48px; font-size: 15px;">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+        <!-- Metadata metrics card -->
+        <div class="mini-card" style="margin-top:16px; display:flex; flex-direction:column; gap:8px;">
+            <div class="metric-strip">
+                <span style="display:inline-flex; align-items:center; gap:6px; font-weight:600; font-size:13px; color:var(--text-secondary);">
+                    <span class="status-dot dot-gray" id="cameraStatusDot"></span>
+                    <span id="deviceName">Camera: -</span>
+                </span>
+                <span id="snapshotInfo" style="color:var(--text-tertiary); font-size:12px; font-weight:600;">-</span>
+            </div>
+            <div class="metric-strip" style="border-top:1px solid var(--border-subtle); padding-top:8px;">
+                <span style="font-weight:600; font-size:13px; color:var(--text-secondary);" data-i18n="status">Status</span>
+                <span id="recordStatus" style="font-weight:700; font-size:13px; color:var(--danger);">-</span>
+            </div>
+        </div>
+        
+        <!-- Enlarged tactile actions -->
+        <div class="live-controls" style="margin-top:20px; display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; max-width:100%;">
+            <button id="captureBtn" class="secondary" style="height:48px; font-size:14px; font-weight:700; border-radius:var(--radius-md);">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                 <span data-i18n="capturePhoto">Capture Photo</span>
             </button>
-            <button id="recordBtn" style="background:var(--danger); min-height: 48px; font-size: 15px;">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg>
+            <button id="recordBtn" style="background:var(--danger); height:48px; font-size:14px; font-weight:700; border-radius:var(--radius-md); border:none; color:#fff;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg>
                 <span data-i18n="startRecording">Start Recording</span>
             </button>
-            <span id="recordStatus" style="font-size:14px; font-weight:600; color:var(--danger); margin-left: 8px;"></span>
         </div>
 
-        <!-- Note Banner -->
-        <div class="card" style="margin-top: 24px; border-left: 4px solid var(--accent); background:rgba(0,122,255,0.04); padding: 16px;">
-            <p style="font-size: 13px; font-weight: 500; color:var(--text-secondary); line-height: 1.45;">
+        <!-- Security Warning local only banner -->
+        <div class="card" style="margin-top:24px; border-left:4px solid var(--accent); background:rgba(0,122,255,0.04); padding:16px; border-radius:0 var(--radius-lg) var(--radius-lg) 0;">
+            <p style="font-size:13px; line-height:1.45; color:var(--text-secondary);">
                 <strong style="color:var(--text-primary);" data-i18n="localOnly">Local Only</strong>: 
-                手动拍摄的照片和视频默认仅保存在本地设备上，并不会自动触发云端（Google Drive）上传。
+                <span data-i18n="localOnlyNotice">Manual capture defaulted to save locally, won't auto-upload to cloud.</span>
             </p>
         </div>
     </div>
@@ -89,7 +112,7 @@ async function refreshSnapshot() {
             camDot.className = 'status-dot dot-green';
         }
         const now = new Date();
-        info.textContent = now.toLocaleTimeString();
+        info.textContent = `${t('lastFrame')}: ${now.toLocaleTimeString()}`;
         if (refreshInterval !== 2000) {
             refreshInterval = 2000;
             startSnapshotRefresh();
@@ -97,7 +120,8 @@ async function refreshSnapshot() {
     } catch (e) {
         consecutiveErrors++;
         if (consecutiveErrors >= 3) {
-            placeholder.textContent = t('cameraNotAvailable');
+            const phText = placeholder.querySelector('.empty-state-text');
+            if (phText) phText.textContent = t('previewUnavailable');
             placeholder.style.display = 'block';
             img.style.display = 'none';
             if (camDot) {
@@ -116,17 +140,21 @@ async function refreshStatus() {
         const data = await api('/api/camera/record/status');
         if (!data) return;
         isRecording = data.isRecording;
-        document.getElementById('deviceName').textContent = data.deviceName ? t('camera') + ': ' + data.deviceName : '';
+        document.getElementById('deviceName').textContent = data.deviceName ? t('camera') + ': ' + data.deviceName : t('noCameraAvailable');
+        
         const btn = document.getElementById('recordBtn');
         const status = document.getElementById('recordStatus');
+        
         if (isRecording) {
-            btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2" fill="currentColor"></rect></svg> <span>${t('stopRecording')}</span>`;
+            btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><rect x="4" y="4" width="16" height="16" rx="2" ry="2" fill="currentColor"></rect></svg> <span>${t('stopRecording')}</span>`;
             btn.style.background = 'var(--text-tertiary)';
             status.textContent = t('recording') + '...';
+            status.style.color = 'var(--danger)';
         } else {
-            btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg> <span>${t('startRecording')}</span>`;
+            btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg> <span>${t('startRecording')}</span>`;
             btn.style.background = 'var(--danger)';
-            status.textContent = '';
+            status.textContent = t('idle');
+            status.style.color = 'var(--text-secondary)';
         }
     } catch (e) {}
 }

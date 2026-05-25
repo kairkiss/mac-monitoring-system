@@ -10,40 +10,34 @@
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <nav class="sidebar"></nav>
 <main class="content">
-    <h1>
-        <span data-i18n="mediaLibrary">Media Library</span>
-        <span id="totalCount" style="font-size:14px; color:var(--text-secondary); font-weight:400; margin-left: 6px;"></span>
-    </h1>
-    
-    <div class="toolbar">
-        <input type="text" id="searchInput" placeholder="Search filename..." data-i18n="search">
-        <select id="typeFilter">
-            <option value="" data-i18n="allTypes">All Types</option>
-            <option value="photo" data-i18n="photos">Photos</option>
-            <option value="video" data-i18n="videos">Videos</option>
-        </select>
-        <select id="sourceFilter">
-            <option value="" data-i18n="allSources">All Sources</option>
-            <option value="manual" data-i18n="manual">Manual</option>
-            <option value="automation" data-i18n="automationSrc">Automation</option>
-            <option value="motion" data-i18n="motion">Motion</option>
-        </select>
-        <select id="statusFilter">
-            <option value="" data-i18n="allStatus">All Status</option>
-            <option value="notQueued" data-i18n="notUploaded">Not uploaded</option>
-            <option value="queued" data-i18n="queued">Queued</option>
-            <option value="uploading" data-i18n="uploading">Uploading</option>
-            <option value="completed" data-i18n="uploaded">Uploaded</option>
-            <option value="failed" data-i18n="failed">Failed</option>
-        </select>
-        <label style="display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-secondary); cursor:pointer; user-select:none;">
-            <input type="checkbox" id="favFilter" style="width:18px; height:18px; margin:0;">
-            <span data-i18n="favorites">Favorites</span>
-        </label>
+    <div class="page-header" style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px;">
+        <h1 style="margin:0;">
+            <span data-i18n="mediaLibrary">Media Library</span>
+            <span id="totalCount" style="font-size:14px; color:var(--text-secondary); font-weight:400; margin-left: 6px;"></span>
+        </h1>
+    </div>
+
+    <!-- Search Input -->
+    <div class="toolbar" style="margin-bottom: 12px;">
+        <input type="text" id="searchInput" placeholder="Search filename..." data-i18n="search" style="margin-bottom:0;">
     </div>
     
+    <!-- Filter Chips Row -->
+    <div class="filter-chips" id="filterChips">
+        <button class="chip active" data-type="" data-status="" data-fav="false" data-i18n="allTypes">All</button>
+        <button class="chip" data-type="photo" data-status="" data-fav="false" data-i18n="photos">Photos</button>
+        <button class="chip" data-type="video" data-status="" data-fav="false" data-i18n="videos">Videos</button>
+        <button class="chip" data-type="" data-status="completed" data-fav="false" data-i18n="cloud">Cloud</button>
+        <button class="chip" data-type="" data-status="notQueued" data-fav="false" data-i18n="local">Local</button>
+        <button class="chip" data-type="" data-status="failed" data-fav="false" data-i18n="failed">Failed</button>
+        <button class="chip" data-type="" data-status="" data-fav="true" data-i18n="favorites">Favorites</button>
+    </div>
+    
+    <!-- Media Items Grid -->
     <div class="media-grid" id="mediaGrid"></div>
-    <div class="pagination" id="pagination"></div>
+    
+    <!-- Pagination Footer -->
+    <div class="pagination" id="pagination" style="margin-top:20px;"></div>
 </main>
 
 <div id="detailModal"></div>
@@ -51,13 +45,19 @@
 <script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
 <script>
+let currentPage = 1;
+const perPage = 24;
+const blobURLs = new Set();
+
+let currentType = '';
+let currentStatus = '';
+let currentFav = false;
+
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('mediaLibrary');
+    initFilterChips();
+    loadMedia();
 });
-
-let currentPage = 1;
-const perPage = 30;
-const blobURLs = new Set();
 
 function revokeBlobURLs() {
     for (const u of blobURLs) URL.revokeObjectURL(u);
@@ -82,18 +82,30 @@ async function fetchBlobURL(url) {
     return blobURL;
 }
 
+function initFilterChips() {
+    const chips = document.querySelectorAll('#filterChips .chip');
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            chips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            
+            currentType = chip.getAttribute('data-type') || '';
+            currentStatus = chip.getAttribute('data-status') || '';
+            currentFav = chip.getAttribute('data-fav') === 'true';
+            
+            currentPage = 1;
+            loadMedia();
+        });
+    });
+}
+
 function buildURL() {
     let url = '/api/media?page=' + currentPage + '&perPage=' + perPage;
     const search = document.getElementById('searchInput').value.trim();
-    const type = document.getElementById('typeFilter').value;
-    const source = document.getElementById('sourceFilter').value;
-    const status = document.getElementById('statusFilter').value;
-    const fav = document.getElementById('favFilter').checked;
     if (search) url += '&search=' + encodeURIComponent(search);
-    if (type) url += '&type=' + type;
-    if (source) url += '&source=' + source;
-    if (status) url += '&uploadStatus=' + status;
-    if (fav) url += '&favorite=true';
+    if (currentType) url += '&type=' + currentType;
+    if (currentStatus) url += '&uploadStatus=' + currentStatus;
+    if (currentFav) url += '&favorite=true';
     return url;
 }
 
@@ -104,22 +116,41 @@ async function loadMedia() {
     document.getElementById('totalCount').textContent = '(' + data.total + ')';
     const grid = document.getElementById('mediaGrid');
     if (data.items.length === 0) {
-        grid.innerHTML = '<p style="color:var(--text-secondary); grid-column:1/-1; padding:60px 0; text-align:center; font-weight:500;">' + t('noMediaFound') + '</p>';
+        grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;">
+            <div class="empty-state-icon">
+                <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+            <div class="empty-state-text">${t('noMediaFound')}</div>
+        </div>`;
     } else {
         grid.innerHTML = data.items.map(item => {
             const archived = !item.localOriginalExists && item.verified;
             const badges = [];
-            if (item.isFavorite) badges.push('<span style="color:var(--danger);">&#9829;</span>');
-            if (item.protected) badges.push('<span style="color:var(--accent);">&#128274;</span>');
-            if (item.verified) badges.push('<span class="verified-badge" style="margin-left:2px; font-size:9px; padding:1px 4px;">' + t('verified') + '</span>');
-            if (item.remoteFileID) badges.push('<span class="cloud-badge" style="margin-left:2px; font-size:9px; padding:1px 4px;">Cloud</span>');
-            if (archived) badges.push('<span class="archived-badge" style="margin-left:2px; font-size:9px; padding:1px 4px;">' + t('archived') + '</span>');
+            if (item.isFavorite) badges.push('<span style="color:var(--danger); font-size:13px;">♥</span>');
+            if (item.protected) badges.push('<span style="color:var(--accent); font-size:11px;">🔒</span>');
             
-            let iconText = item.type === 'video' ? 'VIDEO' : 'PHOTO';
-            return '<div class="media-item" onclick="showDetail(\'' + item.fileName + '\')">' +
-                '<div class="thumb-placeholder">' + t('noPreview') + '</div>' +
-                '<img class="loading" data-file="' + item.fileName + '" alt="">' +
-                '<div class="overlay"><span style="font-weight:700; font-size:10px; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">' + iconText + '</span> <div style="display:flex; gap:2px; align-items:center;">' + badges.join('') + '</div></div></div>';
+            let sourceBadge = '';
+            if (item.verified) sourceBadge = `<span class="verified-badge">${t('verifiedBadge')}</span>`;
+            else if (item.remoteFileID) sourceBadge = `<span class="cloud-badge">${t('cloudBadge')}</span>`;
+            else if (archived) sourceBadge = `<span class="archived-badge">${t('archivedBadge')}</span>`;
+            else sourceBadge = `<span class="badge badge-neutral" style="font-size:9px; padding:2px 6px;">${t('localOnlyBadge')}</span>`;
+
+            let typeText = item.type === 'video' ? '🎥 VIDEO' : '📸 PHOTO';
+            return `<div class="media-item" onclick="showDetail('${item.fileName}')">
+                <div class="thumb-placeholder">${t('noPreview')}</div>
+                <img class="loading" data-file="${item.fileName}" alt="">
+                <div class="overlay">
+                    <span style="font-weight:700; font-size:9px; background:rgba(0,0,0,0.6); padding:2px 6px; border-radius:4px; letter-spacing:0.3px;">${typeText}</span>
+                    <div style="display:flex; gap:4px; align-items:center;">
+                        ${badges.join('')}
+                        ${sourceBadge}
+                    </div>
+                </div>
+            </div>`;
         }).join('');
         loadVisibleThumbnails(data.items);
     }
@@ -132,7 +163,7 @@ async function loadVisibleThumbnails(items) {
     async function next() {
         while (idx < items.length) {
             const item = items[idx++];
-            const img = document.querySelector('img[data-file="' + item.fileName + '"]');
+            const img = document.querySelector(`img[data-file="${item.fileName}"]`);
             if (!img) continue;
             try {
                 const url = await fetchBlobURL('/api/media/' + encodeURIComponent(item.fileName) + '/thumbnail');
@@ -153,9 +184,9 @@ async function loadVisibleThumbnails(items) {
 function renderPagination(page, totalPages) {
     const el = document.getElementById('pagination');
     if (totalPages <= 1) { el.innerHTML = ''; return; }
-    let html = '<span style="font-size:13px; color:var(--text-secondary); font-weight:500;">' + t('page') + ' ' + page + ' / ' + totalPages + '</span>';
-    if (page > 1) html += '<button class="secondary" onclick="goPage(' + (page-1) + ')">' + t('prev') + '</button>';
-    if (page < totalPages) html += '<button class="secondary" onclick="goPage(' + (page+1) + ')">' + t('next') + '</button>';
+    let html = '<span style="font-size:13px; color:var(--text-secondary); font-weight:600;">' + t('page') + ' ' + page + ' / ' + totalPages + '</span>';
+    if (page > 1) html += '<button class="secondary" onclick="goPage(' + (page-1) + ')" style="min-height:34px; padding:4px 12px; margin-left:8px;">' + t('prev') + '</button>';
+    if (page < totalPages) html += '<button class="secondary" onclick="goPage(' + (page+1) + ')" style="min-height:34px; padding:4px 12px; margin-left:8px;">' + t('next') + '</button>';
     el.innerHTML = html;
 }
 
@@ -168,50 +199,79 @@ async function showDetail(fileName) {
     const statusColors = { notQueued:'var(--text-secondary)', queued:'var(--accent)', uploading:'var(--warning)', completed:'var(--success)', failed:'var(--danger)', retrying:'var(--warning)' };
     const statusColor = statusColors[data.uploadStatus] || 'var(--text-secondary)';
 
-    let actions = '';
-    if (data.localOriginalExists) {
-        actions += '<button onclick="downloadFile(\'' + fileName + '\')">' + t('download') + '</button>';
-    } else if (archived) {
-        actions += '<button disabled style="opacity:0.4; cursor:not-allowed;">' + t('download') + '</button>';
-    }
-    if (data.remoteURL) {
-        actions += '<button class="secondary" onclick="window.open(\'' + data.remoteURL + '\',\'_blank\')">GDrive</button>';
-    }
-    actions += '<button class="secondary" onclick="toggleFav(\'' + fileName + '\')">' + (data.isFavorite ? t('unfavorite') : t('favorite')) + '</button>';
-    actions += '<button class="secondary" onclick="toggleProtect(\'' + fileName + '\')">' + (data.protected ? t('unprotect') : t('protect')) + '</button>';
-    if (data.uploadStatus === 'notQueued' && data.localOriginalExists) {
-        actions += '<button class="secondary" onclick="queueUpload(\'' + fileName + '\')">' + t('uploadNow') + '</button>';
-    }
-    if (!data.protected) {
-        actions += '<button class="danger" onclick="deleteMedia(\'' + fileName + '\')">' + t('delete') + '</button>';
-    }
+    // Group 1: Preview Area
+    const previewHTML = `<div class="preview-area" id="detailPreview" style="background:#000; border-radius:var(--radius-lg); aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; overflow:hidden;"><span style="color:var(--text-secondary); font-weight:600;">${t('loadingPreview')}</span></div>`;
 
-    const previewHTML = '<div class="preview-area" id="detailPreview"><span style="color:var(--text-secondary); font-weight:600;">' + t('loadingPreview') + '</span></div>';
-    const modal = document.getElementById('detailModal');
-    
-    // Status Display
+    // Group 2: Cloud status & Local Status indicators
     let statusText = t(data.uploadStatus) || data.uploadStatus;
     if (archived) statusText = t('archived');
+    
+    let statusSectionHTML = `<div class="media-detail-section">
+        <div class="media-detail-section-title" data-i18n="cloudStatus">Upload Status</div>
+        <div class="status-row"><span class="status-row-label">${t('uploadStatus')}</span><span class="status-row-value" style="color:${statusColor}; font-weight:700;">${statusText}</span></div>
+        <div class="status-row"><span class="status-row-label">${t('provider')}</span><span class="status-row-value">${data.uploadProvider || '-'}</span></div>
+        <div class="status-row"><span class="status-row-label">${t('verified')}</span><span class="status-row-value">${data.verified ? '✅ '+t('yes') : '❌ '+t('no')}</span></div>
+    </div>`;
 
-    modal.innerHTML = '<div class="detail-overlay" onclick="closeDetail(event)">' +
-        '<div class="detail-card" onclick="event.stopPropagation()">' +
-        '<button class="close-btn" onclick="document.getElementById(\'detailModal\').innerHTML=\'\'">&times;</button>' +
-        previewHTML +
-        '<div class="detail-body">' +
-        '<h2>' + fileName + (data.verified ? ' <span class="verified-badge">' + t('verified') + '</span>' : '') + (data.remoteFileID ? ' <span class="cloud-badge">Cloud</span>' : '') + (archived ? ' <span class="archived-badge">' + t('archived') + '</span>' : '') + '</h2>' +
-        '<div class="detail-meta">' +
-        '<span>' + t('type') + ': <strong>' + data.type + '</strong></span>' +
-        '<span>' + t('source') + ': <strong>' + data.source + '</strong></span>' +
-        '<span>' + t('size') + ': <strong>' + formatSize(data.fileSize) + '</strong></span>' +
-        '<span>' + t('status') + ': <strong style="color:' + statusColor + ';">' + statusText + '</strong></span>' +
-        '<span>' + t('provider') + ': <strong>' + (data.uploadProvider || '-') + '</strong></span>' +
-        '<span>' + t('verified') + ': <strong>' + (data.verified ? t('yes') : t('no')) + '</strong></span>' +
-        (data.remoteURL ? '<span style="grid-column:1/-1; word-break:break-all;">' + t('remote') + ': <a href="' + data.remoteURL + '" target="_blank" style="color:var(--accent);">' + data.remoteURL + '</a></span>' : '') +
-        (data.uploadDate ? '<span>' + t('uploadedAt') + ': <strong>' + new Date(data.uploadDate).toLocaleString() + '</strong></span>' : '') +
-        (data.localDeletedAt ? '<span>' + t('localDeleted') + ': <strong>' + new Date(data.localDeletedAt).toLocaleString() + '</strong></span>' : '') +
-        '</div>' +
-        '<div class="detail-actions">' + actions + '</div>' +
-        '</div></div>';
+    // Group 3: Primary Actions (Download vs Open in GDrive)
+    let actionsHTML = '';
+    if (data.localOriginalExists) {
+        actionsHTML += `<button onclick="downloadFile('${fileName}')" class="primary-action" style="background:var(--accent); border:none; height:44px; margin-bottom:8px; font-weight:700;">${t('download')}</button>`;
+    }
+    if (data.remoteURL) {
+        actionsHTML += `<button onclick="window.open('${data.remoteURL}','_blank')" class="primary-action" style="background:var(--success); border:none; height:44px; margin-bottom:8px; font-weight:700;">${t('openInGoogleDrive')}</button>`;
+    }
+    
+    // Toggle Favorites & Toggle Protection
+    actionsHTML += `<div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; width:100%; margin-bottom:8px;">
+        <button class="secondary" onclick="toggleFav('${fileName}')" style="height:40px; font-size:13px; font-weight:600;">${data.isFavorite ? t('unfavorite') : t('favorite')}</button>
+        <button class="secondary" onclick="toggleProtect('${fileName}')" style="height:40px; font-size:13px; font-weight:600;">${data.protected ? t('unprotect') : t('protect')}</button>
+    </div>`;
+    
+    if (data.uploadStatus === 'notQueued' && data.localOriginalExists) {
+        actionsHTML += `<button class="secondary" onclick="queueUpload('${fileName}')" style="width:100%; height:40px; font-size:13px; font-weight:600; margin-bottom:8px;">${t('uploadNow')}</button>`;
+    }
+
+    // Group 4: Metadata details
+    const metadataSectionHTML = `<div class="media-detail-section">
+        <div class="media-detail-section-title" data-i18n="metadata">Metadata</div>
+        <div class="status-row"><span class="status-row-label">${t('type')}</span><span class="status-row-value">${data.type}</span></div>
+        <div class="status-row"><span class="status-row-label">${t('source')}</span><span class="status-row-value">${data.source}</span></div>
+        <div class="status-row"><span class="status-row-label">${t('size')}</span><span class="status-row-value">${formatSize(data.fileSize)}</span></div>
+        ${data.uploadDate ? `<div class="status-row"><span class="status-row-label">${t('uploadedAt')}</span><span class="status-row-value">${new Date(data.uploadDate).toLocaleString()}</span></div>` : ''}
+        ${data.localDeletedAt ? `<div class="status-row"><span class="status-row-label">${t('localDeleted')}</span><span class="status-row-value">${new Date(data.localDeletedAt).toLocaleString()}</span></div>` : ''}
+    </div>`;
+
+    // Group 5: Isolated Danger Zone Block
+    let dangerActionsHTML = '';
+    if (!data.protected) {
+        dangerActionsHTML = `<div class="danger-zone" style="margin-top:16px;">
+            <h4 data-i18n="dangerZone">Danger Zone</h4>
+            <button class="danger" onclick="deleteMedia('${fileName}')" style="width:100%; height:44px; font-weight:700;">${t('delete')}</button>
+        </div>`;
+    }
+
+    const modal = document.getElementById('detailModal');
+    modal.innerHTML = `
+        <div class="detail-overlay" onclick="closeDetail(event)">
+            <div class="detail-card" onclick="event.stopPropagation()" style="display:flex; flex-direction:column; background:var(--surface-elevated); box-shadow:var(--shadow-card);">
+                <button class="close-btn" onclick="document.getElementById('detailModal').innerHTML=''">&times;</button>
+                ${previewHTML}
+                <div class="detail-body" style="flex:1; overflow-y:auto; padding:20px;">
+                    <h2 style="font-size:16px; font-weight:700; word-break:break-all; margin-bottom:14px; color:var(--text-primary);">${fileName}</h2>
+                    
+                    <!-- Primary actions layout -->
+                    <div style="margin-bottom:16px;">
+                        ${actionsHTML}
+                    </div>
+
+                    ${statusSectionHTML}
+                    ${metadataSectionHTML}
+                    ${dangerActionsHTML}
+                </div>
+            </div>
+        </div>
+    `;
 
     loadDetailPreview(fileName, data);
 }
@@ -227,10 +287,10 @@ async function loadDetailPreview(fileName, data) {
     if (!el) return;
 
     if (!data.localOriginalExists) {
-        el.innerHTML = '<div style="padding:60px 20px; text-align:center; color:var(--text-secondary);">' +
-            '<p style="margin-bottom:12px; font-weight:600;">' + t('originalArchived') + '</p>' +
-            (data.remoteURL ? '<a href="' + data.remoteURL + '" target="_blank" class="btn">' + t('openRemote') + '</a>' : '') +
-            '</div>';
+        el.innerHTML = `<div style="padding:40px 20px; text-align:center; color:var(--text-secondary);">
+            <p style="margin-bottom:12px; font-weight:600; font-size:13px;">${t('originalArchived')}</p>
+            ${data.remoteURL ? `<a href="${data.remoteURL}" target="_blank" class="btn" style="text-decoration:none; height:38px; line-height:38px; padding:0 20px; border-radius:var(--radius-md);">${t('openRemote')}</a>` : ''}
+            </div>`;
         return;
     }
 
@@ -240,23 +300,23 @@ async function loadDetailPreview(fileName, data) {
     try {
         if (data.type === 'photo') {
             const url = await fetchBlobURL('/api/media/' + encodeURIComponent(fileName) + '/file');
-            el.innerHTML = '<img src="' + url + '" alt="' + fileName + '">';
+            el.innerHTML = `<img src="${url}" alt="${fileName}" style="width:100%; height:100%; object-fit:contain;">`;
         } else if (data.type === 'video') {
             if (fileSize > maxPreviewBytes) {
                 try {
                     const thumbURL = await fetchBlobURL('/api/media/' + encodeURIComponent(fileName) + '/thumbnail');
-                    el.innerHTML = '<img src="' + thumbURL + '" alt="' + fileName + '">' +
-                        '<div class="video-notice">' + t('largeVideoPreviewDisabled') + ' (' + formatSize(fileSize) + ')</div>';
+                    el.innerHTML = `<img src="${thumbURL}" alt="${fileName}" style="width:100%; height:100%; object-fit:contain;">
+                        <div class="video-notice" style="position:absolute; bottom:10px; left:10px; right:10px; background:rgba(0,0,0,0.8); border:1px solid var(--border-subtle); padding:8px 12px; border-radius:var(--radius-sm); color:var(--warning); text-align:center;">${t('largeVideoPreviewDisabled')} (${formatSize(fileSize)})</div>`;
                 } catch {
-                    el.innerHTML = '<div style="padding:60px; text-align:center; color:var(--text-secondary);">' + t('videoPreviewLimited') + ' (' + formatSize(fileSize) + ')</div>';
+                    el.innerHTML = `<div style="padding:40px 20px; text-align:center; color:var(--text-secondary);">${t('videoPreviewLimited')} (${formatSize(fileSize)})</div>`;
                 }
             } else {
                 const url = await fetchBlobURL('/api/media/' + encodeURIComponent(fileName) + '/file');
-                el.innerHTML = '<video src="' + url + '" controls autoplay playsinline loop></video>';
+                el.innerHTML = `<video src="${url}" controls autoplay playsinline loop style="width:100%; height:100%; object-fit:contain;"></video>`;
             }
         }
     } catch (err) {
-        el.innerHTML = '<div style="padding:60px 20px; text-align:center; color:var(--danger); font-weight:600;">' + t('previewFailed') + '</div>';
+        el.innerHTML = `<div style="padding:40px 20px; text-align:center; color:var(--danger); font-weight:600;">${t('previewFailed')}</div>`;
     }
 }
 
@@ -322,19 +382,13 @@ function formatSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Bind search and filter triggers
+// Bind search triggers
 document.getElementById('searchInput').addEventListener('input', debounce(loadMedia, 300));
-document.getElementById('typeFilter').addEventListener('change', () => { currentPage = 1; loadMedia(); });
-document.getElementById('sourceFilter').addEventListener('change', () => { currentPage = 1; loadMedia(); });
-document.getElementById('statusFilter').addEventListener('change', () => { currentPage = 1; loadMedia(); });
-document.getElementById('favFilter').addEventListener('change', () => { currentPage = 1; loadMedia(); });
 
 function debounce(fn, ms) {
     let t;
     return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
 }
-
-loadMedia();
 </script>
 </body>
 </html>

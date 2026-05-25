@@ -18,6 +18,7 @@
         </button>
     </div>
     
+    <!-- Table for Desktop -->
     <div class="table-container">
         <table>
             <thead>
@@ -27,7 +28,7 @@
                     <th data-i18n="taskType">Type</th>
                     <th data-i18n="status">Status</th>
                     <th data-i18n="nextFire">Next Fire</th>
-                    <th data-i18n="uploadToCloud">Upload</th>
+                    <th data-i18n="uploadTarget">Upload Target</th>
                     <th data-i18n="actions">Actions</th>
                 </tr>
             </thead>
@@ -35,9 +36,11 @@
         </table>
     </div>
     
+    <!-- Cards for Mobile -->
     <div class="task-cards" id="taskCards"></div>
     
-    <h2 style="margin-top:40px;" data-i18n="executionHistory">Execution History</h2>
+    <!-- History Feed -->
+    <h2 style="margin-top:36px;" data-i18n="executionHistory">Execution History</h2>
     <div class="table-container">
         <table>
             <thead>
@@ -53,105 +56,135 @@
     </div>
 </main>
 
-<!-- Task Modal -->
+<!-- Step-like Redesigned Task Modal -->
 <div class="modal-overlay" id="taskModal">
-<div class="modal">
-    <h2 id="modalTitle" data-i18n="createTask">Create Task</h2>
+<div class="modal" style="padding: 24px; max-width: 480px;">
+    <h2 id="modalTitle" style="font-size:18px; margin-bottom:16px;" data-i18n="createTask">Create Task</h2>
     
-    <div class="form-group">
-        <label data-i18n="taskName">Task Name</label>
-        <input type="text" id="taskNameInput" placeholder="e.g. Morning Snapshot">
-    </div>
-    
-    <div class="form-row">
-        <div class="form-group">
-            <label data-i18n="actionType">Action Type</label>
-            <select id="actionTypeInput" onchange="updateActionFields()">
-                <option value="photo">Photo</option>
-                <option value="video">Video</option>
-            </select>
+    <div style="display:flex; flex-direction:column; gap:20px;">
+        
+        <!-- SECTION 1: What to Capture -->
+        <div style="border-bottom:1px solid var(--border-subtle); padding-bottom:16px;">
+            <div style="font-size:12px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;" data-i18n="whatToCapture">What to Capture</div>
+            <div class="form-group">
+                <label data-i18n="taskName">Task Name</label>
+                <input type="text" id="taskNameInput" placeholder="e.g. Morning Snapshot">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label data-i18n="actionType">Action Type</label>
+                    <select id="actionTypeInput" onchange="updateActionFields()">
+                        <option value="photo" data-i18n="photo">Photo</option>
+                        <option value="video" data-i18n="video">Video</option>
+                    </select>
+                </div>
+                <div class="form-group" id="videoDurationGroup" style="display:none;">
+                    <label data-i18n="videoDuration">Video Duration (sec)</label>
+                    <input type="number" id="videoDurationInput" min="5" max="3600" value="30">
+                </div>
+            </div>
         </div>
-        <div class="form-group">
-            <label data-i18n="taskType">Task Type</label>
-            <select id="taskTypeInput" onchange="updateTypeFields()">
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="countdown">Countdown</option>
-                <option value="interval">Interval</option>
-            </select>
+
+        <!-- SECTION 2: When to Run -->
+        <div style="border-bottom:1px solid var(--border-subtle); padding-bottom:16px;">
+            <div style="font-size:12px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;" data-i18n="whenToRun">When to Run</div>
+            <div class="form-group">
+                <label data-i18n="taskType">Task Type</label>
+                <select id="taskTypeInput" onchange="updateTypeFields()">
+                    <option value="daily" data-i18n="daily">Daily</option>
+                    <option value="weekly" data-i18n="weekly">Weekly</option>
+                    <option value="countdown" data-i18n="countdown">Countdown</option>
+                    <option value="interval" data-i18n="interval">Interval</option>
+                </select>
+            </div>
+            
+            <!-- Daily/Weekly Hour & Minute -->
+            <div class="form-row" id="timeFields">
+                <div class="form-group" id="hourGroup">
+                    <label>Hour</label>
+                    <input type="number" id="hourInput" min="0" max="23" value="8">
+                </div>
+                <div class="form-group" id="minuteGroup">
+                    <label>Minute</label>
+                    <input type="number" id="minuteInput" min="0" max="59" value="0">
+                </div>
+            </div>
+            
+            <!-- Weekly Day Selector -->
+            <div class="form-group" id="weekdayGroup" style="display:none;">
+                <label>Weekdays</label>
+                <div class="weekday-btns" id="weekdayBtns"></div>
+            </div>
+            
+            <!-- Countdown minutes selector -->
+            <div class="form-row" id="countdownGroup" style="display:none;">
+                <div class="form-group">
+                    <label data-i18n="countdown">Countdown (minutes)</label>
+                    <input type="number" id="countdownInput" min="1" value="30">
+                </div>
+            </div>
+            
+            <!-- Interval settings selector -->
+            <div class="form-row" id="intervalGroup" style="display:none;">
+                <div class="form-group">
+                    <label data-i18n="interval">Interval (minutes)</label>
+                    <input type="number" id="intervalInput" min="1" value="10">
+                </div>
+                <div class="form-group">
+                    <label>Run Duration (minutes, 0=forever)</label>
+                    <input type="number" id="intervalRunDurationInput" min="0" value="120">
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: Cloud Upload -->
+        <div style="border-bottom:1px solid var(--border-subtle); padding-bottom:16px;">
+            <div style="font-size:12px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;" data-i18n="cloudUpload">Cloud Upload</div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="uploadInput" class="ios-toggle" onchange="toggleUploadProvider()">
+                <label for="uploadInput" class="ios-toggle-label" style="margin-right:8px;"></label>
+                <label for="uploadInput" data-i18n="uploadToCloud">Upload to Cloud</label>
+            </div>
+            
+            <!-- Provider selector -->
+            <div class="form-group" id="uploadProviderGroup" style="display:none; margin-top:10px;">
+                <label data-i18n="uploadProvider">Upload Provider</label>
+                <select id="uploadProviderInput" onchange="updateGDWarning()">
+                    <option value="">Default</option>
+                    <option value="localFolder">Local Folder</option>
+                    <option value="mountedFolder">Mounted Folder</option>
+                    <option value="googleDrive">Google Drive</option>
+                </select>
+                
+                <!-- GDrive disconnected warning alert -->
+                <div id="gdWarning" style="display:none; background:rgba(255,69,58,0.06); border:1px solid rgba(255,69,58,0.2); padding:10px 14px; margin-top:8px; border-radius:var(--radius-md); display:flex; align-items:center; gap:8px;">
+                    <span style="color:var(--danger); font-size:18px;">⚠️</span>
+                    <span style="font-size:12px; color:var(--text-primary); font-weight:600;" data-i18n="googleDriveNotConnected">Google Drive not connected. Go to Storage to connect.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 4: Options -->
+        <div>
+            <div style="font-size:12px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;" data-i18n="taskOptions">Task Options</div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="telegramInput" class="ios-toggle">
+                <label for="telegramInput" class="ios-toggle-label" style="margin-right:8px;"></label>
+                <label for="telegramInput">Send to Telegram</label>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="enabledInput" class="ios-toggle" checked>
+                <label for="enabledInput" class="ios-toggle-label" style="margin-right:8px;"></label>
+                <label for="enabledInput" data-i18n="enabled">Enabled</label>
+            </div>
         </div>
     </div>
     
-    <div class="form-row" id="timeFields">
-        <div class="form-group" id="hourGroup">
-            <label>Hour</label>
-            <input type="number" id="hourInput" min="0" max="23" value="8">
-        </div>
-        <div class="form-group" id="minuteGroup">
-            <label>Minute</label>
-            <input type="number" id="minuteInput" min="0" max="59" value="0">
-        </div>
-    </div>
-    
-    <div class="form-group" id="videoDurationGroup" style="display:none;">
-        <label data-i18n="videoDuration">Video Duration (sec)</label>
-        <input type="number" id="videoDurationInput" min="5" max="3600" value="30">
-    </div>
-    
-    <div class="form-group" id="weekdayGroup">
-        <label>Weekdays</label>
-        <div class="weekday-btns" id="weekdayBtns"></div>
-    </div>
-    
-    <div class="form-row" id="countdownGroup" style="display:none;">
-        <div class="form-group">
-            <label data-i18n="countdown">Countdown (minutes)</label>
-            <input type="number" id="countdownInput" min="1" value="30">
-        </div>
-    </div>
-    
-    <div class="form-row" id="intervalGroup" style="display:none;">
-        <div class="form-group">
-            <label data-i18n="interval">Interval (minutes)</label>
-            <input type="number" id="intervalInput" min="1" value="10">
-        </div>
-        <div class="form-group">
-            <label>Run Duration (minutes, 0=forever)</label>
-            <input type="number" id="intervalRunDurationInput" min="0" value="120">
-        </div>
-    </div>
-    
-    <div class="checkbox-group" style="margin-top: 12px;">
-        <input type="checkbox" id="telegramInput" class="ios-toggle">
-        <label for="telegramInput" class="ios-toggle-label" style="margin-right:8px;"></label>
-        <label for="telegramInput">Send to Telegram</label>
-    </div>
-    
-    <div class="checkbox-group">
-        <input type="checkbox" id="uploadInput" class="ios-toggle" onchange="toggleUploadProvider()">
-        <label for="uploadInput" class="ios-toggle-label" style="margin-right:8px;"></label>
-        <label for="uploadInput" data-i18n="uploadToCloud">Upload to Cloud</label>
-    </div>
-    
-    <div class="form-group" id="uploadProviderGroup" style="display:none;">
-        <label data-i18n="uploadProvider">Upload Provider</label>
-        <select id="uploadProviderInput">
-            <option value="">Default</option>
-            <option value="localFolder">Local Folder</option>
-            <option value="mountedFolder">Mounted Folder</option>
-            <option value="googleDrive">Google Drive</option>
-        </select>
-    </div>
-    
-    <div class="checkbox-group">
-        <input type="checkbox" id="enabledInput" class="ios-toggle" checked>
-        <label for="enabledInput" class="ios-toggle-label" style="margin-right:8px;"></label>
-        <label for="enabledInput" data-i18n="enabled">Enabled</label>
-    </div>
-    
-    <div class="modal-actions">
-        <button class="secondary" onclick="closeModal()" data-i18n="cancelEdit">Cancel</button>
-        <button onclick="saveTask()" data-i18n="saveTask">Save Task</button>
+    <div class="modal-actions" style="margin-top: 24px;">
+        <button class="secondary" onclick="closeModal()" data-i18n="cancelEdit" style="min-height:38px;">Cancel</button>
+        <button onclick="saveTask()" data-i18n="saveTask" style="min-height:38px;">Save Task</button>
     </div>
     <input type="hidden" id="editTaskId" value="">
 </div>
@@ -163,10 +196,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('automation');
     initWeekdayBtns();
+    loadTasks();
 });
 
 const WEEKDAY_LABELS = ['S','M','T','W','T','F','S'];
 let selectedWeekdays = new Set([2,3,4,5,6]);
+let isGDConnected = false;
 
 function initWeekdayBtns() {
     const container = document.getElementById('weekdayBtns');
@@ -203,6 +238,32 @@ function updateActionFields() {
 function toggleUploadProvider() {
     const checked = document.getElementById('uploadInput').checked;
     document.getElementById('uploadProviderGroup').style.display = checked ? 'block' : 'none';
+    if (checked) {
+        checkGDConnection();
+    }
+}
+
+async function checkGDConnection() {
+    try {
+        const data = await api('/api/storage/providers');
+        if (data) {
+            const gd = data.providers.find(p => p.type === 'googleDrive');
+            isGDConnected = gd && gd.isConnected;
+        }
+    } catch (e) {
+        isGDConnected = false;
+    }
+    updateGDWarning();
+}
+
+function updateGDWarning() {
+    const provider = document.getElementById('uploadProviderInput').value;
+    const warnEl = document.getElementById('gdWarning');
+    if (provider === 'googleDrive' && !isGDConnected) {
+        warnEl.style.display = 'flex';
+    } else {
+        warnEl.style.display = 'none';
+    }
 }
 
 function openCreateModal() {
@@ -307,6 +368,7 @@ async function loadTasks() {
             </td>
         </tr>`;
     }).join('');
+    
     // Mobile cards
     document.getElementById('taskCards').innerHTML = data.tasks.map(task => {
         const typeLabel = task.type === 'daily' ? t('daily') : task.type === 'weekly' ? t('weekly') : task.type === 'countdown' ? t('countdown') : t('interval');
@@ -360,8 +422,6 @@ async function deleteTask(id) {
     await api(`/api/tasks/${id}`, { method: 'DELETE' });
     loadTasks();
 }
-
-loadTasks();
 </script>
 </body>
 </html>

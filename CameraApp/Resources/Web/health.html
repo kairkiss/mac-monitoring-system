@@ -45,17 +45,17 @@ async function loadHealth() {
     const h = await api('/api/health');
     if (!h) return;
     document.getElementById('healthGrid').innerHTML = `
-        <div class="card">
-            <h3>${t('monitoring')}</h3>
-            <p>${h.isMonitoring ? dot('green') + t('active') : dot('gray') + t('inactive')}</p>
+        <div class="status-card">
+            <span class="status-card-title">${t('monitoring')}</span>
+            <div class="status-card-value">${h.isMonitoring ? dot('green') + t('active') : dot('gray') + t('inactive')}</div>
         </div>
-        <div class="card">
-            <h3>${t('diskFree')}</h3>
-            <p>${h.diskFreeMB} MB</p>
+        <div class="status-card">
+            <span class="status-card-title">${t('diskFree')}</span>
+            <div class="status-card-value">${h.diskFreeMB} MB</div>
         </div>
-        <div class="card">
-            <h3>${t('telegramFailures')}</h3>
-            <p style="color:${h.consecutiveTelegramFailures > 0 ? 'var(--warning)' : 'var(--text-primary)'};">${h.consecutiveTelegramFailures}</p>
+        <div class="status-card">
+            <span class="status-card-title">${t('telegramFailures')}</span>
+            <div class="status-card-value" style="color:${h.consecutiveTelegramFailures > 0 ? 'var(--warning)' : 'var(--text-primary)'};">${h.consecutiveTelegramFailures}</div>
         </div>
     `;
     const alerts = await api('/api/health/alerts');

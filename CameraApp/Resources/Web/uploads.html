@@ -12,13 +12,31 @@
 <main class="content has-cards">
     <h1 data-i18n="uploadQueue">Upload Queue</h1>
     
-    <div class="stats-bar">
-        <div class="stat"><span class="stat-value" id="totalCount">0</span><span class="stat-label" data-i18n="total">Total</span></div>
-        <div class="stat"><span class="stat-value" id="pendingCount">0</span><span class="stat-label" data-i18n="pending">Pending</span></div>
-        <div class="stat"><span class="stat-value" id="retryingCount">0</span><span class="stat-label" data-i18n="retrying">Retrying</span></div>
-        <div class="stat"><span class="stat-value" id="failedCount">0</span><span class="stat-label" data-i18n="failed">Failed</span></div>
-        <div class="stat"><span class="stat-value" id="waitingCount">0</span><span class="stat-label" data-i18n="waitingForProvider">Waiting</span></div>
-        <div class="stat"><span class="stat-value" id="pauseStatus" data-i18n="active" style="color:var(--success);">Active</span><span class="stat-label" data-i18n="status">Status</span></div>
+    <div class="filter-chips" style="margin-bottom: 20px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding: 4px 0 12px;">
+        <div class="chip" style="cursor: default;">
+            <span data-i18n="total">Total</span>: <strong id="totalCount" style="margin-left: 6px; color: var(--text-primary);">0</strong>
+        </div>
+        <div class="chip active" style="cursor: default;">
+            <span data-i18n="pending">Pending</span>: <strong id="pendingCount" style="margin-left: 6px;">0</strong>
+        </div>
+        <div class="chip" style="cursor: default; border-color: rgba(255, 159, 10, 0.2);">
+            <span style="color: var(--warning); display: flex; align-items: center; gap: 4px;">
+                <span data-i18n="retrying">Retrying</span>: <strong id="retryingCount">0</strong>
+            </span>
+        </div>
+        <div class="chip" style="cursor: default; border-color: rgba(255, 69, 58, 0.2);">
+            <span style="color: var(--danger); display: flex; align-items: center; gap: 4px;">
+                <span data-i18n="failed">Failed</span>: <strong id="failedCount">0</strong>
+            </span>
+        </div>
+        <div class="chip" style="cursor: default; border-color: rgba(0, 122, 255, 0.2);">
+            <span style="color: var(--accent); display: flex; align-items: center; gap: 4px;">
+                <span data-i18n="waitingForProvider">Waiting</span>: <strong id="waitingCount">0</strong>
+            </span>
+        </div>
+        <div class="chip" style="cursor: default;" id="pauseStatusChip">
+            <span data-i18n="status">Status</span>: <strong id="pauseStatus" data-i18n="active" style="margin-left: 6px; color: var(--success);">Active</strong>
+        </div>
     </div>
     
     <div style="margin-bottom:20px; display:flex; gap:10px;">
@@ -150,7 +168,7 @@ async function loadQueue() {
     // Mobile cards
     const cardsEl = document.getElementById('queueCards');
     cardsEl.innerHTML = data.jobs.map(j => {
-        const statusBadgeColors = { failed: 'badge-red', completed: 'badge-green', uploading: 'badge-blue', retrying: 'badge-orange', waitingForProvider: 'badge-orange' };
+        const statusBadgeColors = { failed: 'badge-red', completed: 'badge-green', uploading: 'badge-blue', retrying: 'badge-orange', waitingForProvider: 'badge-orange', cancelled: 'badge-neutral' };
         const badgeClass = statusBadgeColors[j.status] || 'badge-neutral';
         const statusText = t(j.status) || j.status;
         let actions = '';
@@ -171,7 +189,7 @@ async function loadQueue() {
             ? '<span style="color:var(--warning); font-size:12px;">Retry: ' + retryCountdown(j.nextRetryAt) + '</span>'
             : '';
 
-        return '<div class="task-card"><div class="task-card-header"><span class="task-card-title" style="word-break:break-all;">' + j.fileName + '</span><span class="badge ' + badgeClass + '">' + statusText + '</span></div><div class="task-card-meta"><span>Provider: <strong>' + j.provider + '</strong></span> &middot; <span>Attempts: <strong>' + j.attempts + '/' + j.maxRetries + '</strong></span>' + (j.errorClass ? ' &middot; <span class="error-class-badge">' + j.errorClass + '</span>' : '') + ' ' + retryInfo + '</div>' + progressSection + (j.lastError ? '<div style="font-size:12px; color:var(--danger); margin-bottom:8px; line-height:1.4;">' + j.lastError + '</div>' : '') + '<div class="task-card-actions">' + actions + '</div></div>';
+        return '<div class="upload-job-card"><div class="upload-job-card-header"><span class="upload-job-card-title">' + j.fileName + '</span><span class="badge ' + badgeClass + '">' + statusText + '</span></div><div class="task-card-meta"><span>Provider: <strong>' + j.provider + '</strong></span> &middot; <span>Attempts: <strong>' + j.attempts + '/' + j.maxRetries + '</strong></span>' + (j.errorClass ? ' &middot; <span class="error-class-badge">' + j.errorClass + '</span>' : '') + ' ' + retryInfo + '</div>' + progressSection + (j.lastError ? '<div style="font-size:12px; color:var(--danger); margin-bottom:8px; line-height:1.4;">' + j.lastError + '</div>' : '') + '<div class="task-card-actions">' + actions + '</div></div>';
     }).join('');
 }
 

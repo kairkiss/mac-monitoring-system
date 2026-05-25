@@ -1,5 +1,25 @@
 # Changelog
 
+## v2.4.9 (2026-05-25)
+
+Telegram Mini App UX Redesign:
+- Redesigned Web Console around Telegram Mini App / mobile-first usage.
+- Added dedicated Remote Access page.
+- Added dedicated Storage Center page.
+- Simplified Settings page.
+- Improved mobile Dashboard/Home experience.
+- Improved Live, Media, Tasks, Uploads mobile layouts.
+- Added Remote and Storage entries to mobile More sheet.
+- Expanded bilingual i18n coverage.
+- Reduced inline styles and unified UI components.
+- Preserved existing backend APIs and business logic.
+
+## v2.4.8 (2026-05-25)
+
+- Added Dark theme and Glassmorphism styling.
+- Introduced Mobile Bottom Tab Navigation and More Sheet.
+- Partial cardification of UI elements.
+
 ## v2.4.7 (2026-05-25)
 
 Cloudflare State Machine Hotfix — fixed status getting permanently stuck in "starting" or "stopping" after tunnel start/stop. The Restart button is no longer permanently disabled. Added Force Stop and Reset Status emergency buttons.

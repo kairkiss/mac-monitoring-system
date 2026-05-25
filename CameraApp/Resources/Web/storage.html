@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title data-i18n="macMonitorSystem">Mac Monitor - Storage Center</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<nav class="sidebar"></nav>
+<main class="content">
+    <div class="page-header">
+        <h1 data-i18n="storageCenter">Storage Center</h1>
+        <div class="page-header-subtitle">Manage cloud uploads, local retention filters, and storage providers.</div>
+    </div>
+
+    <!-- Storage Usage Summary Card -->
+    <div class="section-card">
+        <h3 data-i18n="quotaInfo">Storage Quota</h3>
+        <div id="storageInfo" style="color:var(--text-secondary); line-height:1.6; font-size:14px;">Loading...</div>
+    </div>
+
+    <!-- Storage Providers Section -->
+    <div class="section-card">
+        <h3 data-i18n="storageProviders">Storage Providers</h3>
+        <div id="providerList" style="display:flex; flex-direction:column; gap:12px; margin-bottom: 16px;"></div>
+        <div style="display:flex; gap:12px;">
+            <a href="/uploads.html" class="btn" style="text-decoration:none;" data-i18n="openUploads">Open Uploads</a>
+        </div>
+    </div>
+
+    <!-- Storage Connection Diagnostics -->
+    <div class="section-card">
+        <h3 data-i18n="storageDiagnostics">Storage Diagnostics</h3>
+        <div id="diagInfo" style="color:var(--text-secondary); font-size:14px; margin-bottom: 16px;" data-i18n="loading">Loading...</div>
+        <button onclick="runTestConnection()" class="primary-action" style="max-width:200px;" data-i18n="connectionTest">Test Connection</button>
+        <div id="testResult" style="margin-top:14px; font-size:13px; font-weight: 600;"></div>
+    </div>
+
+    <!-- Dry Run Retention Preview -->
+    <div class="section-card">
+        <h3 data-i18n="retentionPreview">Retention Preview</h3>
+        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:14px; line-height:1.45;">Preview what local files retention cleanup would delete.</p>
+        <button onclick="runDryRun()" class="secondary" style="min-height:38px;" data-i18n="runDryRun">Preview Cleanup</button>
+        <pre id="dryRunResult" style="margin-top:14px; font-size:12px; white-space: pre-wrap; font-family: monospace; background:rgba(0,0,0,0.3); padding: 12px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); max-height: 220px; overflow-y: auto; display:none; color:#ff9f0a;"></pre>
+    </div>
+</main>
+
+<script src="/js/i18n.js"></script>
+<script src="/js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.title = t('macMonitorSystem') + ' - ' + t('storageCenter');
+    loadStorage();
+    loadProviders();
+    loadDiagnostics();
+});
+
+async function loadStorage() {
+    const data = await api('/api/storage/status');
+    if (!data) return;
+    const sizeMB = (data.totalStorageBytes / 1048576).toFixed(1);
+    document.getElementById('storageInfo').innerHTML =
+        `<div class="status-row"><span class="status-row-label">${t('activeProvider')}</span><span class="status-row-value">${data.providerDisplayName}</span></div>` +
+        `<div class="status-row"><span class="status-row-label">${t('photos')} / ${t('videos')}</span><span class="status-row-value">📸 ${data.totalPhotos} | 🎥 ${data.totalVideos}</span></div>` +
+        `<div class="status-row"><span class="status-row-label">${t('storageUsed')} / ${t('free')}</span><span class="status-row-value">${sizeMB} MB / ${data.diskFreeMB} MB</span></div>`;
+}
+
+async function loadProviders() {
+    const data = await api('/api/storage/providers');
+    if (!data) return;
+    document.getElementById('providerList').innerHTML = data.providers.map(p => {
+        const isCurrent = p.isCurrent ? '<span class="badge badge-green" style="margin-left:8px;">Active</span>' : '';
+        
+        let connectedBadge = '';
+        if (p.isConnected) {
+            connectedBadge = '<span class="badge badge-blue">' + t('googleDriveConnected') + '</span>';
+        } else if (p.needsReconnect) {
+            connectedBadge = '<span class="badge badge-orange">' + t('googleDriveNeedsReconnect') + '</span>';
+        } else {
+            connectedBadge = '<span class="badge badge-neutral">' + t('notConfigured') + '</span>';
+        }
+
+        return `<div class="provider-card">
+            <div>
+                <strong style="color:var(--text-primary); font-size:15px;">${p.displayName}</strong> ${isCurrent}
+                <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">${p.email || p.type}</div>
+            </div>
+            <div>${connectedBadge}</div>
+        </div>`;
+    }).join('');
+}
+
+async function loadDiagnostics() {
+    const data = await api('/api/storage/diagnostics');
+    if (!data) return;
+    document.getElementById('diagInfo').innerHTML = 
+        `<div class="status-row"><span class="status-row-label">Queue Jobs Total</span><span class="status-row-value">${data.queueJobsTotal}</span></div>` +
+        `<div class="status-row"><span class="status-row-label">Active Cloud Uploaders</span><span class="status-row-value">${data.activeUploaders}</span></div>` +
+        `<div class="status-row"><span class="status-row-label">Network Reachable</span><span class="status-row-value">${data.isNetworkReachable ? '✅ Yes' : '❌ No'}</span></div>`;
+}
+
+async function runTestConnection() {
+    const el = document.getElementById('testResult');
+    el.textContent = 'Testing connection...';
+    el.style.color = 'var(--text-secondary)';
+    try {
+        const data = await api('/api/storage/test-connection', { method: 'POST' });
+        if (data) {
+            el.textContent = data.success ? '✅ Success: ' + data.message : '❌ Failed: ' + data.message;
+            el.style.color = data.success ? 'var(--success)' : 'var(--danger)';
+        }
+    } catch(e) {
+        el.textContent = 'Connection test failed';
+        el.style.color = 'var(--danger)';
+    }
+}
+
+async function runDryRun() {
+    const el = document.getElementById('dryRunResult');
+    el.textContent = 'Running dry-run retention preview...';
+    el.style.display = 'block';
+    try {
+        const data = await api('/api/storage/retention/dry-run', { method: 'POST' });
+        if (data) {
+            let html = `Plan: Delete ${data.deletedFilesCount} files (Total size: ${(data.freedBytes/1048576).toFixed(2)} MB)\n\n`;
+            if (data.details && data.details.length > 0) {
+                html += data.details.map(d => `[${d.action}] ${d.fileName} (${(d.sizeBytes/1024).toFixed(1)} KB) - Reason: ${d.reason}`).join('\n');
+            } else {
+                html += 'No files would be deleted.';
+            }
+            el.textContent = html;
+        }
+    } catch (e) {
+        el.textContent = 'Failed to execute dry run retention cleanup preview.';
+    }
+}
+</script>
+</body>
+</html>

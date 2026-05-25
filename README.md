@@ -1,5 +1,7 @@
 # MacMonitor · Mac监控系统
 
+v2.4.9 — Telegram Mini App UX Redesign
+
 <p align="center">
   <strong>把一台 Mac 变成可远程管理的本地摄像头监控节点。</strong>
 </p>

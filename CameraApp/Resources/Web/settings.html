@@ -10,164 +10,73 @@
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <nav class="sidebar"></nav>
 <main class="content">
-    <h1 data-i18n="settings">Settings</h1>
-
-    <!-- Storage Section -->
-    <div class="card" style="margin-bottom: 20px;">
-        <h3 data-i18n="storage">Storage</h3>
-        <div id="storageInfo" style="color:var(--text-secondary); line-height: 1.6; font-size:14px;">Loading...</div>
+    <div class="page-header">
+        <h1 data-i18n="settings">Settings</h1>
+        <div class="page-header-subtitle">Manage your account settings, security options, and language preferences.</div>
     </div>
 
-    <!-- Web Users Card -->
-    <div class="card" style="margin-bottom: 20px;">
-        <h3 data-i18n="webUsers">Web Users</h3>
-        <div class="table-container" style="margin-bottom: 0; border: none;">
-            <table>
-                <thead>
-                    <tr>
-                        <th data-i18n="username">Username</th>
-                        <th data-i18n="role">Role</th>
-                        <th data-i18n="enabled">Enabled</th>
-                    </tr>
-                </thead>
-                <tbody id="userList"></tbody>
-            </table>
-        </div>
+    <!-- Account Profile Card -->
+    <div class="section-card">
+        <h3 data-i18n="currentUser">Current User</h3>
+        <div id="currentUserCard" style="color:var(--text-secondary); font-size:14px; line-height: 1.5;">Loading profile...</div>
     </div>
 
-    <!-- Storage Providers Card -->
-    <div class="card" style="margin-bottom: 20px;">
-        <h3 data-i18n="storageProviders">Storage Providers</h3>
-        <div id="providerList" style="display:flex; flex-direction:column; gap:10px;"></div>
-    </div>
-
-    <!-- Storage Diagnostics -->
-    <div class="card" style="margin-bottom: 20px;">
-        <h3 data-i18n="storageDiagnostics">Storage Diagnostics</h3>
-        <div id="diagInfo" style="color:var(--text-secondary); font-size:14px; margin-bottom: 12px;" data-i18n="loading">Loading...</div>
-        <button onclick="runTestConnection()" data-i18n="connectionTest">Test Connection</button>
-        <div id="testResult" style="margin-top:12px; font-size:13px; font-weight: 500;"></div>
-    </div>
-
-    <!-- Retention Preview -->
-    <div class="card" style="margin-bottom: 20px;">
-        <h3 data-i18n="dryRunPreview">Retention Preview</h3>
-        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:12px; line-height:1.4;">Preview what retention cleanup would delete.</p>
-        <button onclick="runDryRun()" data-i18n="runDryRun">Preview Cleanup</button>
-        <div id="dryRunResult" style="margin-top:12px; font-size:13px; white-space: pre-wrap; font-family: monospace; background:rgba(0,0,0,0.2); padding: 8px; border-radius:6px; max-height: 200px; overflow-y: auto; display:none;"></div>
-    </div>
-
-    <!-- Remote Access (Cloudflare) -->
-    <div class="card" style="margin-bottom: 20px;" id="remote">
-        <h3 data-i18n="remoteAccess">Remote Access</h3>
-        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:14px; line-height:1.45;" data-i18n="remoteAccessDesc">Securely access your monitoring system from the internet via Cloudflare Tunnel.</p>
-        
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px; background:rgba(48,209,88,0.05); padding:10px 14px; border-radius:var(--radius-md); border:1px solid rgba(48,209,88,0.15);">
-            <span style="color:var(--success); font-size:18px;">&#128274;</span>
-            <span style="font-size:13px; color:var(--text-primary); font-weight:600;" data-i18n="cloudflareDoubleProtection">Double protection: Cloudflare Access + App Login</span>
-        </div>
-
-        <!-- Setup Status Banner -->
-        <div id="setupBanner" style="padding:12px 14px; border-radius:var(--radius-md); margin-bottom:16px; font-size:13px; font-weight:600; display:none;"></div>
-
-        <!-- Tunnel Mode Selector -->
-        <div class="form-group" style="margin-bottom:16px;">
-            <label data-i18n="tunnelMode">Tunnel Mode</label>
-            <select id="tunnelModeSelect" style="width:auto; margin-bottom:8px;" onchange="updateTunnelModeUI()">
-                <option value="quick" data-i18n="quickTunnel">Quick Tunnel</option>
-                <option value="named" data-i18n="namedTunnel">Named Tunnel</option>
-            </select>
-            <div id="quickTunnelDesc" style="font-size:12px; color:var(--text-secondary);" data-i18n="quickTunnelDesc">Temporary URL, changes on restart</div>
-            <div id="namedTunnelDesc" style="font-size:12px; color:var(--text-secondary); display:none;" data-i18n="namedTunnelDesc">Persistent domain, requires Cloudflare account</div>
-        </div>
-
-        <!-- Named Tunnel Config Fields -->
-        <div id="namedConfigFields" style="display:none; margin-bottom:16px; background:rgba(255,255,255,0.02); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
-            <div style="display:flex; flex-direction:column; gap:12px; max-width:400px;">
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label style="margin-bottom: 4px;">Tunnel Name</label>
-                    <input type="text" id="tunnelNameInput" placeholder="e.g. mac-monitor" style="margin-bottom:0;">
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label style="margin-bottom: 4px;">Hostname</label>
-                    <input type="text" id="hostnameInput" placeholder="e.g. monitor.yourdomain.com" style="margin-bottom:0;">
-                </div>
-                <button onclick="saveTunnelSettings()" style="width:auto; align-self:flex-start; min-height:36px; padding: 6px 14px;">Save Settings</button>
+    <!-- Security (Change Password) -->
+    <div class="section-card">
+        <h3 data-i18n="security">Security</h3>
+        <div style="display:flex; flex-direction:column; gap:12px; max-width:360px;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label data-i18n="currentPassword">Current Password</label>
+                <input type="password" id="currentPassword" placeholder="Current Password" autocomplete="current-password">
             </div>
-        </div>
-
-        <!-- Setup Steps (for named tunnel) -->
-        <div id="setupSteps" style="display:none; margin-bottom:16px;"></div>
-
-        <!-- Config Preview -->
-        <div id="configPreview" style="display:none; margin-bottom:16px;">
-            <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">Generated config.yml:</div>
-            <pre style="background:#000; padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); font-size:12px; overflow-x:auto; max-height:200px; margin:0; font-family:monospace;"><code id="configContent"></code></pre>
-            <div style="display:flex; gap:10px; margin-top:10px;">
-                <button onclick="copyConfig()" class="secondary" style="font-size:13px; min-height:34px; padding: 4px 12px;">Copy</button>
-                <button onclick="writeConfig()" style="font-size:13px; min-height:34px; padding: 4px 12px;">Write to ~/.cloudflared/config.yml</button>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label data-i18n="newPassword">New Password</label>
+                <input type="password" id="newPassword" placeholder="New Password" autocomplete="new-password">
             </div>
-            <div id="writeResult" style="font-size:13px; margin-top:8px; font-weight: 600;"></div>
-        </div>
-
-        <!-- Tunnel Status + Controls -->
-        <div id="tunnelStatus" style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:12px; display:flex; align-items:center;">Loading...</div>
-        
-        <div id="quickTunnelURLBox" style="display:none; margin-bottom:14px; padding:12px 14px; background:rgba(0,0,0,0.2); border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
-            <span style="font-size:12px; color:var(--text-secondary); font-weight:600;" data-i18n="tunnelURL">Tunnel URL</span>:
-            <a id="quickTunnelLink" href="#" target="_blank" style="color:var(--accent); font-size:13px; word-break:break-all; font-weight:600; margin-left: 4px;"></a>
-        </div>
-        
-        <div style="display:flex; gap:10px;">
-            <button onclick="startTunnel()" id="tunnelStartBtn" data-i18n="cloudflareStart">Start Tunnel</button>
-            <button class="danger" onclick="stopTunnel()" id="tunnelStopBtn" data-i18n="cloudflareStop" style="display:none;">Stop Tunnel</button>
-        </div>
-        <div id="tunnelOutput" style="margin-top:12px; font-size:11px; color:var(--text-secondary); max-height:120px; overflow-y:auto; white-space:pre-wrap; font-family:monospace; background:rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;"></div>
-
-        <!-- Diagnostics dropdown -->
-        <details style="margin-top:16px; border-top: 1px solid var(--border-subtle); padding-top:12px;">
-            <summary style="cursor:pointer; font-size:13px; color:var(--text-secondary); font-weight:600; user-select:none;">Cloudflare Diagnostics</summary>
-            <div id="tunnelDiag" style="font-size:12px; color:var(--text-secondary); margin-top:10px; line-height: 1.5; font-family:monospace;"></div>
-        </details>
-    </div>
-
-    <!-- Security Change Password -->
-    <div class="card" style="margin-bottom: 20px;">
-        <h3 data-i18n="changePassword">Change Password</h3>
-        <div id="currentUserCard" style="margin-bottom:14px; color:var(--text-secondary); font-size:14px;"></div>
-        <div style="display:flex; flex-direction:column; gap:4px; max-width:360px;">
-            <div class="form-group" style="margin-bottom: 8px;">
-                <input type="password" id="currentPassword" placeholder="Current Password" data-i18n="currentPassword" autocomplete="current-password" style="margin-bottom:0;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label data-i18n="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm Password" autocomplete="new-password">
             </div>
-            <div class="form-group" style="margin-bottom: 8px;">
-                <input type="password" id="newPassword" placeholder="New Password" data-i18n="newPassword" autocomplete="new-password" style="margin-bottom:0;">
-            </div>
-            <div class="form-group" style="margin-bottom: 12px;">
-                <input type="password" id="confirmPassword" placeholder="Confirm Password" data-i18n="confirmPassword" autocomplete="new-password" style="margin-bottom:0;">
-            </div>
-            <button onclick="changePassword()" data-i18n="savePassword">Save Password</button>
-            <p id="passwordMsg" style="font-size:13px; margin-top:10px; font-weight:600;"></p>
+            <button onclick="changePassword()" class="primary-action" data-i18n="savePassword">Save Password</button>
+            <p id="passwordMsg" style="font-size:13px; margin-top:4px; font-weight:600;"></p>
         </div>
     </div>
 
     <!-- Change Username Card (Admin only) -->
-    <div class="card" style="margin-bottom: 20px;" id="changeUsernameCard" style="display:none;">
+    <div class="section-card" id="changeUsernameCard" style="display:none;">
         <h3 data-i18n="changeUsername">Change Username</h3>
-        <div style="display:flex; flex-direction:column; gap:4px; max-width:360px;">
-            <div class="form-group" style="margin-bottom: 12px;">
-                <input type="text" id="newUsername" placeholder="New Username" data-i18n="newUsername" autocomplete="username" style="margin-bottom:0;">
+        <div style="display:flex; flex-direction:column; gap:12px; max-width:360px;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label data-i18n="newUsername">New Username</label>
+                <input type="text" id="newUsername" placeholder="New Username" autocomplete="username">
             </div>
-            <button onclick="changeUsername()" data-i18n="saveUsername">Save Username</button>
-            <p id="usernameMsg" style="font-size:13px; margin-top:10px; font-weight:600;"></p>
+            <button onclick="changeUsername()" class="primary-action" data-i18n="saveUsername">Save Username</button>
+            <p id="usernameMsg" style="font-size:13px; margin-top:4px; font-weight:600;"></p>
         </div>
     </div>
 
+    <!-- Web Users Card -->
+    <div class="section-card">
+        <h3 data-i18n="webUsers">Web Users</h3>
+        <div id="userList" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+
     <!-- Language Selection -->
-    <div class="card" style="margin-bottom: 20px;">
+    <div class="section-card">
         <h3 data-i18n="language">Language</h3>
-        <div style="display:flex; gap:10px;">
-            <button onclick="setLanguage('en')" data-i18n="english" class="secondary" style="flex:1; max-width:180px;">English</button>
-            <button onclick="setLanguage('zh')" data-i18n="chinese" class="secondary" style="flex:1; max-width:180px;">中文</button>
+        <div style="display:flex; gap:12px; max-width: 360px;">
+            <button onclick="setLanguage('en')" data-i18n="english" class="secondary" style="flex:1;">English</button>
+            <button onclick="setLanguage('zh')" data-i18n="chinese" class="secondary" style="flex:1;">中文</button>
+        </div>
+    </div>
+
+    <!-- About Section -->
+    <div class="section-card" style="background:rgba(255,255,255,0.01);">
+        <h3 data-i18n="about">About</h3>
+        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+            <div>System Name: <strong style="color:var(--text-primary);" data-i18n="appName">Mac Monitor</strong></div>
+            <div id="aboutVersion">Version: -</div>
+            <div style="margin-top: 8px;" data-i18n="adminOnlyAction">Bilingual admin panel built for macOS Monitoring Node.</div>
         </div>
     </div>
 </main>
@@ -178,21 +87,26 @@
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('settings');
     loadCurrentUser();
-    loadStorage();
     loadUsers();
-    loadProviders();
-    loadDiagnostics();
-    loadTunnelConfig();
-    pollTunnelStatus();
-    setInterval(pollTunnelStatus, 5000);
+    loadVersion();
 });
+
+async function loadVersion() {
+    try {
+        const data = await api('/api/status');
+        if (data) {
+            document.getElementById('aboutVersion').innerHTML = `${t('version')}: <strong style="color:var(--text-primary);">v${data.version || '?'} (${data.build || '?'})</strong>`;
+        }
+    } catch(e){}
+}
 
 async function loadCurrentUser() {
     try {
         const data = await api('/api/auth/me');
         if (!data) return;
         const card = document.getElementById('currentUserCard');
-        card.innerHTML = '<p>' + t('currentUser') + ': <strong>' + data.username + '</strong> (' + t('role') + ': <strong>' + data.role + '</strong>)</p>';
+        card.innerHTML = `<p>${t('username')}: <strong style="color:var(--text-primary);">${data.username}</strong></p>` +
+                         `<p style="margin-top:6px;">${t('role')}: <strong style="color:var(--text-primary);">${data.role}</strong></p>`;
         if (data.role === 'admin') {
             document.getElementById('changeUsernameCard').style.display = 'block';
         }
@@ -256,285 +170,19 @@ async function changeUsername() {
     }
 }
 
-async function loadStorage() {
-    const data = await api('/api/storage/status');
-    if (!data) return;
-    const sizeMB = (data.totalStorageBytes / 1048576).toFixed(1);
-    document.getElementById('storageInfo').innerHTML =
-        `<div class="diag-item"><span class="diag-label">${t('activeProvider')}</span><span class="diag-value">${data.providerDisplayName}</span></div>` +
-        `<div class="diag-item"><span class="diag-label">${t('photos')} / ${t('videos')}</span><span class="diag-value">📸 ${data.totalPhotos} | 🎥 ${data.totalVideos}</span></div>` +
-        `<div class="diag-item"><span class="diag-label">${t('storageUsed')} / ${t('free')}</span><span class="diag-value">${sizeMB} MB / ${data.diskFreeMB} MB</span></div>`;
-}
-
 async function loadUsers() {
     const data = await api('/api/auth/users');
     if (!data) return;
     document.getElementById('userList').innerHTML = data.users.map(u => {
         const activeBadge = u.isEnabled ? '<span class="badge badge-green">' + t('enabled') + '</span>' : '<span class="badge badge-red">' + t('disabled') + '</span>';
-        return `<tr>
-            <td><strong>${u.username}</strong></td>
-            <td><span class="badge badge-neutral">${u.role}</span></td>
-            <td>${activeBadge}</td>
-        </tr>`;
-    }).join('');
-}
-
-async function loadProviders() {
-    const data = await api('/api/storage/providers');
-    if (!data) return;
-    document.getElementById('providerList').innerHTML = data.providers.map(p => {
-        const isCurrent = p.isCurrent ? '<span class="badge badge-green" style="margin-left:8px;">Active</span>' : '';
-        const connected = p.isConnected ? '<span class="badge badge-blue">Connected</span>' : p.needsReconnect ? '<span class="badge badge-orange">Needs Reconnect</span>' : '<span class="badge badge-neutral">Offline</span>';
-        return `<div class="card" style="padding:12px 16px; background:rgba(255,255,255,0.02); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        return `<div class="mini-card" style="display:flex; justify-content:space-between; align-items:center;">
             <div>
-                <strong style="color:var(--text-primary);">${p.displayName}</strong> ${isCurrent}
-                <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">${p.email || p.type}</div>
+                <strong style="color:var(--text-primary);">${u.username}</strong>
+                <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Role: ${u.role}</div>
             </div>
-            <div>${connected}</div>
+            <div>${activeBadge}</div>
         </div>`;
     }).join('');
-}
-
-async function loadDiagnostics() {
-    const data = await api('/api/storage/diagnostics');
-    if (!data) return;
-    document.getElementById('diagInfo').innerHTML = 
-        `<div class="diag-item"><span class="diag-label">Queue Jobs Total</span><span class="diag-value">${data.queueJobsTotal}</span></div>` +
-        `<div class="diag-item"><span class="diag-label">Active GDrive uploaders</span><span class="diag-value">${data.activeUploaders}</span></div>` +
-        `<div class="diag-item"><span class="diag-label">Network Reachable</span><span class="diag-value">${data.isNetworkReachable ? '✅ Yes' : '❌ No'}</span></div>`;
-}
-
-async function runTestConnection() {
-    const el = document.getElementById('testResult');
-    el.textContent = 'Testing connection...';
-    el.style.color = 'var(--text-secondary)';
-    try {
-        const data = await api('/api/storage/test-connection', { method: 'POST' });
-        if (data) {
-            el.textContent = data.success ? '✅ Success: ' + data.message : '❌ Failed: ' + data.message;
-            el.style.color = data.success ? 'var(--success)' : 'var(--danger)';
-        }
-    } catch(e) {
-        el.textContent = 'Connection test failed';
-        el.style.color = 'var(--danger)';
-    }
-}
-
-async function runDryRun() {
-    const el = document.getElementById('dryRunResult');
-    el.textContent = 'Running dry-run retention preview...';
-    el.style.display = 'block';
-    try {
-        const data = await api('/api/storage/retention/dry-run', { method: 'POST' });
-        if (data) {
-            let html = `Plan: Delete ${data.deletedFilesCount} files (Total size: ${(data.freedBytes/1048576).toFixed(2)} MB)\n\n`;
-            if (data.details && data.details.length > 0) {
-                html += data.details.map(d => `[${d.action}] ${d.fileName} (${(d.sizeBytes/1024).toFixed(1)} KB) - Reason: ${d.reason}`).join('\n');
-            } else {
-                html += 'No files would be deleted.';
-            }
-            el.textContent = html;
-        }
-    } catch (e) {
-        el.textContent = 'Failed to execute dry run retention cleanup preview.';
-    }
-}
-
-// Cloudflare Tunnel API Logic
-let tunnelMode = 'quick';
-
-async function loadTunnelConfig() {
-    try {
-        const status = await api('/api/cloudflare/status');
-        if (!status) return;
-        tunnelMode = status.mode || 'quick';
-        document.getElementById('tunnelModeSelect').value = tunnelMode;
-        document.getElementById('tunnelNameInput').value = status.configName || '';
-        document.getElementById('hostnameInput').value = status.hostname || '';
-        updateTunnelModeUI();
-    } catch (e) {}
-}
-
-function updateTunnelModeUI() {
-    tunnelMode = document.getElementById('tunnelModeSelect').value;
-    document.getElementById('quickTunnelDesc').style.display = tunnelMode === 'quick' ? 'block' : 'none';
-    document.getElementById('namedTunnelDesc').style.display = tunnelMode === 'named' ? 'block' : 'none';
-    document.getElementById('namedConfigFields').style.display = tunnelMode === 'named' ? 'block' : 'none';
-    document.getElementById('setupSteps').style.display = tunnelMode === 'named' ? 'block' : 'none';
-    document.getElementById('configPreview').style.display = tunnelMode === 'named' ? 'block' : 'none';
-    if (tunnelMode === 'named') {
-        refreshSetupWizard();
-    }
-}
-
-async function saveTunnelSettings() {
-    const configName = document.getElementById('tunnelNameInput').value.trim();
-    const hostname = document.getElementById('hostnameInput').value.trim();
-    try {
-        const res = await api('/api/cloudflare/config', {
-            method: 'POST',
-            body: { configName, hostname }
-        });
-        if (res) {
-            toast('Settings saved successfully', 'success');
-            refreshSetupWizard();
-        }
-    } catch(e){}
-}
-
-async function refreshSetupWizard() {
-    try {
-        const data = await api('/api/cloudflare/wizard');
-        if (!data) return;
-        
-        // Show configuration steps
-        const stepsEl = document.getElementById('setupSteps');
-        stepsEl.innerHTML = data.steps.map(s => {
-            const stepNum = s.step;
-            const title = s.title;
-            const desc = s.description;
-            const cmd = s.command;
-            
-            let cmdHTML = '';
-            if (cmd) {
-                cmdHTML = `<div class="cf-cmd"><code>${cmd}</code><button class="copy-btn" onclick="copyText('${cmd.replace(/'/g, "\\'")}')">${t('copyCommand')}</button></div>`;
-            }
-            
-            return `<div class="cf-step">
-                <div class="cf-step-num">${stepNum}</div>
-                <div class="cf-step-detail">
-                    <div class="cf-step-title">${title}</div>
-                    <div class="cf-step-desc">${desc}</div>
-                    ${cmdHTML}
-                </div>
-            </div>`;
-        }).join('');
-
-        // Config preview
-        if (data.configContent) {
-            document.getElementById('configContent').textContent = data.configContent;
-            document.getElementById('configPreview').style.display = 'block';
-        } else {
-            document.getElementById('configPreview').style.display = 'none';
-        }
-        
-        // Setup banner status
-        const banner = document.getElementById('setupBanner');
-        if (data.isSetupComplete) {
-            banner.textContent = '✅ Cloudflare Named Tunnel Setup is complete. Ready to run!';
-            banner.style.display = 'block';
-            banner.style.background = 'rgba(48,209,88,0.05)';
-            banner.style.color = 'var(--success)';
-            banner.style.border = '1px solid rgba(48,209,88,0.15)';
-        } else {
-            banner.textContent = '⚠️ Tunnel setup is incomplete. Follow the steps below to configure.';
-            banner.style.display = 'block';
-            banner.style.background = 'rgba(255,159,10,0.05)';
-            banner.style.color = 'var(--warning)';
-            banner.style.border = '1px solid rgba(255,159,10,0.15)';
-        }
-    } catch(e){}
-}
-
-async function pollTunnelStatus() {
-    try {
-        const data = await api('/api/cloudflare/status');
-        if (!data) return;
-        
-        const statusEl = document.getElementById('tunnelStatus');
-        const startBtn = document.getElementById('tunnelStartBtn');
-        const stopBtn = document.getElementById('tunnelStopBtn');
-        
-        let statusStr = t('status') + ': ';
-        if (data.isRunning) {
-            statusStr += dot('green') + t('running');
-            startBtn.style.display = 'none';
-            stopBtn.style.display = 'inline-flex';
-        } else {
-            statusStr += dot('red') + t('stopped');
-            startBtn.style.display = 'inline-flex';
-            stopBtn.style.display = 'none';
-        }
-        
-        // Mode badge
-        const modeBadge = data.mode === 'named' ? '<span class="badge badge-blue" style="margin-left:8px;">Named</span>' : '<span class="badge badge-neutral" style="margin-left:8px;">Quick</span>';
-        statusEl.innerHTML = statusStr + modeBadge;
-
-        // Public URL Link
-        const urlBox = document.getElementById('quickTunnelURLBox');
-        const link = document.getElementById('quickTunnelLink');
-        if (data.isRunning && data.publicURL) {
-            link.href = data.publicURL;
-            link.textContent = data.publicURL;
-            urlBox.style.display = 'block';
-        } else {
-            urlBox.style.display = 'none';
-        }
-
-        // Live logs output
-        const logEl = document.getElementById('tunnelOutput');
-        if (data.lastLogs && data.lastLogs.length > 0) {
-            logEl.textContent = data.lastLogs.join('\n');
-            logEl.style.display = 'block';
-        } else {
-            logEl.style.display = 'none';
-        }
-
-        // Diagnostics
-        const diagEl = document.getElementById('tunnelDiag');
-        diagEl.innerHTML = 
-            `Is cloudflared Installed: <strong>${data.isInstalled ? 'Yes' : 'No'}</strong><br>` +
-            `Config Path: <strong>${data.configPath || '-'}</strong><br>` +
-            `Credentials Path: <strong>${data.credentialsPath || '-'}</strong><br>` +
-            `Process ID: <strong>${data.pid || 'None'}</strong>`;
-            
-    } catch(e){}
-}
-
-async function startTunnel() {
-    try {
-        await api('/api/cloudflare/start', { method: 'POST', body: { mode: tunnelMode } });
-        toast('Starting Cloudflare tunnel...', 'success');
-        pollTunnelStatus();
-    } catch(e){}
-}
-
-async function stopTunnel() {
-    try {
-        await api('/api/cloudflare/stop', { method: 'POST' });
-        toast('Stopping tunnel...', 'success');
-        pollTunnelStatus();
-    } catch(e){}
-}
-
-async function writeConfig() {
-    const el = document.getElementById('writeResult');
-    el.textContent = 'Writing config file...';
-    el.style.color = 'var(--text-secondary)';
-    try {
-        const data = await api('/api/cloudflare/write-config', { method: 'POST' });
-        if (data) {
-            el.textContent = data.success ? '✅ Success: ' + data.message : '❌ Failed: ' + data.message;
-            el.style.color = data.success ? 'var(--success)' : 'var(--danger)';
-            refreshSetupWizard();
-        }
-    } catch(e) {
-        el.textContent = 'Failed to write config file.';
-        el.style.color = 'var(--danger)';
-    }
-}
-
-function copyConfig() {
-    const content = document.getElementById('configContent').textContent;
-    copyText(content);
-}
-
-function copyText(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        toast(t('copiedToClipboard'), 'success');
-    }).catch(() => {
-        toast('Failed to copy', 'error');
-    });
 }
 </script>
 </body>

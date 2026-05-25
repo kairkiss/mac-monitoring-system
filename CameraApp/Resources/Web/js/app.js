@@ -125,6 +125,14 @@ function setupNavigation() {
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path><path d="M16 16l-4-4-4 4M12 12v9"></path></svg>
                     <span data-i18n="uploadQueue">Upload Queue</span>
                 </a>
+                <a href="/remote.html" class="nav-item" data-nav="remote.html">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span data-i18n="remoteAccess">Remote Access</span>
+                </a>
+                <a href="/storage.html" class="nav-item" data-nav="storage.html">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>
+                    <span data-i18n="storageCenter">Storage Center</span>
+                </a>
                 <a href="/health.html" class="nav-item" data-nav="health.html">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
                     <span data-i18n="health">Health</span>
@@ -173,7 +181,7 @@ function setupNavigation() {
         tabbar.innerHTML = `
             <a href="/" class="tab-item" data-tab="index.html">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
-                <span data-i18n="dashboard">Dashboard</span>
+                <span data-i18n="home">Home</span>
             </a>
             <a href="/live.html" class="tab-item" data-tab="live.html">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7a2 2 0 0 0-2-2h-4.2l-1.4-2.1A2 2 0 0 0 13.8 2H10.2a2 2 0 0 0-1.6.9L7.2 5H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V7z"></path><circle cx="12" cy="13" r="4"></circle></svg>
@@ -210,6 +218,14 @@ function setupNavigation() {
                     <a href="/uploads.html" class="more-grid-item">
                         <div class="more-icon-wrap upload"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path><path d="M16 16l-4-4-4 4M12 12v9"></path></svg></div>
                         <span data-i18n="uploadQueue">Uploads</span>
+                    </a>
+                    <a href="/remote.html" class="more-grid-item">
+                        <div class="more-icon-wrap remote"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
+                        <span data-i18n="remoteAccess">Remote</span>
+                    </a>
+                    <a href="/storage.html" class="more-grid-item">
+                        <div class="more-icon-wrap storage"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg></div>
+                        <span data-i18n="storageCenter">Storage</span>
                     </a>
                     <a href="/health.html" class="more-grid-item">
                         <div class="more-icon-wrap health"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></div>
