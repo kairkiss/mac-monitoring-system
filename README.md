@@ -1,6 +1,9 @@
 # MacMonitor · Mac监控系统
 
-v2.4.9 — Telegram Mini App UX Redesign
+v2.4.10 — Telegram WebView Cache Busting Hotfix
+
+> [!TIP]
+> 如果 Telegram 内置小程序仍显示旧样式，请关闭并重新打开 Telegram 小程序，或清理 Telegram 内置浏览器缓存。
 
 <p align="center">
   <strong>把一台 Mac 变成可远程管理的本地摄像头监控节点。</strong>

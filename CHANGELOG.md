@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.4.10 (2026-05-25)
+
+Telegram WebView Cache Busting Hotfix:
+- Fixed Telegram WebView loading stale CSS/JS/i18n assets after Web UI redesign.
+- Added version query parameters (?v=2.4.10) to all Web CSS and JS resource references.
+- Prevented raw i18n keys such as systemNormal/openLive from appearing in Telegram WebView.
+- Added Web UI version diagnostics for Telegram WebView troubleshooting.
+- Preserved v2.4.9 Telegram Mini App UI redesign.
+
 ## v2.4.9 (2026-05-25)
 
 Telegram Mini App UX Redesign:

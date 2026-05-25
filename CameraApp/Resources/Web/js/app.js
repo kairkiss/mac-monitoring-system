@@ -1,3 +1,33 @@
+// Web UI Version Diagnostics & Safe Reload
+window.WEB_UI_VERSION = '2.4.10';
+console.info('[Mac Monitor] Web UI version:', window.WEB_UI_VERSION);
+
+(function() {
+    function initDiagnostics() {
+        if (!document.body) return;
+        document.body.dataset.webUiVersion = '2.4.10';
+        
+        if (window.Telegram?.WebApp) {
+            document.body.classList.add('telegram-webview');
+            document.body.dataset.telegram = 'true';
+            
+            // i18n stale safeguard reload
+            if (typeof t === 'function' && t('systemNormal') === 'systemNormal') {
+                if (!sessionStorage.getItem('forcedReloadForAssets')) {
+                    sessionStorage.setItem('forcedReloadForAssets', '1');
+                    console.warn('[Mac Monitor] Stale resources detected. Triggering asset force refresh.');
+                    location.reload();
+                }
+            }
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDiagnostics);
+    } else {
+        initDiagnostics();
+    }
+})();
+
 // API Client
 function getToken() { return localStorage.getItem('token'); }
 
