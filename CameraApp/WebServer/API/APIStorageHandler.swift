@@ -232,6 +232,22 @@ struct APIStorageHandler {
             return HTTPResponse.json(["ok": true, "status": tunnel.status.rawValue] as [String: Any])
         }
 
+        // Restart tunnel
+        router.addRoute(method: "POST", path: "/api/remote/restart", requiredRole: .admin) { request in
+            let tunnel = CloudflareTunnelManager.shared
+            var mode: TunnelMode? = nil
+            if let body = request.body,
+               let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+               let modeRaw = json["mode"] as? String {
+                mode = TunnelMode(rawValue: modeRaw)
+            }
+            tunnel.restartTunnel(mode: mode)
+            let user = request.sessionUsername ?? "unknown"
+            ActivityLogManager.shared.info(.webServer, "Tunnel restart requested by \(user)")
+            AuditLogManager.shared.log(method: "POST", path: "/api/remote/restart", status: 200, remoteAddress: request.remoteAddress ?? "unknown", user: request.sessionUsername, detail: "restart")
+            return HTTPResponse.json(["ok": true, "status": tunnel.status.rawValue] as [String: Any])
+        }
+
         // Tunnel diagnostics
         router.addRoute(method: "GET", path: "/api/remote/diagnostics") { _ in
             let diag = CloudflareTunnelManager.shared.diagnostics()

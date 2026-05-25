@@ -5,6 +5,7 @@ enum TunnelStatus: String {
     case starting
     case running
     case stopping
+    case restarting
     case error
 }
 
@@ -233,6 +234,34 @@ final class CloudflareTunnelManager: ObservableObject {
         DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak self] in
             guard let self, let proc = self.process, proc.isRunning else { return }
             proc.interrupt()
+        }
+    }
+
+    func restartTunnel(mode: TunnelMode? = nil) {
+        let effectiveMode = mode ?? settings.cloudflareTunnelMode
+        guard status != .restarting else { return }
+
+        status = .restarting
+        lastError = ""
+
+        // Stop if running
+        if let proc = process, proc.isRunning {
+            proc.terminate()
+        }
+
+        // Wait for process to exit, then start
+        DispatchQueue.global().asyncAfter(deadline: .now() + 3) { [weak self] in
+            guard let self else { return }
+            // Force kill if still running
+            if let proc = self.process, proc.isRunning {
+                proc.interrupt()
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                guard let self else { return }
+                self.process = nil
+                self.startTunnel(mode: effectiveMode)
+                ActivityLogManager.shared.info(.webServer, "Tunnel restarted: mode=\(effectiveMode.rawValue)")
+            }
         }
     }
 

@@ -476,4 +476,38 @@ struct Strings {
     static var adminOnly: String { lang == .chinese ? "仅管理员" : "Admin Only" }
     static var adminOnlyAction: String { lang == .chinese ? "此操作需要管理员权限" : "This action requires admin privileges" }
     static var auditLogEntry: String { lang == .chinese ? "审计记录" : "Audit Entry" }
+
+    // MARK: - v2.4.4: Cloudflare Control Panel
+    static var cfControlPanel: String { lang == .chinese ? "Cloudflare Tunnel 控制" : "Cloudflare Tunnel Control" }
+    static var cfStartQuick: String { lang == .chinese ? "启动临时 Tunnel" : "Start Quick Tunnel" }
+    static var cfStartNamed: String { lang == .chinese ? "启动命名 Tunnel" : "Start Named Tunnel" }
+    static var cfStopTunnel: String { lang == .chinese ? "停止 Tunnel" : "Stop Tunnel" }
+    static var cfRestartTunnel: String { lang == .chinese ? "重启 Tunnel" : "Restart Tunnel" }
+    static var cfRefreshStatus: String { lang == .chinese ? "刷新状态" : "Refresh Status" }
+    static var cfCopyPublicURL: String { lang == .chinese ? "复制公网地址" : "Copy Public URL" }
+    static var cfCopyLocalURL: String { lang == .chinese ? "复制本地地址" : "Copy Local URL" }
+    static var cfGenerateConfig: String { lang == .chinese ? "生成配置预览" : "Generate Config" }
+    static var cfCopyConfig: String { lang == .chinese ? "复制配置" : "Copy Config" }
+    static var cfWriteConfig: String { lang == .chinese ? "写入配置" : "Write Config" }
+    static var cfOpenConfigFolder: String { lang == .chinese ? "打开配置目录" : "Open Config Folder" }
+    static var cfTunnelRunning: String { lang == .chinese ? "Tunnel 运行中" : "Tunnel Running" }
+    static var cfTunnelStopped: String { lang == .chinese ? "Tunnel 已停止" : "Tunnel Stopped" }
+    static var cfTunnelRestarting: String { lang == .chinese ? "重启中..." : "Restarting..." }
+    static var cfStatusNotInstalled: String { lang == .chinese ? "未安装 cloudflared" : "cloudflared not installed" }
+    static var cfStatusReady: String { lang == .chinese ? "就绪，可以启动" : "Ready to start" }
+    static var cfStatusConfigMissing: String { lang == .chinese ? "配置文件缺失" : "Config file missing" }
+    static var cfStatusCredentialsMissing: String { lang == .chinese ? "凭据缺失" : "Credentials missing" }
+    static var cfStatusIngressMismatch: String { lang == .chinese ? "服务端口不匹配" : "Service port mismatch" }
+    static var cfStatusHostnameMissing: String { lang == .chinese ? "未设置公网域名" : "Public hostname not set" }
+    static var cfStatusTunnelNameMissing: String { lang == .chinese ? "未设置 Tunnel 名称" : "Tunnel name not set" }
+    static var cfWriteConfirmTitle: String { lang == .chinese ? "确认写入配置" : "Confirm Write Config" }
+    static var cfWriteConfirmMsg: String { lang == .chinese ? "将写入 config.yml，已有配置会自动备份。" : "Will write config.yml. Existing config will be backed up." }
+    static var cfConfigWritten: String { lang == .chinese ? "配置已写入" : "Config written" }
+    static var cfTunnelName: String { lang == .chinese ? "Tunnel 名称" : "Tunnel Name" }
+    static var cfPublicHostname: String { lang == .chinese ? "公网域名" : "Public Hostname" }
+    static var cfLocalURL: String { lang == .chinese ? "本地地址" : "Local URL" }
+    static var cfPublicURL: String { lang == .chinese ? "公网地址" : "Public URL" }
+    static var cfSetupHint: String { lang == .chinese ? "下一步：" : "Next step: " }
+    static var cfQuickTemporary: String { lang == .chinese ? "临时测试链接，重启后变化" : "Temporary test URL, changes on restart" }
+    static var cfNamedRecommended: String { lang == .chinese ? "推荐长期使用的固定域名" : "Recommended for persistent domain" }
 }

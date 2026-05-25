@@ -1,5 +1,27 @@
 # Changelog
 
+## v2.4.4 (2026-05-25)
+
+App Cloudflare Control Panel Hotfix — macOS App now has full Cloudflare Tunnel control with Start/Stop/Restart buttons, state-driven setup hints, and config management.
+
+### New Features
+
+- **macOS App Cloudflare Control Panel** — Settings → Web & Remote → full tunnel control: status badge, mode picker, Start Quick/Named, Stop, Restart, Refresh Status
+- **Restart Tunnel button** — `restartTunnel()` with proper stop-wait-start sequencing, `restarting` status, duplicate-click prevention
+- **Public URL copy** — Quick mode copies `quickTunnelURL`, Named mode copies `https://hostname`
+- **Config management in App** — Generate Config Preview, Copy Config, Write Config (with confirmation alert and automatic backup)
+- **Open Config Folder** — one-click open `~/.cloudflared` in Finder
+- **State-driven setup hints** — shows exactly what's missing (install, login, tunnel name, hostname, config, credentials, port mismatch)
+- **`/api/remote/restart`** — new admin-only Web API endpoint with AuditLog
+
+### Fixed
+
+- Removed misleading `cloudflared tunnel run --url ... <name>` command from setup wizard
+- Cloudflare UI now uses `@ObservedObject` on `CloudflareTunnelManager.shared` for live status updates
+- `TunnelStatus.restarting` added to prevent duplicate restart clicks
+
+---
+
 ## v2.4.3 (2026-05-24)
 
 Cloudflare Setup Wizard & Task API Fix — state-driven Cloudflare first-time setup, task API correctness, lossy task loading, upload provider unification.
