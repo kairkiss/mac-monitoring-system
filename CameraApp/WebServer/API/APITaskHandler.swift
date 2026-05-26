@@ -120,6 +120,12 @@ struct APITaskHandler {
 
             AutomationScheduler.shared.addTask(task)
 
+            AuditLogManager.shared.log(
+                method: "POST", path: "/api/tasks", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "create task: \(task.name)"
+            )
             return HTTPResponse.json(["id": task.id.uuidString, "ok": true] as [String: Any])
         }
 
@@ -159,6 +165,12 @@ struct APITaskHandler {
 
             scheduler.updateTask(task)
 
+            AuditLogManager.shared.log(
+                method: "PUT", path: "/api/tasks/:id", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "update task: \(taskID)"
+            )
             return HTTPResponse.json(["id": task.id.uuidString, "ok": true] as [String: Any])
         }
 
@@ -175,6 +187,12 @@ struct APITaskHandler {
             scheduler.saveAllTasks()
             scheduler.rescheduleAll()
 
+            AuditLogManager.shared.log(
+                method: "POST", path: "/api/tasks/:id/toggle", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "toggle task: \(taskID)"
+            )
             return HTTPResponse.json(["isEnabled": scheduler.tasks[index].isEnabled])
         }
 
@@ -191,6 +209,12 @@ struct APITaskHandler {
             scheduler.saveAllTasks()
             scheduler.rescheduleAll()
 
+            AuditLogManager.shared.log(
+                method: "DELETE", path: "/api/tasks/:id", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "delete task: \(taskID)"
+            )
             return HTTPResponse.ok()
         }
 

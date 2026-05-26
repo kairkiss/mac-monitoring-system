@@ -1955,3 +1955,232 @@ input[type="checkbox"].ios-toggle:checked + .ios-toggle-label::after {
     margin-bottom: 8px;
     letter-spacing: 0.5px;
 }
+
+/* ===== v2.5.0 Component Classes ===== */
+
+/* Section headings */
+.section-heading {
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+}
+
+/* Button/action rows */
+.action-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.action-row.stacked { flex-direction: column; }
+
+/* Status panel (key-value rows) */
+.status-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.status-panel .sp-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 14px;
+}
+.status-panel .sp-row:last-child { border-bottom: none; }
+.status-panel .sp-label { color: var(--text-secondary); flex-shrink: 0; }
+.status-panel .sp-value { color: var(--text-primary); text-align: right; word-break: break-all; font-weight: 500; }
+
+/* Metric card */
+.metric-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Form grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+.empty-state .empty-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+/* Danger card */
+.danger-card {
+    border-color: rgba(255, 69, 58, 0.2);
+    background: rgba(255, 69, 58, 0.04);
+}
+
+/* Modal sections */
+.modal-section {
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+}
+.modal-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.modal-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+/* Role-based visibility */
+.role-hidden {
+    display: none !important;
+}
+.role-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+.role-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.role-badge.admin { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
+.role-badge.operator { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
+.role-badge.viewer { background: rgba(142, 142, 147, 0.15); color: var(--text-secondary); }
+
+/* Mobile action groups */
+.mobile-action-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+@media (min-width: 769px) {
+    .mobile-action-group { flex-direction: row; }
+}
+
+/* Action tile color modifiers */
+.action-tile-icon.accent { color: var(--accent); background: rgba(0, 122, 255, 0.08); }
+.action-tile-icon.success { color: var(--success); background: rgba(48, 209, 88, 0.08); }
+.action-tile-icon.warning { color: var(--warning); background: rgba(255, 159, 10, 0.08); }
+.action-tile-icon.danger { color: var(--danger); background: rgba(255, 69, 58, 0.08); }
+.action-tile-icon.purple { color: #bf5af2; background: rgba(191, 90, 242, 0.08); }
+.action-tile-icon.teal { color: #64d2ff; background: rgba(100, 210, 255, 0.08); }
+
+/* Filter chips (enhanced) */
+.filter-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+.filter-bar .chip {
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.filter-bar .chip.active {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* Selection mode */
+.selection-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+}
+.selection-bar .sel-count {
+    font-weight: 700;
+    color: var(--accent);
+}
+.selection-bar .sel-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Checkbox overlay for media items */
+.select-check {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.6);
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.selection-mode .select-check { opacity: 1; }
+.select-check.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+.select-check.checked::after {
+    content: '✓';
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+}
+.media-item { position: relative; }
+
+/* Telegram WebView enhancements */
+.telegram-webview .mobile-tabbar {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+.telegram-webview .content {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+}
+.telegram-webview.telegram-dark {
+    --bg-primary: #17212b;
+    --bg-secondary: #0e1621;
+    --surface: rgba(23, 33, 43, 0.85);
+    --surface-elevated: rgba(32, 44, 56, 0.95);
+    --surface-glass: rgba(23, 33, 43, 0.8);
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --text-primary: #f5f5f7;
+    --text-secondary: #8b9bab;
+}
+.telegram-webview.telegram-light {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f2f2f7;
+    --surface: rgba(242, 242, 247, 0.85);
+    --surface-elevated: rgba(255, 255, 255, 0.95);
+    --surface-glass: rgba(242, 242, 247, 0.8);
+    --border-subtle: rgba(0, 0, 0, 0.08);
+    --text-primary: #1c1c1e;
+    --text-secondary: #8e8e93;
+}

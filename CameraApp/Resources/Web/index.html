@@ -4,13 +4,99 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title data-i18n="macMonitorSystem">Mac Monitor - Dashboard</title>
-<link rel="stylesheet" href="/css/style.css?v=2.4.13">
+<link rel="stylesheet" href="/css/style.css?v=2.5.0">
+<style>
+/* Status Strip (compact indicator row) */
+.status-strip {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+.status-strip-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s;
+    white-space: nowrap;
+}
+.status-strip-item:hover {
+    background: var(--surface-elevated);
+    border-color: var(--border-focus);
+}
+.status-strip-item .status-dot {
+    width: 7px;
+    height: 7px;
+    flex-shrink: 0;
+}
+
+/* Attention Needed section */
+.attention-section {
+    margin-bottom: 20px;
+}
+.attention-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.attention-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: background 0.2s, border-color 0.2s;
+}
+.attention-card:hover {
+    background: var(--surface-elevated);
+    border-color: var(--border-focus);
+}
+.attention-card .att-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+}
+.attention-card .att-text {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+}
+.attention-card .att-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+.attention-card .att-chevron {
+    color: var(--text-tertiary);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+</style>
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <nav class="sidebar"></nav>
 <main class="content">
-    
+
     <!-- Hero Status Panel (Apple Style Control Center) -->
     <div class="app-hero" id="heroPanel">
         <div class="app-hero-header">
@@ -35,8 +121,38 @@
         </div>
     </div>
 
+    <!-- Status Strip: Compact indicator row -->
+    <div class="status-strip" id="statusStrip">
+        <a href="/live.html" class="status-strip-item" id="stripCamera">
+            <span class="status-dot dot-gray"></span>
+            <span data-i18n="camera">Camera</span>
+        </a>
+        <a href="/remote.html" class="status-strip-item" id="stripRemote">
+            <span class="status-dot dot-gray"></span>
+            <span data-i18n="remoteAccess">Remote</span>
+        </a>
+        <a href="/storage.html" class="status-strip-item" id="stripStorage">
+            <span class="status-dot dot-gray"></span>
+            <span id="stripStorageLabel">-</span>
+        </a>
+        <a href="/uploads.html" class="status-strip-item" id="stripUploads">
+            <span class="status-dot dot-gray"></span>
+            <span id="stripUploadsLabel">0</span>
+        </a>
+        <a href="/health.html" class="status-strip-item" id="stripHealth">
+            <span class="status-dot dot-gray"></span>
+            <span id="stripHealthLabel">0</span>
+        </a>
+    </div>
+
+    <!-- Attention Needed (aggregated alerts, shown only when alerts exist) -->
+    <div class="attention-section" id="attentionSection" style="display:none;">
+        <h2 class="section-heading" data-i18n="attentionNeeded">Attention Needed</h2>
+        <div class="attention-grid" id="attentionGrid"></div>
+    </div>
+
     <!-- Grid Layout: Core Status Widgets -->
-    <h2 style="font-size:15px; font-weight:700; text-transform:uppercase; color:var(--text-secondary); letter-spacing:0.8px; margin-bottom:12px;">System Status</h2>
+    <h2 class="section-heading" data-i18n="systemStatus">System Status</h2>
     <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px;">
         <div class="status-card" onclick="window.location.href='/live.html'" style="cursor:pointer;">
             <div class="status-card-title" data-i18n="camera">Camera</div>
@@ -71,10 +187,10 @@
     </div>
 
     <!-- Quick Touch Actions -->
-    <h2 style="font-size:15px; font-weight:700; text-transform:uppercase; color:var(--text-secondary); letter-spacing:0.8px; margin-bottom:12px;" data-i18n="quickActions">Quick Actions</h2>
+    <h2 class="section-heading" data-i18n="quickActions">Quick Actions</h2>
     <div class="action-grid">
         <a href="/live.html" class="action-tile">
-            <div class="action-tile-icon" style="color:var(--accent); background:rgba(0,122,255,0.08);">
+            <div class="action-tile-icon accent">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M23 7a2 2 0 0 0-2-2h-4.2l-1.4-2.1A2 2 0 0 0 13.8 2H10.2a2 2 0 0 0-1.6.9L7.2 5H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V7z"></path>
                     <circle cx="12" cy="13" r="4"></circle>
@@ -82,8 +198,8 @@
             </div>
             <span class="action-tile-label" data-i18n="openLive">Open Live</span>
         </a>
-        <div onclick="triggerQuickAction('capture')" class="action-tile">
-            <div class="action-tile-icon" style="color:var(--success); background:rgba(48,209,88,0.08);">
+        <div onclick="triggerQuickAction('capture')" class="action-tile" data-role-min="operator">
+            <div class="action-tile-icon success">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                     <circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -92,8 +208,8 @@
             </div>
             <span class="action-tile-label" data-i18n="capturePhoto">Capture Photo</span>
         </div>
-        <div id="quickRecordBtn" onclick="triggerQuickAction('record')" class="action-tile">
-            <div class="action-tile-icon" id="quickRecordIcon" style="color:var(--danger); background:rgba(255,69,58,0.08);">
+        <div id="quickRecordBtn" onclick="triggerQuickAction('record')" class="action-tile" data-role-min="operator">
+            <div class="action-tile-icon danger" id="quickRecordIcon">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <circle cx="12" cy="12" r="3" fill="currentColor"></circle>
@@ -102,7 +218,7 @@
             <span class="action-tile-label" id="quickRecordLabel" data-i18n="startRecording">Start Recording</span>
         </div>
         <a href="/media.html" class="action-tile">
-            <div class="action-tile-icon" style="color:#5ac8fa; background:rgba(90,200,250,0.08);">
+            <div class="action-tile-icon teal">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                     <line x1="3" y1="9" x2="21" y2="9"></line>
@@ -111,8 +227,8 @@
             </div>
             <span class="action-tile-label" data-i18n="mediaLibrary">Open Media</span>
         </a>
-        <a href="/remote.html" class="action-tile">
-            <div class="action-tile-icon" style="color:var(--warning); background:rgba(255,159,10,0.08);">
+        <a href="/remote.html" class="action-tile" data-role-min="admin">
+            <div class="action-tile-icon warning">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -121,7 +237,7 @@
             <span class="action-tile-label" data-i18n="remoteAccess">Remote Access</span>
         </a>
         <a href="/uploads.html" class="action-tile">
-            <div class="action-tile-icon" style="color:var(--accent); background:rgba(0,122,255,0.08);">
+            <div class="action-tile-icon accent">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
                     <path d="M16 16l-4-4-4 4M12 12v9"></path>
@@ -133,7 +249,7 @@
 
     <!-- Recent Activity Log Section -->
     <div class="section-card" style="padding: 20px;">
-        <h3 style="font-size:15px; font-weight:700; margin-bottom:14px; text-transform:uppercase; color:var(--text-secondary); letter-spacing:0.8px;" data-i18n="recentActivity">Recent Activity</h3>
+        <h3 class="section-heading" data-i18n="recentActivity">Recent Activity</h3>
         <div style="display:flex; flex-direction:column; gap:12px;">
             <div class="mini-card" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                 <div>
@@ -158,62 +274,178 @@
             </div>
         </div>
     </div>
-    
+
     <!-- System Build Footer -->
     <div style="text-align:center; font-size:11px; color:var(--text-tertiary); margin-top:24px;">
         <span id="systemVersion">Mac Monitor</span> &middot; <span id="systemUptime">-</span>
     </div>
 </main>
 
-<script src="/js/i18n.js?v=2.4.13"></script>
-<script src="/js/app.js?v=2.4.13"></script>
+<script src="/js/i18n.js?v=2.5.0"></script>
+<script src="/js/app.js?v=2.5.0"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('dashboard');
+    applyRoleVisibility();
 });
 
-function dot(color) { return '<span class="status-dot dot-' + color + '"></span>'; }
-
+// State shared across pollers
 let isRecordingGlobal = false;
 let isTunnelRunning = false;
+let lastStatusData = null;
+let lastCfData = null;
+let lastHealthData = null;
 
-async function refreshStatus() {
-    // 1. Fetch Cloudflare Status
-    let cfData = await optionalApi('/api/remote/status') || await optionalApi('/api/cloudflare/status');
+// -- Status Strip updater --
+function updateStatusStrip() {
+    // Camera
+    const stripCam = document.querySelector('#stripCamera .status-dot');
+    if (lastStatusData) {
+        stripCam.className = 'status-dot ' + (lastStatusData.camera.isRunning ? 'dot-green' : 'dot-red');
+    }
+
+    // Remote
+    const stripRem = document.querySelector('#stripRemote .status-dot');
+    if (lastCfData) {
+        if (lastCfData.isRunning) {
+            stripRem.className = 'status-dot dot-green';
+        } else if (lastCfData.error) {
+            stripRem.className = 'status-dot dot-red';
+        } else {
+            stripRem.className = 'status-dot dot-gray';
+        }
+    } else {
+        stripRem.className = 'status-dot dot-red';
+    }
+
+    // Storage
+    const stripStor = document.querySelector('#stripStorage .status-dot');
+    const stripStorLabel = document.getElementById('stripStorageLabel');
+    if (lastStatusData) {
+        const prov = lastStatusData.storage.provider;
+        if (prov && prov !== 'none') {
+            stripStor.className = 'status-dot dot-green';
+            stripStorLabel.textContent = prov;
+        } else {
+            stripStor.className = 'status-dot dot-gray';
+            stripStorLabel.textContent = t('none');
+        }
+    }
+
+    // Uploads
+    const stripUp = document.querySelector('#stripUploads .status-dot');
+    const stripUpLabel = document.getElementById('stripUploadsLabel');
+    if (lastStatusData) {
+        const pending = lastStatusData.uploadQueue.pending || 0;
+        const failed = lastStatusData.uploadQueue.failed || 0;
+        if (failed > 0) {
+            stripUp.className = 'status-dot dot-orange';
+        } else if (pending > 0) {
+            stripUp.className = 'status-dot dot-green';
+        } else {
+            stripUp.className = 'status-dot dot-gray';
+        }
+        stripUpLabel.textContent = pending + ' pending';
+    }
+
+    // Health
+    const stripHlth = document.querySelector('#stripHealth .status-dot');
+    const stripHlthLabel = document.getElementById('stripHealthLabel');
+    if (lastHealthData && lastHealthData.alerts && lastHealthData.alerts.length > 0) {
+        stripHlth.className = 'status-dot dot-orange';
+        stripHlthLabel.textContent = lastHealthData.alerts.length + ' alert' + (lastHealthData.alerts.length > 1 ? 's' : '');
+    } else {
+        stripHlth.className = 'status-dot dot-green';
+        stripHlthLabel.textContent = 'OK';
+    }
+}
+
+// -- Attention Needed updater --
+function updateAttentionSection() {
+    const alerts = [];
+
+    if (lastStatusData && !lastStatusData.camera.isRunning) {
+        alerts.push({ icon: '📹', color: 'var(--danger-light)', text: t('cameraOffline'), sub: t('camera') + ' ' + t('stopped'), href: '/live.html' });
+    }
+    if (lastStatusData && (lastStatusData.uploadQueue.failed || 0) > 0) {
+        alerts.push({ icon: '⬆️', color: 'var(--warning-light)', text: lastStatusData.uploadQueue.failed + ' ' + t('failed'), sub: t('uploadQueue'), href: '/uploads.html' });
+    }
+    if (lastStatusData && lastStatusData.storage.provider === 'gdrive' && lastStatusData.storage.needsReauth) {
+        alerts.push({ icon: '☁️', color: 'var(--warning-light)', text: 'Google Drive ' + t('stopped'), sub: t('storage'), href: '/storage.html' });
+    }
+    if (lastCfData && lastCfData.error) {
+        alerts.push({ icon: '🌐', color: 'var(--danger-light)', text: 'Tunnel ' + t('stopped'), sub: t('remoteAccess'), href: '/remote.html' });
+    }
+    if (lastStatusData && lastStatusData.disk && lastStatusData.disk.low) {
+        alerts.push({ icon: '💾', color: 'var(--warning-light)', text: 'Low Disk', sub: t('storage'), href: '/storage.html' });
+    }
+    if (lastHealthData && lastHealthData.alerts && lastHealthData.alerts.length > 0) {
+        alerts.push({ icon: '❤️', color: 'var(--warning-light)', text: lastHealthData.alerts.length + ' ' + t('alert'), sub: t('health'), href: '/health.html' });
+    }
+
+    const section = document.getElementById('attentionSection');
+    const grid = document.getElementById('attentionGrid');
+
+    if (alerts.length === 0) {
+        section.style.display = 'none';
+        grid.innerHTML = '';
+        return;
+    }
+
+    section.style.display = '';
+    grid.innerHTML = alerts.map(a => `
+        <a href="${a.href}" class="attention-card">
+            <div class="att-icon" style="background:${a.color};">${a.icon}</div>
+            <div class="att-text">${a.text}<br><span class="att-sub">${a.sub}</span></div>
+            <span class="att-chevron">›</span>
+        </a>
+    `).join('');
+}
+
+// -- Poller: Status (camera, recording, upload queue, storage, hero) --
+createPoller('dashboard-status', async () => {
+    const cfData = await optionalApi('/api/remote/status') || await optionalApi('/api/cloudflare/status');
+    const data = await optionalApi('/api/status');
+    return { cf: cfData, status: data };
+}, (result) => {
+    const cfData = result.cf;
+    const data = result.status;
+    lastCfData = cfData;
+    lastStatusData = data;
+
+    // Cloudflare / Remote
     if (cfData) {
         isTunnelRunning = cfData.isRunning;
         document.getElementById('heroTunnelStatus').textContent = `Tunnel: ${cfData.isRunning ? t('active') : t('stopped')}`;
-        
+
         const remVal = document.getElementById('remoteStatus');
         const remSub = document.getElementById('remoteSub');
         if (cfData.isRunning) {
-            remVal.innerHTML = dot('green') + t('active');
+            remVal.innerHTML = window.dot('active', { active: t('active') });
             remSub.textContent = cfData.quickTunnelURL || cfData.publicURL || t('quickTunnel');
         } else {
-            remVal.innerHTML = dot('red') + t('stopped');
+            remVal.innerHTML = window.dot('stopped', { stopped: t('stopped') });
             remSub.textContent = '';
         }
     } else {
         document.getElementById('heroTunnelStatus').textContent = 'Tunnel: Offline';
         const remVal = document.getElementById('remoteStatus');
         const remSub = document.getElementById('remoteSub');
-        if (remVal) remVal.innerHTML = dot('red') + t('stopped');
+        if (remVal) remVal.innerHTML = window.dot('error', { error: t('stopped') });
         if (remSub) remSub.textContent = 'Unavailable';
     }
 
-    // 2. Fetch General Status
-    const data = await optionalApi('/api/status');
     if (!data) return;
 
     // Camera Status
     const camEl = document.getElementById('cameraStatus');
     const camSub = document.getElementById('cameraSub');
     if (data.camera.isRunning) {
-        camEl.innerHTML = dot('green') + t('running');
+        camEl.innerHTML = window.dot('running', { running: t('running') });
         camSub.textContent = data.camera.deviceName || '';
         document.getElementById('heroCameraName').textContent = `Camera: ${data.camera.deviceName || 'Active'}`;
     } else {
-        camEl.innerHTML = dot('red') + t('stopped');
+        camEl.innerHTML = window.dot('offline', { offline: t('stopped') });
         camSub.textContent = '';
         document.getElementById('heroCameraName').textContent = 'Camera: Offline';
     }
@@ -222,25 +454,27 @@ async function refreshStatus() {
     const recEl = document.getElementById('recordStatus');
     const recSub = document.getElementById('recordSub');
     isRecordingGlobal = data.camera.isRecording;
-    
+
     // Sync quick actions recording button UI
     const quickRecordLabel = document.getElementById('quickRecordLabel');
     const quickRecordIcon = document.getElementById('quickRecordIcon');
     if (isRecordingGlobal) {
-        recEl.innerHTML = dot('red') + t('recording');
+        recEl.innerHTML = window.dot('recording', { recording: t('recording') });
         recSub.textContent = t('inProgress');
         if (quickRecordLabel) quickRecordLabel.textContent = t('stopRecording');
         if (quickRecordIcon) {
+            quickRecordIcon.className = 'action-tile-icon';
             quickRecordIcon.style.color = 'var(--text-secondary)';
             quickRecordIcon.style.background = 'rgba(255,255,255,0.06)';
         }
     } else {
-        recEl.innerHTML = dot('gray') + t('idle');
+        recEl.innerHTML = window.dot('idle', { idle: t('idle') });
         recSub.textContent = '';
         if (quickRecordLabel) quickRecordLabel.textContent = t('startRecording');
         if (quickRecordIcon) {
-            quickRecordIcon.style.color = 'var(--danger)';
-            quickRecordIcon.style.background = 'rgba(255,69,58,0.08)';
+            quickRecordIcon.className = 'action-tile-icon danger';
+            quickRecordIcon.style.color = '';
+            quickRecordIcon.style.background = '';
         }
     }
 
@@ -252,13 +486,13 @@ async function refreshStatus() {
     const failed = data.uploadQueue.failed || 0;
     const waiting = data.uploadQueue.waiting || 0;
     if (failed > 0) {
-        upEl.innerHTML = dot('orange') + pending + ' ' + t('queued2');
+        upEl.innerHTML = window.dot('failed', { failed: pending + ' ' + t('queued2') });
         upSub.textContent = failed + ' ' + t('failed') + ', ' + active + ' ' + t('uploading2');
     } else if (active > 0) {
-        upEl.innerHTML = dot('green') + active + ' ' + t('uploading2');
+        upEl.innerHTML = window.dot('uploading', { uploading: active + ' ' + t('uploading2') });
         upSub.textContent = pending + ' ' + t('queued2');
     } else {
-        upEl.innerHTML = dot('gray') + pending + ' ' + t('queued2');
+        upEl.innerHTML = window.dot('idle', { idle: pending + ' ' + t('queued2') });
         upSub.textContent = waiting > 0 ? waiting + ' ' + t('waitingForProvider') : '';
     }
 
@@ -266,10 +500,10 @@ async function refreshStatus() {
     const storEl = document.getElementById('storageStatus');
     const storSub = document.getElementById('storageSub');
     if (data.storage.provider === 'none' || !data.storage.provider) {
-        storEl.innerHTML = dot('gray') + t('none');
+        storEl.innerHTML = window.dot('idle', { idle: t('none') });
         storSub.textContent = t('notConfigured');
     } else {
-        storEl.innerHTML = dot('green') + data.storage.provider;
+        storEl.innerHTML = window.dot('connected', { connected: data.storage.provider });
         storSub.textContent = '';
     }
 
@@ -277,22 +511,79 @@ async function refreshStatus() {
     const heroPanel = document.getElementById('heroPanel');
     const heroStatusText = document.getElementById('heroStatusText');
     if (!data.camera.isRunning) {
-        heroStatusText.innerHTML = dot('red') + `<span>${t('cameraOffline')}</span>`;
+        heroStatusText.innerHTML = window.dot('offline', { offline: t('cameraOffline') });
         heroPanel.style.background = 'radial-gradient(100% 100% at 0% 0%, rgba(255, 69, 58, 0.08) 0%, rgba(10, 10, 12, 0.8) 100%)';
     } else if (failed > 0) {
-        heroStatusText.innerHTML = dot('orange') + `<span>${t('uploadAttention')}</span>`;
+        heroStatusText.innerHTML = window.dot('failed', { failed: t('uploadAttention') });
         heroPanel.style.background = 'radial-gradient(100% 100% at 0% 0%, rgba(255, 159, 10, 0.08) 0%, rgba(10, 10, 12, 0.8) 100%)';
     } else if (isTunnelRunning) {
-        heroStatusText.innerHTML = dot('green') + `<span>${t('remoteActive')}</span>`;
+        heroStatusText.innerHTML = window.dot('active', { active: t('remoteActive') });
         heroPanel.style.background = 'radial-gradient(100% 100% at 0% 0%, rgba(0, 122, 255, 0.12) 0%, rgba(10, 10, 12, 0.8) 100%)';
     } else {
-        heroStatusText.innerHTML = dot('green') + `<span>${t('systemNormal')}</span>`;
+        heroStatusText.innerHTML = window.dot('ok', { ok: t('systemNormal') });
         heroPanel.style.background = 'radial-gradient(100% 100% at 0% 0%, rgba(48, 209, 88, 0.06) 0%, rgba(10, 10, 12, 0.8) 100%)';
     }
 
     // Version & Footer Uptime
     document.getElementById('systemVersion').textContent = 'Mac Monitor v' + (data.version || '?') + ' (Build ' + (data.build || '?') + ')';
-}
+
+    // Update status strip + attention after status refresh
+    updateStatusStrip();
+    updateAttentionSection();
+}, 5000, { pauseWhenHidden: true });
+
+// -- Poller: Health --
+createPoller('dashboard-health', () => optionalApi('/api/health'), (data) => {
+    if (!data) return;
+    lastHealthData = data;
+    const el = document.getElementById('healthStatus');
+    const sub = document.getElementById('healthSub');
+    if (data.alerts && data.alerts.length > 0) {
+        el.innerHTML = window.dot('failed', { failed: data.alerts.length + ' ' + t('alert') });
+        sub.textContent = data.alerts[0].message || '';
+
+        document.getElementById('latestAlertStatus').textContent = data.alerts[0].message || '';
+        document.getElementById('latestAlertSub').textContent = data.alerts[0].timestamp ? new Date(data.alerts[0].timestamp).toLocaleTimeString() : '';
+    } else {
+        el.innerHTML = window.dot('ok', { ok: t('ok') });
+        sub.textContent = t('noIssues');
+
+        document.getElementById('latestAlertStatus').textContent = t('noIssues');
+        document.getElementById('latestAlertSub').textContent = '';
+    }
+    updateStatusStrip();
+    updateAttentionSection();
+}, 15000, { silent: true });
+
+// -- Poller: Last Capture --
+createPoller('dashboard-last-capture', () => optionalApi('/api/media?perPage=1&sortBy=date'), (data) => {
+    if (!data || !data.items || data.items.length === 0) return;
+    const item = data.items[0];
+    document.getElementById('lastCaptureStatus').textContent = item.fileName || '-';
+    document.getElementById('lastCaptureSub').textContent = item.date ? new Date(item.date).toLocaleTimeString() : '';
+}, 15000, { silent: true });
+
+// -- Poller: Last Upload --
+createPoller('dashboard-last-upload', () => optionalApi('/api/upload/queue') || optionalApi('/api/uploads'), (data) => {
+    if (!data || !data.jobs) return;
+    const completed = data.jobs.filter(j => j.status === 'completed' || j.status === 'verified');
+    if (completed.length > 0) {
+        const latest = completed[0];
+        document.getElementById('lastUploadStatus').textContent = latest.fileName || '-';
+        document.getElementById('lastUploadSub').textContent = latest.completedAt ? new Date(latest.completedAt).toLocaleTimeString() : '';
+    } else {
+        document.getElementById('lastUploadStatus').textContent = t('none');
+        document.getElementById('lastUploadSub').textContent = '';
+    }
+}, 15000, { silent: true });
+
+// -- Poller: Uptime (one-shot, low frequency) --
+createPoller('dashboard-uptime', () => optionalApi('/api/health'), (h) => {
+    if (h && h.uptimeSeconds) {
+        const uptime = Math.round(h.uptimeSeconds / 3600);
+        document.getElementById('systemUptime').textContent = `Uptime: ${uptime}h`;
+    }
+}, 60000, { silent: true });
 
 async function triggerQuickAction(action) {
     if (action === 'capture') {
@@ -300,7 +591,6 @@ async function triggerQuickAction(action) {
             const data = await api('/api/camera/capture', { method: 'POST', body: {} });
             if (data) {
                 toast(t('captured') + ': ' + data.fileName, 'success');
-                refreshLastCapture();
             }
         } catch (e) {}
     } else if (action === 'record') {
@@ -309,81 +599,10 @@ async function triggerQuickAction(action) {
             const data = await api(url, { method: 'POST', body: {} });
             if (data) {
                 toast(data.status === 'recording' ? t('recordingStarted') : t('recordingSaved') + ': ' + data.fileName, 'success');
-                refreshStatus();
-                refreshLastCapture();
             }
         } catch (e) {}
     }
 }
-
-async function refreshHealth() {
-    try {
-        const data = await optionalApi('/api/health');
-        if (!data) return;
-        const el = document.getElementById('healthStatus');
-        const sub = document.getElementById('healthSub');
-        if (data.alerts && data.alerts.length > 0) {
-            el.innerHTML = dot('orange') + data.alerts.length + ' ' + t('alert');
-            sub.textContent = data.alerts[0].message || '';
-            
-            // Latest alert text
-            document.getElementById('latestAlertStatus').textContent = data.alerts[0].message || '';
-            document.getElementById('latestAlertSub').textContent = data.alerts[0].timestamp ? new Date(data.alerts[0].timestamp).toLocaleTimeString() : '';
-        } else {
-            el.innerHTML = dot('green') + t('ok');
-            sub.textContent = t('noIssues');
-            
-            document.getElementById('latestAlertStatus').textContent = t('noIssues');
-            document.getElementById('latestAlertSub').textContent = '';
-        }
-    } catch (e) {}
-}
-
-async function refreshLastCapture() {
-    try {
-        const data = await optionalApi('/api/media?perPage=1&sortBy=date');
-        if (!data || !data.items || data.items.length === 0) return;
-        const item = data.items[0];
-        document.getElementById('lastCaptureStatus').textContent = item.fileName || '-';
-        document.getElementById('lastCaptureSub').textContent = item.date ? new Date(item.date).toLocaleTimeString() : '';
-    } catch (e) {}
-}
-
-async function refreshLastUpload() {
-    try {
-        const data = await optionalApi('/api/upload/queue') || await optionalApi('/api/uploads');
-        if (!data || !data.jobs) return;
-        const completed = data.jobs.filter(j => j.status === 'completed' || j.status === 'verified');
-        if (completed.length > 0) {
-            const latest = completed[0];
-            document.getElementById('lastUploadStatus').textContent = latest.fileName || '-';
-            document.getElementById('lastUploadSub').textContent = latest.completedAt ? new Date(latest.completedAt).toLocaleTimeString() : '';
-        } else {
-            document.getElementById('lastUploadStatus').textContent = t('none');
-            document.getElementById('lastUploadSub').textContent = '';
-        }
-    } catch (e) {}
-}
-
-async function loadUptime() {
-    try {
-        const h = await optionalApi('/api/health');
-        if (h && h.uptimeSeconds) {
-            const uptime = Math.round(h.uptimeSeconds / 3600);
-            document.getElementById('systemUptime').textContent = `Uptime: ${uptime}h`;
-        }
-    } catch(e){}
-}
-
-refreshStatus();
-refreshHealth();
-refreshLastCapture();
-refreshLastUpload();
-loadUptime();
-setInterval(refreshStatus, 5000);
-setInterval(refreshHealth, 15000);
-setInterval(refreshLastCapture, 15000);
-setInterval(refreshLastUpload, 15000);
 </script>
 </body>
 </html>

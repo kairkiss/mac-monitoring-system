@@ -56,6 +56,12 @@ struct APIAuthHandler {
             }
 
             if WebAuthManager.shared.addUser(username: username, password: password, role: role) {
+                AuditLogManager.shared.log(
+                    method: "POST", path: "/api/auth/users", status: 200,
+                    remoteAddress: request.remoteAddress ?? "unknown",
+                    user: request.sessionUsername,
+                    detail: "create user: \(username)"
+                )
                 return HTTPResponse.json(["status": "created"], status: 201)
             }
             return HTTPResponse.error("User already exists", status: 409)
@@ -71,6 +77,12 @@ struct APIAuthHandler {
 
             let username = router.extractParam("username", from: request, pattern: "/api/auth/users/:username/role") ?? ""
             if WebAuthManager.shared.updateUserRole(username: username, role: role) {
+                AuditLogManager.shared.log(
+                    method: "PUT", path: "/api/auth/users/:username/role", status: 200,
+                    remoteAddress: request.remoteAddress ?? "unknown",
+                    user: request.sessionUsername,
+                    detail: "change role: \(username) → \(role.rawValue)"
+                )
                 return HTTPResponse.ok()
             }
             return HTTPResponse.error("User not found", status: 404)
@@ -85,6 +97,12 @@ struct APIAuthHandler {
 
             let username = router.extractParam("username", from: request, pattern: "/api/auth/users/:username/password") ?? ""
             if WebAuthManager.shared.changePassword(username: username, newPassword: newPassword) {
+                AuditLogManager.shared.log(
+                    method: "PUT", path: "/api/auth/users/:username/password", status: 200,
+                    remoteAddress: request.remoteAddress ?? "unknown",
+                    user: request.sessionUsername,
+                    detail: "reset password: \(username)"
+                )
                 return HTTPResponse.ok()
             }
             return HTTPResponse.error("User not found", status: 404)
@@ -93,6 +111,12 @@ struct APIAuthHandler {
         router.addRoute(method: "DELETE", path: "/api/auth/users/:username", requiredRole: .admin) { request in
             let username = router.extractParam("username", from: request, pattern: "/api/auth/users/:username") ?? ""
             if WebAuthManager.shared.deleteUser(username: username) {
+                AuditLogManager.shared.log(
+                    method: "DELETE", path: "/api/auth/users/:username", status: 200,
+                    remoteAddress: request.remoteAddress ?? "unknown",
+                    user: request.sessionUsername,
+                    detail: "delete user: \(username)"
+                )
                 return HTTPResponse.ok()
             }
             return HTTPResponse.error("Cannot delete user", status: 400)

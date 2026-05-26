@@ -354,6 +354,12 @@ struct APIStorageHandler {
             }
             let user = request.sessionUsername ?? "unknown"
             ActivityLogManager.shared.info(.webServer, "Tunnel settings updated by \(user)")
+            AuditLogManager.shared.log(
+                method: "POST", path: "/api/remote/settings", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "save tunnel settings"
+            )
             return HTTPResponse.json(["ok": true] as [String: Any])
         }
 

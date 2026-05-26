@@ -1,6 +1,6 @@
 # MacMonitor · Mac监控系统
 
-v2.4.13 — Web API Alignment Final Hotfix
+v2.5.0 — Web Console Productization & Telegram Mini App Foundation
 
 > [!TIP]
 > 如果 Telegram 内置小程序仍显示旧样式，请关闭并重新打开 Telegram 小程序，或清理 Telegram 内置浏览器缓存。
@@ -24,8 +24,8 @@ v2.4.13 — Web API Alignment Final Hotfix
   <a href="PRIVACY.md">隐私说明</a>
 </p>
 
-> **v2.4.13 — Web API Alignment Final Hotfix**  
-> Web Remote 页面补齐 Restart / Force Stop / Reset Status 按钮；修复 Storage Provider 字段映射、Test Connection 路由、Retention Dry-Run 显示；写入 config.yml 前增加确认；Remote / Storage i18n 清理。详见 [CHANGELOG.md](CHANGELOG.md)。
+> **v2.5.0 — Web Console Productization & Telegram Mini App Foundation**
+> Web UI 组件化（20+ CSS 工具类）、角色感知前端控件（viewer/operator/admin）、统一轮询与状态管理、Telegram WebView 主题/安全区适配、Remote/Storage/Media/Uploads/Dashboard 页面产品化、6 个 API Handler 补齐审计日志。详见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
 
@@ -52,8 +52,8 @@ v2.4.13 — Web API Alignment Final Hotfix
 | ⏱ 自动化任务 | Daily、Weekly、Countdown、Interval 四类任务；支持照片 / 视频动作、运行历史、任务级上传策略 |
 | 🚨 移动侦测 | 基于帧差的移动侦测、可调灵敏度、冷却时间、自动抓拍、事件短视频 |
 | 🤖 Telegram 推送 | 使用你自己的 Bot Token 与 Chat ID 推送照片和视频 |
-| 🌐 Web 控制台 | 内置 HTTP 服务，双语界面，支持相机、媒体、任务、日志、健康状态、上传队列和设置管理 |
-| 🔐 多用户权限 | admin / operator / viewer 三层角色，关键 API 按角色校验，带审计日志 |
+| 🌐 Web 控制台 | 内置 HTTP 服务，双语界面，角色感知 UI，支持相机、媒体、任务、日志、健康状态、上传队列和设置管理 |
+| 🔐 多用户权限 | admin / operator / viewer 三层角色，Web 前端按角色显示/禁用控件，后端 API 按角色校验，带审计日志 |
 | ☁️ 存储与归档 | 本地目录、挂载目录、Google Drive；上传队列支持重试、进度、暂停 / 恢复与验证 |
 | 🧹 保留策略 | 云端验证后自动清理本地原件，跳过上传中 / 队列中的媒体，可保护收藏和缩略图 |
 | 🔭 Cloudflare Tunnel | Quick Tunnel 临时 URL 或 Named Tunnel 固定域名；支持状态检测、配置生成、启动 / 停止 / 重启 |
@@ -274,7 +274,7 @@ mac-monitoring-system/
 
 查看完整历史：[CHANGELOG.md](CHANGELOG.md)
 
-最新版本：**v2.4.7**
+最新版本：**v2.5.0**
 
 ## License
 

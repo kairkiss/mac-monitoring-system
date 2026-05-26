@@ -4,7 +4,138 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title data-i18n="macMonitorSystem">Mac Monitor - Storage Center</title>
-<link rel="stylesheet" href="/css/style.css?v=2.4.13">
+<link rel="stylesheet" href="/css/style.css?v=2.5.0">
+<style>
+    .storage-overview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+    }
+    .storage-stat-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .storage-stat-card .stat-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+    }
+    .storage-stat-card .stat-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.2;
+    }
+    .storage-stat-card .stat-sub {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+    .provider-detail-row {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+        line-height: 1.5;
+    }
+    .provider-detail-row a {
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 12px;
+    }
+    .provider-detail-row a:hover {
+        text-decoration: underline;
+    }
+    .test-result-box {
+        margin-top: 14px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .test-result-box .result-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-right: 6px;
+    }
+    .test-result-box .result-detail {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+    .dry-run-notice {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--warning);
+        background: var(--warning-light);
+        border: 1px solid rgba(255, 159, 10, 0.2);
+        border-radius: var(--radius-md);
+        padding: 8px 12px;
+        margin-bottom: 14px;
+        line-height: 1.4;
+    }
+    .dry-run-notice svg {
+        flex-shrink: 0;
+    }
+    .provider-card.provider-planned {
+        opacity: 0.5;
+    }
+    .provider-card.provider-planned .provider-card-body {
+        pointer-events: none;
+    }
+    .provider-card-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .provider-card-name {
+        color: var(--text-primary);
+        font-size: 15px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .provider-card-detail {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+    .provider-card-badges {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+    .section-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 4px;
+    }
+    .pre-block {
+        margin-top: 14px;
+        font-size: 12px;
+        white-space: pre-wrap;
+        font-family: monospace;
+        background: rgba(0,0,0,0.3);
+        padding: 12px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-subtle);
+        max-height: 220px;
+        overflow-y: auto;
+        display: none;
+        color: #ff9f0a;
+    }
+</style>
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -15,57 +146,142 @@
         <div class="page-header-subtitle" data-i18n="manageStorageDesc">Manage cloud uploads, local retention filters, and storage providers.</div>
     </div>
 
-    <!-- Storage Usage Summary Card -->
+    <!-- 1. Storage Overview (new) -->
     <div class="section-card">
         <h3 data-i18n="storageQuota">Storage Quota</h3>
-        <div id="storageInfo" style="color:var(--text-secondary); line-height:1.6; font-size:14px;" data-i18n="loading">Loading...</div>
+        <div class="storage-overview-grid" id="overviewGrid">
+            <div class="storage-stat-card">
+                <span class="stat-label" data-i18n="activeProvider">Active Provider</span>
+                <span class="stat-value" id="ovProvider">--</span>
+                <span class="stat-sub" id="ovProviderBadge"></span>
+            </div>
+            <div class="storage-stat-card">
+                <span class="stat-label" data-i18n="storageUsed">Storage Used</span>
+                <span class="stat-value" id="ovStorageUsed">--</span>
+                <span class="stat-sub" id="ovPhotosVideos">--</span>
+            </div>
+            <div class="storage-stat-card">
+                <span class="stat-label" data-i18n="diskFree">Disk Free</span>
+                <span class="stat-value" id="ovDiskFree">--</span>
+            </div>
+            <div class="storage-stat-card">
+                <span class="stat-label" data-i18n="uploadQueue">Upload Queue</span>
+                <span class="stat-value" id="ovQueueCounts">--</span>
+                <span class="stat-sub" id="ovQueueDetail"></span>
+            </div>
+            <div class="storage-stat-card">
+                <span class="stat-label" data-i18n="googleDriveStatus">Google Drive Status</span>
+                <span class="stat-value" id="ovGdriveStatus">--</span>
+                <span class="stat-sub" id="ovGdriveEmail"></span>
+            </div>
+        </div>
     </div>
 
-    <!-- Storage Providers Section -->
+    <!-- 2. Storage Providers (enhanced) -->
     <div class="section-card">
         <h3 data-i18n="storageProviders">Storage Providers</h3>
         <div id="providerList" style="display:flex; flex-direction:column; gap:12px; margin-bottom: 16px;"></div>
-        <div style="display:flex; gap:12px;">
+        <div class="section-actions">
             <a href="/uploads.html" class="btn" style="text-decoration:none;" data-i18n="openUploads">Open Uploads</a>
         </div>
     </div>
 
-    <!-- Storage Connection Diagnostics -->
+    <!-- 3. Storage Diagnostics / Test Connection (enhanced) -->
     <div class="section-card">
         <h3 data-i18n="storageDiagnostics">Storage Diagnostics</h3>
         <div id="diagInfo" style="color:var(--text-secondary); font-size:14px; margin-bottom: 16px;" data-i18n="loading">Loading...</div>
-        <button onclick="runTestConnection()" id="testConnBtn" class="primary-action" style="max-width:200px;" data-i18n="testConnection">Test Connection</button>
-        <div id="testResult" style="margin-top:14px; font-size:13px; font-weight: 600;"></div>
+        <button onclick="runTestConnection()" id="testConnBtn" class="primary-action" style="max-width:200px;" data-role-min="operator" data-i18n="testConnection">Test Connection</button>
+        <div id="testResult" class="test-result-box"></div>
     </div>
 
-    <!-- Dry Run Retention Preview -->
+    <!-- 4. Dry Run Retention Preview (enhanced) -->
     <div class="section-card">
         <h3 data-i18n="retentionPreview">Retention Preview</h3>
         <p style="color:var(--text-secondary); font-size:13px; margin-bottom:14px; line-height:1.45;" data-i18n="runDryRun">Preview what local files retention cleanup would delete.</p>
-        <button onclick="runDryRun()" id="dryRunBtn" class="secondary" style="min-height:38px;" data-i18n="previewCleanup">Preview Cleanup</button>
-        <pre id="dryRunResult" style="margin-top:14px; font-size:12px; white-space: pre-wrap; font-family: monospace; background:rgba(0,0,0,0.3); padding: 12px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); max-height: 220px; overflow-y: auto; display:none; color:#ff9f0a;"></pre>
+        <div class="dry-run-notice" id="dryRunNotice">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span data-i18n="dryRunNotice">Dry-run only — no files will be deleted.</span>
+        </div>
+        <button onclick="runDryRun()" id="dryRunBtn" class="secondary" style="min-height:38px;" data-role-min="admin" data-i18n="previewCleanup">Preview Cleanup</button>
+        <pre id="dryRunResult" class="pre-block"></pre>
     </div>
 </main>
 
-<script src="/js/i18n.js?v=2.4.13"></script>
-<script src="/js/app.js?v=2.4.13"></script>
+<script src="/js/i18n.js?v=2.5.0"></script>
+<script src="/js/app.js?v=2.5.0"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('storageCenter');
     loadStorage();
     loadProviders();
     loadDiagnostics();
+    loadQueueSummary();
 });
+
+// ===== Storage Overview (v2.5.0) =====
 
 async function loadStorage() {
     const data = await api('/api/storage/status');
     if (!data) return;
+
     const sizeMB = (data.totalStorageBytes / 1048576).toFixed(1);
-    document.getElementById('storageInfo').innerHTML =
-        `<div class="status-row"><span class="status-row-label">${t('activeProvider')}</span><span class="status-row-value">${data.providerDisplayName}</span></div>` +
-        `<div class="status-row"><span class="status-row-label">${t('photos')} / ${t('videos')}</span><span class="status-row-value">📸 ${data.totalPhotos} | 🎥 ${data.totalVideos}</span></div>` +
-        `<div class="status-row"><span class="status-row-label">${t('storageUsed')} / ${t('free')}</span><span class="status-row-value">${sizeMB} MB / ${data.diskFreeMB} MB</span></div>`;
+    const sizeGB = (data.totalStorageBytes / 1073741824).toFixed(2);
+
+    // Provider name + active badge
+    const providerEl = document.getElementById('ovProvider');
+    const badgeEl = document.getElementById('ovProviderBadge');
+    if (providerEl) providerEl.textContent = data.providerDisplayName || '--';
+    if (badgeEl) badgeEl.innerHTML = data.providerDisplayName
+        ? '<span class="badge badge-green">' + t('active') + '</span>'
+        : '<span class="badge badge-neutral">' + t('notConfigured') + '</span>';
+
+    // Storage used + photos/videos
+    const usedEl = document.getElementById('ovStorageUsed');
+    const pvEl = document.getElementById('ovPhotosVideos');
+    if (usedEl) usedEl.textContent = parseFloat(sizeGB) >= 1 ? sizeGB + ' GB' : sizeMB + ' MB';
+    if (pvEl) pvEl.textContent = t('photos') + ': ' + (data.totalPhotos || 0) + '  |  ' + t('videos') + ': ' + (data.totalVideos || 0);
+
+    // Disk free
+    const diskEl = document.getElementById('ovDiskFree');
+    if (diskEl) {
+        const freeGB = (data.diskFreeMB / 1024).toFixed(1);
+        diskEl.textContent = parseFloat(freeGB) >= 1 ? freeGB + ' GB' : (data.diskFreeMB || 0) + ' MB';
+    }
+
+    // Google Drive connection status (from storage status)
+    const gdriveStatusEl = document.getElementById('ovGdriveStatus');
+    const gdriveEmailEl = document.getElementById('ovGdriveEmail');
+    if (data.googleDriveConnected || (data.providerType === 'googleDrive' && data.providerDisplayName)) {
+        if (gdriveStatusEl) gdriveStatusEl.innerHTML = dot('connected', { connected: t('connected') });
+        if (gdriveEmailEl && data.googleDriveEmail) gdriveEmailEl.textContent = data.googleDriveEmail;
+    } else {
+        if (gdriveStatusEl) gdriveStatusEl.innerHTML = dot('disconnected', { disconnected: t('notConfigured') });
+    }
 }
+
+async function loadQueueSummary() {
+    const data = await optionalApi('/api/upload/queue');
+    if (!data) return;
+
+    const countEl = document.getElementById('ovQueueCounts');
+    const detailEl = document.getElementById('ovQueueDetail');
+
+    const pending = data.pending ?? data.pendingCount ?? 0;
+    const failed = data.failed ?? data.failedCount ?? 0;
+    const waiting = data.waiting ?? data.waitingCount ?? 0;
+    const total = pending + failed + waiting;
+
+    if (countEl) countEl.textContent = total;
+    if (detailEl) {
+        const parts = [];
+        if (pending > 0) parts.push(t('pending') + ': ' + pending);
+        if (failed > 0) parts.push(t('failed') + ': ' + failed);
+        if (waiting > 0) parts.push(t('waitingForProvider') + ': ' + waiting);
+        detailEl.textContent = parts.length > 0 ? parts.join('  |  ') : t('noUploadJobs');
+    }
+}
+
+// ===== Provider Cards (v2.5.0 enhanced) =====
 
 async function loadProviders() {
     const data = await api('/api/storage/providers');
@@ -76,31 +292,54 @@ async function loadProviders() {
         const isAvailable = p.isAvailable || p.isConnected;
         const isPlanned = p.isPlanned || false;
         const detail = p.detail || p.email || p.type;
+        const isGoogleDrive = p.type === 'googleDrive';
 
-        const activeBadge = isActive ? '<span class="badge badge-green" style="margin-left:8px;">Active</span>' : '';
-
-        let statusBadge = '';
+        // Status badges
+        let badges = '';
+        if (isActive) {
+            badges += '<span class="badge badge-green">' + t('active') + '</span>';
+        }
         if (isPlanned) {
-            statusBadge = '<span class="badge badge-neutral">' + t('planned') + '</span>';
-        } else if (p.type === 'googleDrive' && isAvailable) {
-            statusBadge = '<span class="badge badge-blue">' + t('googleDriveConnected') + '</span>';
-        } else if (p.type === 'googleDrive' && !isAvailable) {
-            statusBadge = '<span class="badge badge-orange">' + t('notConfigured') + '</span>';
-        } else if (isAvailable) {
-            statusBadge = '<span class="badge badge-green">' + t('connected') + '</span>';
-        } else {
-            statusBadge = '<span class="badge badge-neutral">' + t('notConfigured') + '</span>';
+            badges += '<span class="badge badge-neutral">' + t('planned') + '</span>';
+        } else if (isGoogleDrive && isAvailable) {
+            badges += '<span class="badge badge-blue">' + t('googleDriveConnected') + '</span>';
+        } else if (isGoogleDrive && !isAvailable) {
+            badges += '<span class="badge badge-orange">' + t('notConfigured') + '</span>';
+        } else if (!isGoogleDrive && isAvailable) {
+            badges += '<span class="badge badge-green">' + t('connected') + '</span>';
+        } else if (!isGoogleDrive && !isPlanned) {
+            badges += '<span class="badge badge-neutral">' + t('notConfigured') + '</span>';
         }
 
-        return `<div class="provider-card">
-            <div>
-                <strong style="color:var(--text-primary); font-size:15px;">${p.displayName}</strong> ${activeBadge}
-                <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">${detail || ''}</div>
+        // Google Drive extra details
+        let extraDetail = '';
+        if (isGoogleDrive && isAvailable) {
+            const parts = [];
+            if (p.email) parts.push(p.email);
+            if (p.quotaUsedGB !== undefined && p.quotaTotalGB !== undefined) {
+                parts.push(t('quotaInfo') + ': ' + p.quotaUsedGB + ' / ' + p.quotaTotalGB + ' GB');
+            }
+            if (p.rootFolder) parts.push('Folder: ' + p.rootFolder);
+            extraDetail = '<div class="provider-detail-row">' + parts.join(' &middot; ') + '</div>';
+            extraDetail += '<div class="provider-detail-row"><a href="/uploads.html">' + t('openUploads') + ' &rarr;</a></div>';
+        }
+
+        // Card classes
+        let cardClasses = 'provider-card';
+        if (isPlanned) cardClasses += ' provider-planned';
+
+        return `<div class="${cardClasses}">
+            <div class="provider-card-info">
+                <div class="provider-card-name">${p.displayName}</div>
+                ${detail ? '<div class="provider-card-detail">' + detail + '</div>' : ''}
+                ${extraDetail}
             </div>
-            <div>${statusBadge}</div>
+            <div class="provider-card-badges">${badges}</div>
         </div>`;
     }).join('');
 }
+
+// ===== Diagnostics =====
 
 async function loadDiagnostics() {
     const data = await api('/api/storage/diagnostics');
@@ -108,14 +347,15 @@ async function loadDiagnostics() {
     document.getElementById('diagInfo').innerHTML =
         `<div class="status-row"><span class="status-row-label">${t('queueJobsTotal')}</span><span class="status-row-value">${data.queueJobsTotal || data.recentUploadCount || 0}</span></div>` +
         `<div class="status-row"><span class="status-row-label">${t('activeUploaders')}</span><span class="status-row-value">${data.activeUploaders || 0}</span></div>` +
-        `<div class="status-row"><span class="status-row-label">${t('networkReachable')}</span><span class="status-row-value">${data.isNetworkReachable ? '✅ ' + t('yes') : '❌ ' + t('no')}</span></div>`;
+        `<div class="status-row"><span class="status-row-label">${t('networkReachable')}</span><span class="status-row-value">${data.isNetworkReachable ? dot('connected', { connected: t('yes') }) : dot('disconnected', { disconnected: t('no') })}</span></div>`;
 }
+
+// ===== Test Connection (v2.5.0 enhanced with structured result) =====
 
 async function runTestConnection() {
     const el = document.getElementById('testResult');
     const btn = document.getElementById('testConnBtn');
-    el.textContent = t('testingConnection');
-    el.style.color = 'var(--text-secondary)';
+    el.innerHTML = '<span style="color:var(--text-secondary);">' + t('testingConnection') + '</span>';
     if (btn) btn.disabled = true;
     try {
         // v2.4.13: Use /api/storage/test (primary), fallback to /api/storage/test-connection
@@ -133,28 +373,37 @@ async function runTestConnection() {
             const quotaTotal = data.quotaTotalGB;
 
             if (connected) {
-                let msg = '✅ ' + t('connectionSuccess');
-                if (email) msg += ' (' + email + ')';
+                let html = '<span class="result-badge badge-green">' + t('connected') + '</span>';
+                html += '<span>' + t('connectionSuccess') + '</span>';
+                html += '<div class="result-detail">';
+                if (email) html += email;
                 if (quotaUsed !== undefined && quotaTotal !== undefined) {
-                    msg += ' — ' + quotaUsed + ' / ' + quotaTotal + ' GB';
+                    if (email) html += ' &middot; ';
+                    html += t('quotaInfo') + ': ' + quotaUsed + ' / ' + quotaTotal + ' GB';
                 }
-                el.textContent = msg;
-                el.style.color = 'var(--success)';
+                html += '</div>';
+                el.innerHTML = html;
             } else {
-                let msg = '❌ ' + t('connectionFailed');
-                if (errorClass) msg += ' [' + errorClass + ']';
-                if (error) msg += ': ' + error;
-                el.textContent = msg;
-                el.style.color = 'var(--danger)';
+                let html = '<span class="result-badge badge-red">' + t('connectionFailed') + '</span>';
+                html += '<span>' + t('connectionFailed') + '</span>';
+                html += '<div class="result-detail">';
+                if (errorClass) html += '<strong>' + t('errorClass') + ':</strong> ' + errorClass;
+                if (error) {
+                    if (errorClass) html += '<br>';
+                    html += error;
+                }
+                html += '</div>';
+                el.innerHTML = html;
             }
         }
     } catch(e) {
-        el.textContent = '❌ ' + t('connectionFailed');
-        el.style.color = 'var(--danger)';
+        el.innerHTML = '<span class="result-badge badge-red">' + t('connectionFailed') + '</span><span>' + t('connectionFailed') + '</span>';
     } finally {
         if (btn) btn.disabled = false;
     }
 }
+
+// ===== Dry Run Retention Preview (v2.5.0 enhanced) =====
 
 async function runDryRun() {
     const el = document.getElementById('dryRunResult');
@@ -179,6 +428,7 @@ async function runDryRun() {
                 if (reason) html += '\n' + t('reason') + ': ' + reason;
                 html += '\n\n';
                 if (files.length > 0) {
+                    // Backend already limits to 50 entries
                     html += files.map(d => {
                         const name = d.fileName || d.name || '?';
                         const size = d.sizeBytes ? ' (' + (d.sizeBytes/1024).toFixed(1) + ' KB)' : '';

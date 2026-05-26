@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title data-i18n="macMonitorSystem">Mac Monitor - Media Library</title>
-<link rel="stylesheet" href="/css/style.css?v=2.4.13">
+<link rel="stylesheet" href="/css/style.css?v=2.5.0">
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -21,7 +21,7 @@
     <div class="toolbar" style="margin-bottom: 12px;">
         <input type="text" id="searchInput" placeholder="Search filename..." data-i18n="search" style="margin-bottom:0;">
     </div>
-    
+
     <!-- Filter Chips Row -->
     <div class="filter-chips" id="filterChips">
         <button class="chip active" data-type="" data-status="" data-fav="false" data-i18n="allTypes">All</button>
@@ -31,19 +31,34 @@
         <button class="chip" data-type="" data-status="notQueued" data-fav="false" data-i18n="local">Local</button>
         <button class="chip" data-type="" data-status="failed" data-fav="false" data-i18n="failed">Failed</button>
         <button class="chip" data-type="" data-status="" data-fav="true" data-i18n="favorites">Favorites</button>
+        <button class="chip" id="selectModeBtn" data-role-min="operator" onclick="toggleSelectionMode()" style="margin-left:auto;">Select</button>
     </div>
-    
+
+    <!-- Selection Bar (hidden by default) -->
+    <div class="selection-bar" id="selectionBar" style="display:none;">
+        <span id="selectionCount" style="font-weight:700; font-size:13px;">0 selected</span>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="secondary" onclick="selectAll()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Select All</button>
+            <button class="secondary" onclick="deselectAll()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Deselect All</button>
+            <button class="secondary" data-role-min="operator" onclick="batchProtect(true)" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Protect</button>
+            <button class="secondary" data-role-min="operator" onclick="batchProtect(false)" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Unprotect</button>
+            <button class="secondary" data-role-min="operator" onclick="batchFavorite()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Favorite</button>
+            <button class="secondary" data-role-min="operator" onclick="batchUpload()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Upload</button>
+            <button class="danger" data-role-min="admin" onclick="batchDelete()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Delete</button>
+        </div>
+    </div>
+
     <!-- Media Items Grid -->
     <div class="media-grid" id="mediaGrid"></div>
-    
+
     <!-- Pagination Footer -->
     <div class="pagination" id="pagination" style="margin-top:20px;"></div>
 </main>
 
 <div id="detailModal"></div>
 
-<script src="/js/i18n.js?v=2.4.13"></script>
-<script src="/js/app.js?v=2.4.13"></script>
+<script src="/js/i18n.js?v=2.5.0"></script>
+<script src="/js/app.js?v=2.5.0"></script>
 <script>
 let currentPage = 1;
 const perPage = 24;
@@ -52,6 +67,10 @@ const blobURLs = new Set();
 let currentType = '';
 let currentStatus = '';
 let currentFav = false;
+
+// --- Selection Mode State ---
+const selectedIds = new Set();
+let selectionMode = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('mediaLibrary');
@@ -103,14 +122,15 @@ async function fetchBlobURLSilent(url) {
 function initFilterChips() {
     const chips = document.querySelectorAll('#filterChips .chip');
     chips.forEach(chip => {
+        if (chip.id === 'selectModeBtn') return; // skip select button
         chip.addEventListener('click', () => {
-            chips.forEach(c => c.classList.remove('active'));
+            chips.forEach(c => { if (c.id !== 'selectModeBtn') c.classList.remove('active'); });
             chip.classList.add('active');
-            
+
             currentType = chip.getAttribute('data-type') || '';
             currentStatus = chip.getAttribute('data-status') || '';
             currentFav = chip.getAttribute('data-fav') === 'true';
-            
+
             currentPage = 1;
             loadMedia();
         });
@@ -148,17 +168,19 @@ async function loadMedia() {
         grid.innerHTML = data.items.map(item => {
             const archived = !item.localOriginalExists && item.verified;
             const badges = [];
-            if (item.isFavorite) badges.push('<span style="color:var(--danger); font-size:13px;">♥</span>');
-            if (item.protected) badges.push('<span style="color:var(--accent); font-size:11px;">🔒</span>');
-            
+            if (item.isFavorite) badges.push('<span style="color:var(--danger); font-size:13px;">&#9829;</span>');
+            if (item.protected) badges.push('<span style="color:var(--accent); font-size:11px;">&#128274;</span>');
+
             let sourceBadge = '';
             if (item.verified) sourceBadge = `<span class="verified-badge">${t('verifiedBadge')}</span>`;
             else if (item.remoteFileID) sourceBadge = `<span class="cloud-badge">${t('cloudBadge')}</span>`;
             else if (archived) sourceBadge = `<span class="archived-badge">${t('archivedBadge')}</span>`;
             else sourceBadge = `<span class="badge badge-neutral" style="font-size:9px; padding:2px 6px;">${t('localOnlyBadge')}</span>`;
 
-            let typeText = item.type === 'video' ? '🎥 VIDEO' : '📸 PHOTO';
-            return `<div class="media-item" onclick="showDetail('${item.fileName}')">
+            let typeText = item.type === 'video' ? 'VIDEO' : 'PHOTO';
+            const isSelected = selectedIds.has(item.fileName);
+            return `<div class="media-item${isSelected ? ' checked' : ''}" data-file="${item.fileName}" onclick="handleMediaClick(event, '${item.fileName}')">
+                <div class="select-check${isSelected ? ' checked' : ''}" onclick="event.stopPropagation(); toggleItemSelect('${item.fileName}', this)"></div>
                 <div class="thumb-placeholder">${t('noPreview')}</div>
                 <img class="loading" data-file="${item.fileName}" alt="">
                 <div class="overlay">
@@ -170,15 +192,174 @@ async function loadMedia() {
                 </div>
             </div>`;
         }).join('');
+        if (selectionMode) {
+            grid.classList.add('selection-mode');
+        }
         loadVisibleThumbnails(data.items);
     }
     renderPagination(data.page, data.totalPages);
 }
 
+// --- Selection Mode Functions ---
+
+function toggleSelectionMode() {
+    selectionMode = !selectionMode;
+    const grid = document.getElementById('mediaGrid');
+    const bar = document.getElementById('selectionBar');
+    const btn = document.getElementById('selectModeBtn');
+
+    if (selectionMode) {
+        grid.classList.add('selection-mode');
+        bar.style.display = 'flex';
+        btn.classList.add('active');
+    } else {
+        grid.classList.remove('selection-mode');
+        bar.style.display = 'none';
+        btn.classList.remove('active');
+        selectedIds.clear();
+        updateSelectionUI();
+    }
+}
+
+function handleMediaClick(event, fileName) {
+    if (selectionMode) {
+        event.stopPropagation();
+        const item = document.querySelector(`.media-item[data-file="${CSS.escape(fileName)}"]`);
+        const check = item ? item.querySelector('.select-check') : null;
+        toggleItemSelect(fileName, check);
+    } else {
+        showDetail(fileName);
+    }
+}
+
+function toggleItemSelect(fileName, checkEl) {
+    if (selectedIds.has(fileName)) {
+        selectedIds.delete(fileName);
+        if (checkEl) checkEl.classList.remove('checked');
+        const item = checkEl ? checkEl.closest('.media-item') : document.querySelector(`.media-item[data-file="${CSS.escape(fileName)}"]`);
+        if (item) item.classList.remove('checked');
+    } else {
+        selectedIds.add(fileName);
+        if (checkEl) checkEl.classList.add('checked');
+        const item = checkEl ? checkEl.closest('.media-item') : document.querySelector(`.media-item[data-file="${CSS.escape(fileName)}"]`);
+        if (item) item.classList.add('checked');
+    }
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    document.getElementById('selectionCount').textContent = selectedIds.size + ' selected';
+}
+
+function selectAll() {
+    document.querySelectorAll('.media-item').forEach(item => {
+        const fn = item.getAttribute('data-file');
+        if (fn && !selectedIds.has(fn)) {
+            selectedIds.add(fn);
+            item.classList.add('checked');
+            const check = item.querySelector('.select-check');
+            if (check) check.classList.add('checked');
+        }
+    });
+    updateSelectionUI();
+}
+
+function deselectAll() {
+    selectedIds.clear();
+    document.querySelectorAll('.media-item').forEach(item => {
+        item.classList.remove('checked');
+        const check = item.querySelector('.select-check');
+        if (check) check.classList.remove('checked');
+    });
+    updateSelectionUI();
+}
+
+// --- Batch Operations ---
+
+async function batchProtect(protect) {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    let ok = 0, fail = 0;
+    for (const fn of ids) {
+        try {
+            await api('/api/media/' + encodeURIComponent(fn) + '/protect', { method: 'POST' });
+            ok++;
+        } catch { fail++; }
+    }
+    const action = protect ? 'Protected' : 'Unprotected';
+    if (fail === 0) {
+        toast(action + ' ' + ok + ' of ' + ids.length + ' files', 'success');
+    } else {
+        toast(action + ' ' + ok + ' of ' + ids.length + ', ' + fail + ' failed', 'warning');
+    }
+    deselectAll();
+    loadMedia();
+}
+
+async function batchFavorite() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    let ok = 0, fail = 0;
+    for (const fn of ids) {
+        try {
+            await api('/api/media/' + encodeURIComponent(fn) + '/favorite', { method: 'POST' });
+            ok++;
+        } catch { fail++; }
+    }
+    if (fail === 0) {
+        toast('Favorited ' + ok + ' of ' + ids.length + ' files', 'success');
+    } else {
+        toast('Favorited ' + ok + ' of ' + ids.length + ', ' + fail + ' failed', 'warning');
+    }
+    deselectAll();
+    loadMedia();
+}
+
+async function batchUpload() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    let ok = 0, fail = 0;
+    for (const fn of ids) {
+        try {
+            await api('/api/media/' + encodeURIComponent(fn) + '/upload', { method: 'POST' });
+            ok++;
+        } catch { fail++; }
+    }
+    if (fail === 0) {
+        toast('Queued ' + ok + ' of ' + ids.length + ' files for upload', 'success');
+    } else {
+        toast('Queued ' + ok + ' of ' + ids.length + ', ' + fail + ' failed', 'warning');
+    }
+    deselectAll();
+    loadMedia();
+}
+
+async function batchDelete() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (!confirm('Delete ' + ids.length + ' file(s)? This cannot be undone.')) return;
+    let ok = 0, fail = 0;
+    for (const fn of ids) {
+        try {
+            await api('/api/media/' + encodeURIComponent(fn), { method: 'DELETE' });
+            ok++;
+        } catch { fail++; }
+    }
+    if (fail === 0) {
+        toast('Deleted ' + ok + ' of ' + ids.length + ' files', 'success');
+    } else {
+        toast('Deleted ' + ok + ' of ' + ids.length + ', ' + fail + ' failed', 'warning');
+    }
+    deselectAll();
+    loadMedia();
+}
+
+// --- End Selection Mode ---
+
 async function loadVisibleThumbnails(items) {
     const concurrency = 4;
     let idx = 0;
-    
+
     async function showImage(img, ph, url) {
         img.src = url;
         img.classList.remove('loading');
@@ -192,7 +373,7 @@ async function loadVisibleThumbnails(items) {
             ph.style.display = 'flex';
             let icon = '📷';
             let text = 'No Preview';
-            
+
             if (item.type === 'video') {
                 icon = '🎥';
                 text = 'Video';
@@ -222,14 +403,14 @@ async function loadVisibleThumbnails(items) {
             const img = document.querySelector(`img[data-file="${item.fileName}"]`);
             if (!img) continue;
             const ph = img.parentElement.querySelector('.thumb-placeholder');
-            
+
             // 1. Try `/thumbnail`
             let url = await fetchBlobURLSilent('/api/media/' + encodeURIComponent(item.fileName) + '/thumbnail');
             if (url) {
                 await showImage(img, ph, url);
                 continue;
             }
-            
+
             // 2. Try `/file` fallback for photo (size < 20MB, local exists)
             if (item.type === 'photo' && item.localOriginalExists !== false) {
                 const size = Number(item.fileSize || 0);
@@ -241,12 +422,12 @@ async function loadVisibleThumbnails(items) {
                     }
                 }
             }
-            
+
             // 3. Fail, show placeholder
             await showPlaceholder(img, ph, item);
         }
     }
-    
+
     const workers = [];
     for (let i = 0; i < concurrency; i++) workers.push(next());
     await Promise.all(workers);
@@ -276,7 +457,7 @@ async function showDetail(fileName) {
     // Group 2: Cloud status & Local Status indicators
     let statusText = t(data.uploadStatus) || data.uploadStatus;
     if (archived) statusText = t('archived');
-    
+
     let statusSectionHTML = `<div class="media-detail-section">
         <div class="media-detail-section-title" data-i18n="cloudStatus">Upload Status</div>
         <div class="status-row"><span class="status-row-label">${t('uploadStatus')}</span><span class="status-row-value" style="color:${statusColor}; font-weight:700;">${statusText}</span></div>
@@ -292,13 +473,13 @@ async function showDetail(fileName) {
     if (data.remoteURL) {
         actionsHTML += `<button onclick="window.open('${data.remoteURL}','_blank')" class="primary-action" style="background:var(--success); border:none; height:44px; margin-bottom:8px; font-weight:700;">${t('openInGoogleDrive')}</button>`;
     }
-    
+
     // Toggle Favorites & Toggle Protection
     actionsHTML += `<div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; width:100%; margin-bottom:8px;">
         <button class="secondary" onclick="toggleFav('${fileName}')" style="height:40px; font-size:13px; font-weight:600;">${data.isFavorite ? t('unfavorite') : t('favorite')}</button>
         <button class="secondary" onclick="toggleProtect('${fileName}')" style="height:40px; font-size:13px; font-weight:600;">${data.protected ? t('unprotect') : t('protect')}</button>
     </div>`;
-    
+
     if (data.uploadStatus === 'notQueued' && data.localOriginalExists) {
         actionsHTML += `<button class="secondary" onclick="queueUpload('${fileName}')" style="width:100%; height:40px; font-size:13px; font-weight:600; margin-bottom:8px;">${t('uploadNow')}</button>`;
     }
@@ -330,7 +511,7 @@ async function showDetail(fileName) {
                 ${previewHTML}
                 <div class="detail-body" style="flex:1; overflow-y:auto; padding:20px;">
                     <h2 style="font-size:16px; font-weight:700; word-break:break-all; margin-bottom:14px; color:var(--text-primary);">${fileName}</h2>
-                    
+
                     <!-- Primary actions layout -->
                     <div style="margin-bottom:16px;">
                         ${actionsHTML}
@@ -453,13 +634,8 @@ function formatSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Bind search triggers
-document.getElementById('searchInput').addEventListener('input', debounce(loadMedia, 300));
-
-function debounce(fn, ms) {
-    let t;
-    return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
-}
+// Bind search triggers (use global window.debounce from app.js)
+document.getElementById('searchInput').addEventListener('input', window.debounce(loadMedia, 300));
 </script>
 </body>
 </html>

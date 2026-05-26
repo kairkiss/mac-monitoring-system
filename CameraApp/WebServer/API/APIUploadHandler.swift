@@ -62,20 +62,38 @@ struct APIUploadHandler {
         }
 
         // Retry all failed jobs
-        router.addRoute(method: "POST", path: "/api/upload/retry-failed", requiredRole: .operatorRole) { _ in
+        router.addRoute(method: "POST", path: "/api/upload/retry-failed", requiredRole: .operatorRole) { request in
             UploadQueueManager.shared.retryAllFailed()
+            AuditLogManager.shared.log(
+                method: "POST", path: "/api/upload/retry-failed", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "retry all failed"
+            )
             return HTTPResponse.ok()
         }
 
         // Pause all uploads
-        router.addRoute(method: "POST", path: "/api/upload/pause", requiredRole: .operatorRole) { _ in
+        router.addRoute(method: "POST", path: "/api/upload/pause", requiredRole: .operatorRole) { request in
             UploadQueueManager.shared.pauseAll()
+            AuditLogManager.shared.log(
+                method: "POST", path: "/api/upload/pause", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "pause queue"
+            )
             return HTTPResponse.ok()
         }
 
         // Resume all uploads
-        router.addRoute(method: "POST", path: "/api/upload/resume", requiredRole: .operatorRole) { _ in
+        router.addRoute(method: "POST", path: "/api/upload/resume", requiredRole: .operatorRole) { request in
             UploadQueueManager.shared.resumeAll()
+            AuditLogManager.shared.log(
+                method: "POST", path: "/api/upload/resume", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "resume queue"
+            )
             return HTTPResponse.ok()
         }
     }

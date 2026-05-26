@@ -1,5 +1,34 @@
 # Changelog
 
+## v2.5.0 (2026-05-26)
+
+Web Console Productization & Telegram Mini App Foundation — componentized Web UI with reusable CSS classes, role-aware frontend controls, unified polling/state management, Telegram WebView theme/safe-area adaptation, and productized Remote/Storage/Media/Uploads/Dashboard pages. Filled audit logging gaps across all API handlers.
+
+### Added
+
+- **CSS componentization** — 20+ reusable utility classes extracted from inline styles: `.section-heading`, `.action-row`, `.status-panel`, `.metric-card`, `.form-grid`, `.empty-state`, `.danger-card`, `.modal-section`, `.filter-bar`, `.selection-bar`, `.select-check`, action tile color modifiers, role badge variants
+- **Role-aware Web UI** — `data-role-min` attribute on HTML elements, `applyRoleVisibility()` in app.js hides/disables elements based on viewer/operator/admin hierarchy. Frontend is UX-only; backend `requiredRole` remains the security boundary
+- **Unified polling** — `createPoller()` in app.js with visibility-pause (Page Visibility API), error backoff (double interval on consecutive failures, max 60s), and dedup. Replaces scattered `setInterval` calls on Dashboard
+- **Global utilities** — `dot()`, `debounce()`, `setPageTitle()`, `getRole()`, `isAdmin()`, `isOperatorOrAdmin()` moved to app.js global scope, removed duplicates from individual pages
+- **Telegram WebView enhancement** — detects `Telegram.WebApp.colorScheme` for dark/light theme, reads `themeParams` as CSS custom properties (`--tg-bg`, `--tg-text`, `--tg-accent`), applies `safeAreaInset` as CSS variables. No bot commands, inline keyboards, or native buttons
+- **Remote page productization** — structured status panel (Mode/Status/Public URL/Local URL/PID/Last Error/Last Updated), three action groups (Safe: operator+, Recovery: admin, Config: admin), live logs capped at 50 lines with Clear button
+- **Storage Center productization** — storage overview grid (provider/used/disk/queue/GDrive status), enhanced provider cards with status badges and Google Drive details, structured test connection results, retention preview with dry-run notice
+- **Media selection mode** — Select toggle (operator+), checkbox overlays on media items, Select All/Deselect All, batch operations: Protect/Unprotect/Favorite/Upload (operator+), Delete (admin-only with confirmation modal)
+- **Upload Queue recovery** — filter chips (All/Pending/Waiting/Uploading/Retrying/Failed/Completed) with counts, error grouping by `errorClass` when filtered to Failed, Retry All Failed and Pause/Resume Queue (operator+), Google Drive not-connected banner for waiting jobs
+- **Dashboard improvements** — compact status strip (Camera/Remote/Storage/Uploads/Health with clickable indicators), Attention Needed section aggregating alerts across subsystems, role-based quick actions (viewer: Live/Media; operator: +Capture/Record; admin: +Remote/Storage/Audit)
+- **Audit logging** — 16 explicit `AuditLogManager.shared.log()` calls added across 6 API handlers: user CRUD, role changes, password resets, media deletion, task CRUD/toggle, log clearing, tunnel settings, upload queue operations
+- **i18n** — 41 new bilingual keys (en/zh) for role messages, Remote/Storage/Media/Uploads/Dashboard/Telegram features; 15 duplicate keys removed
+
+### Preserved
+
+- v2.4.13 dark glassmorphism UI, desktop sidebar, mobile tabbar, More Sheet
+- Google Drive OAuth PKCE/state, CloudflareTunnelManager state machine
+- UploadQueue core logic, Retention verified-only, manual captures local-only
+- Multi-camera logic, Telegram photo/text notifications
+- No npm/build tools introduced, no React/Vue/Svelte
+
+---
+
 ## v2.4.13 (2026-05-25)
 
 Web API Alignment Final Hotfix — aligned Web Remote and Storage pages with backend API field names. Added missing tunnel controls to Web. Added write-config confirmation. Improved bilingual coverage for Remote and Storage pages.

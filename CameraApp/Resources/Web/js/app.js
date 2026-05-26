@@ -1,16 +1,38 @@
 // Web UI Version Diagnostics & Safe Reload
-window.WEB_UI_VERSION = '2.4.13';
+window.WEB_UI_VERSION = '2.5.0';
 console.info('[Mac Monitor] Web UI version:', window.WEB_UI_VERSION);
 
 (function() {
     function initDiagnostics() {
         if (!document.body) return;
-        document.body.dataset.webUiVersion = '2.4.13';
-        
+        document.body.dataset.webUiVersion = '2.5.0';
+
+        // Enhanced Telegram.WebApp integration (container only — no bot commands)
         if (window.Telegram?.WebApp) {
+            const tg = Telegram.WebApp;
             document.body.classList.add('telegram-webview');
             document.body.dataset.telegram = 'true';
-            
+            try { tg.ready(); tg.expand(); } catch(e) {}
+
+            // Theme detection
+            if (tg.colorScheme === 'dark') document.body.classList.add('telegram-dark');
+            else document.body.classList.add('telegram-light');
+
+            // Apply theme params as CSS vars
+            if (tg.themeParams) {
+                const tp = tg.themeParams;
+                if (tp.bg_color) document.documentElement.style.setProperty('--tg-bg', tp.bg_color);
+                if (tp.text_color) document.documentElement.style.setProperty('--tg-text', tp.text_color);
+                if (tp.button_color) document.documentElement.style.setProperty('--tg-accent', tp.button_color);
+            }
+
+            // Safe area insets
+            if (tg.safeAreaInset) {
+                const s = tg.safeAreaInset;
+                document.documentElement.style.setProperty('--tg-safe-top', s.top + 'px');
+                document.documentElement.style.setProperty('--tg-safe-bottom', s.bottom + 'px');
+            }
+
             // i18n stale safeguard reload
             if (typeof t === 'function' && t('systemNormal') === 'systemNormal') {
                 if (!sessionStorage.getItem('forcedReloadForAssets')) {
@@ -121,6 +143,79 @@ function toast(message, type = 'info') {
     }, 3000);
 }
 
+// ===== v2.5.0 Global Utilities =====
+
+// Status dot helper (was duplicated in index/remote/health)
+window.dot = (status, labels) => {
+    const map = { running:'dot-green', active:'dot-green', connected:'dot-green', ok:'dot-green',
+                  stopped:'dot-gray', idle:'dot-gray', disconnected:'dot-gray',
+                  starting:'dot-orange', stopping:'dot-orange', retrying:'dot-orange', uploading:'dot-orange',
+                  error:'dot-red', failed:'dot-red', offline:'dot-red' };
+    const cls = map[status] || 'dot-gray';
+    const label = (labels && labels[status]) || status || '';
+    return `<span class="status-dot ${cls}"></span> ${label}`;
+};
+
+// Debounce helper (was duplicated in media/logs)
+window.debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+// Set page title from <title data-i18n> element
+window.setPageTitle = () => {
+    const titleEl = document.querySelector('title[data-i18n]');
+    if (titleEl && typeof t === 'function') document.title = t(titleEl.dataset.i18n) + ' — ' + t('macMonitorSystem');
+};
+
+// Role helpers
+window.getRole = () => localStorage.getItem('role') || 'viewer';
+window.isAdmin = () => getRole() === 'admin';
+window.isOperatorOrAdmin = () => { const r = getRole(); return r === 'admin' || r === 'operator'; };
+
+// Apply role visibility to elements with data-role-min="operator" or "admin"
+window.applyRoleVisibility = () => {
+    const roleLevel = { viewer:0, operator:1, admin:2 };
+    const currentLevel = roleLevel[getRole()] ?? 0;
+    document.querySelectorAll('[data-role-min]').forEach(el => {
+        const minRole = el.getAttribute('data-role-min');
+        const minLevel = roleLevel[minRole] ?? 0;
+        if (currentLevel < minLevel) {
+            if (el.dataset.roleAction === 'disable') {
+                el.classList.add('role-disabled');
+                el.title = (typeof t === 'function' && t('adminOnlyAction')) || 'Insufficient permissions';
+            } else {
+                el.classList.add('role-hidden');
+            }
+        } else {
+            el.classList.remove('role-hidden', 'role-disabled');
+        }
+    });
+};
+
+// Lightweight polling helper with visibility pause and error backoff
+window.createPoller = (name, fetchFn, renderFn, intervalMs, opts = {}) => {
+    const state = { timer: null, interval: intervalMs, consecutiveErrors: 0 };
+    const tick = async () => {
+        if (document.hidden && opts.pauseWhenHidden !== false) return;
+        try {
+            const data = await fetchFn();
+            state.consecutiveErrors = 0;
+            if (renderFn) renderFn(data);
+        } catch (e) {
+            state.consecutiveErrors++;
+            if (state.consecutiveErrors > 3 && opts.backoff !== false) {
+                clearInterval(state.timer);
+                state.interval = Math.min(state.interval * 2, 60000);
+                state.timer = setInterval(tick, state.interval);
+            }
+            if (!opts.silent) console.warn(`[${name}] poll error:`, e);
+        }
+    };
+    const onVis = () => { if (!document.hidden) tick(); };
+    document.addEventListener('visibilitychange', onVis);
+    state.timer = setInterval(tick, intervalMs);
+    tick();
+    return { stop: () => { clearInterval(state.timer); document.removeEventListener('visibilitychange', onVis); }, tick, state };
+};
+
 // Initialize Navigation and System Environment
 document.addEventListener('DOMContentLoaded', () => {
     // Check Authentication first
@@ -130,17 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Telegram Mini App viewport management
-    if (window.Telegram?.WebApp) {
-        document.body.classList.add('telegram-webview');
-        try {
-            window.Telegram.WebApp.ready();
-            window.Telegram.WebApp.expand();
-        } catch (e) {
-            console.error('Telegram WebApp setup error:', e);
-        }
-    }
-
     // Inject Unified Navigation if not on login page
     if (!isLoginPage) {
         setupNavigation();
@@ -148,6 +232,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Apply i18n
     if (typeof applyI18N === 'function') applyI18N();
+
+    // Apply role visibility after navigation and i18n are ready
+    if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
+
+    // Set page title from i18n
+    if (typeof setPageTitle === 'function') setPageTitle();
 });
 
 // Setup Navigation layouts dynamically

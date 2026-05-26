@@ -240,12 +240,24 @@ struct APIMediaHandler {
             if !entry.localOriginalExists && entry.verified {
                 index.removeEntry(for: fileName)
                 ActivityLogManager.shared.info(.media, "Removed archived entry: \(fileName)")
+                AuditLogManager.shared.log(
+                    method: "DELETE", path: "/api/media/:id", status: 200,
+                    remoteAddress: request.remoteAddress ?? "unknown",
+                    user: request.sessionUsername,
+                    detail: "delete media: \(fileName)"
+                )
                 return HTTPResponse.json(["status": "removed", "archived": true])
             }
 
             let deleted = media.deleteItem(fileName: fileName)
             if deleted {
                 ActivityLogManager.shared.info(.media, "Deleted: \(fileName)")
+                AuditLogManager.shared.log(
+                    method: "DELETE", path: "/api/media/:id", status: 200,
+                    remoteAddress: request.remoteAddress ?? "unknown",
+                    user: request.sessionUsername,
+                    detail: "delete media: \(fileName)"
+                )
                 return HTTPResponse.json(["status": "deleted"])
             }
             return HTTPResponse.error("File not found", status: 404)

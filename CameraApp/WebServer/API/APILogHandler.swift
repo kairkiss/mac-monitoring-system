@@ -49,8 +49,14 @@ struct APILogHandler {
         }
 
         // Clear logs
-        router.addRoute(method: "DELETE", path: "/api/logs", requiredRole: .admin) { _ in
+        router.addRoute(method: "DELETE", path: "/api/logs", requiredRole: .admin) { request in
             ActivityLogManager.shared.clearLog()
+            AuditLogManager.shared.log(
+                method: "DELETE", path: "/api/logs", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "clear activity log"
+            )
             return HTTPResponse.ok()
         }
 
@@ -73,8 +79,14 @@ struct APILogHandler {
         }
 
         // Clear audit log (admin only)
-        router.addRoute(method: "DELETE", path: "/api/audit", requiredRole: .admin) { _ in
+        router.addRoute(method: "DELETE", path: "/api/audit", requiredRole: .admin) { request in
             AuditLogManager.shared.clear()
+            AuditLogManager.shared.log(
+                method: "DELETE", path: "/api/audit", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "clear audit log"
+            )
             return HTTPResponse.ok()
         }
     }
