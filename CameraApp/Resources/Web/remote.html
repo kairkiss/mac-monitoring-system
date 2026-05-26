@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title data-i18n="macMonitorSystem">Mac Monitor - Remote Access</title>
-<link rel="stylesheet" href="/css/style.css?v=2.4.12">
+<link rel="stylesheet" href="/css/style.css?v=2.4.13">
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -32,7 +32,7 @@
     <!-- Status & Core Controls -->
     <div class="section-card">
         <h3 data-i18n="cloudflareTunnelManage">Tunnel Management</h3>
-        
+
         <div class="status-row" style="border-bottom:none; padding-top:0; padding-bottom:16px;">
             <span class="status-row-label" data-i18n="status">Status</span>
             <span id="tunnelStatus" class="status-row-value" style="display:flex; align-items:center;">-</span>
@@ -43,9 +43,18 @@
             <button class="copy-btn" onclick="copyTunnelURL()" data-i18n="copyCommand">Copy</button>
         </div>
 
-        <div style="display:flex; gap:12px; margin-top:8px;">
-            <button onclick="startTunnel()" id="tunnelStartBtn" class="primary-action" style="flex:1; max-width:200px;" data-i18n="cloudflareStart">Start Tunnel</button>
-            <button onclick="stopTunnel()" id="tunnelStopBtn" class="danger" style="flex:1; max-width:200px; display:none;" data-i18n="cloudflareStop">Stop Tunnel</button>
+        <!-- Primary buttons: Start / Stop -->
+        <div style="display:flex; gap:12px; margin-top:8px; flex-wrap:wrap;">
+            <button onclick="startTunnel()" id="tunnelStartBtn" class="primary-action" style="flex:1; min-width:140px; max-width:200px;" data-i18n="cloudflareStart">Start Tunnel</button>
+            <button onclick="stopTunnel()" id="tunnelStopBtn" class="danger" style="flex:1; min-width:140px; max-width:200px; display:none;" data-i18n="cloudflareStop">Stop Tunnel</button>
+        </div>
+
+        <!-- Secondary buttons: Restart / Force Stop / Reset Status / Refresh -->
+        <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+            <button onclick="restartTunnel()" id="tunnelRestartBtn" style="flex:1; min-width:120px; max-width:180px; min-height:38px;" data-i18n="restartTunnel">Restart Tunnel</button>
+            <button onclick="forceStopTunnel()" id="tunnelForceStopBtn" class="danger" style="flex:1; min-width:120px; max-width:180px; min-height:38px; display:none;" data-i18n="forceStop">Force Stop</button>
+            <button onclick="resetTunnelStatus()" id="tunnelResetBtn" class="secondary" style="flex:1; min-width:120px; max-width:180px; min-height:38px;" data-i18n="resetStatus">Reset Status</button>
+            <button onclick="pollTunnelStatus()" id="tunnelRefreshBtn" class="secondary" style="flex:1; min-width:120px; max-width:180px; min-height:38px;" data-i18n="refreshStatus">Refresh Status</button>
         </div>
     </div>
 
@@ -65,14 +74,14 @@
         <div id="namedConfigFields" style="display:none; margin-top:20px; padding-top:20px; border-top:1px solid var(--border-subtle);">
             <div style="display:flex; flex-direction:column; gap:16px; max-width:400px;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <label style="margin-bottom:6px; font-size:12px; font-weight:600; color:var(--text-secondary);">Tunnel Name</label>
+                    <label style="margin-bottom:6px; font-size:12px; font-weight:600; color:var(--text-secondary);" data-i18n="tunnelName">Tunnel Name</label>
                     <input type="text" id="tunnelNameInput" placeholder="e.g. mac-monitor" style="margin-bottom:0;">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label style="margin-bottom:6px; font-size:12px; font-weight:600; color:var(--text-secondary);">Hostname</label>
+                    <label style="margin-bottom:6px; font-size:12px; font-weight:600; color:var(--text-secondary);" data-i18n="hostname">Hostname</label>
                     <input type="text" id="hostnameInput" placeholder="e.g. monitor.yourdomain.com" style="margin-bottom:0;">
                 </div>
-                <button onclick="saveTunnelSettings()" style="width:auto; align-self:flex-start; min-height:38px; padding:0 18px;">Save Settings</button>
+                <button onclick="saveTunnelSettings()" style="width:auto; align-self:flex-start; min-height:38px; padding:0 18px;" data-i18n="saveSettings">Save Settings</button>
             </div>
         </div>
     </div>
@@ -85,10 +94,11 @@
 
     <!-- Generated Configuration Preview -->
     <div class="section-card" id="configPreviewCard" style="display:none;">
-        <h3>Configuration Preview (config.yml)</h3>
+        <h3 data-i18n="configurationPreview">Configuration Preview (config.yml)</h3>
         <pre style="background:#000; padding:14px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); font-size:12px; overflow-x:auto; max-height:220px; margin:0; font-family:monospace; color:#30d158;"><code id="configContent"></code></pre>
+        <div id="configPathInfo" style="font-size:12px; color:var(--text-tertiary); margin-top:8px; word-break:break-all;"></div>
         <div style="display:flex; gap:12px; margin-top:14px; flex-wrap:wrap;">
-            <button onclick="copyConfig()" class="secondary" style="min-height:38px; padding:0 16px;">Copy Config</button>
+            <button onclick="copyConfig()" class="secondary" style="min-height:38px; padding:0 16px;" data-i18n="copyCommand">Copy Config</button>
             <button onclick="writeConfig()" style="min-height:38px; padding:0 16px;">Write Config File</button>
         </div>
         <div id="writeResult" style="font-size:13px; margin-top:10px; font-weight:600;"></div>
@@ -96,33 +106,45 @@
 
     <!-- Live Logs -->
     <div class="section-card" id="logCard" style="display:none;">
-        <h3>Live Tunnel Logs</h3>
+        <h3 data-i18n="liveTunnelLogs">Live Tunnel Logs</h3>
         <pre id="tunnelOutput" style="margin:0; font-size:11px; color:var(--text-secondary); max-height:160px; overflow-y:auto; white-space:pre-wrap; font-family:monospace; background:rgba(0,0,0,0.3); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);"></pre>
     </div>
 
     <!-- Collapsible Diagnostics -->
     <div class="section-card">
         <details style="margin:0;">
-            <summary style="cursor:pointer; font-size:14px; color:var(--text-secondary); font-weight:700; user-select:none;">Cloudflare Diagnostics</summary>
+            <summary style="cursor:pointer; font-size:14px; color:var(--text-secondary); font-weight:700; user-select:none;" data-i18n="cloudflareDiagnostics">Cloudflare Diagnostics</summary>
             <div id="tunnelDiag" style="font-size:13px; color:var(--text-secondary); margin-top:14px; line-height:1.6; font-family:monospace; background:rgba(0,0,0,0.15); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);"></div>
         </details>
     </div>
+
+    <!-- Write Config Confirmation Modal -->
+    <div id="writeConfigModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+        <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:28px; max-width:420px; width:90%; box-shadow:var(--shadow-card);">
+            <h3 style="margin:0 0 12px; font-size:16px; color:var(--text-primary);" data-i18n="writeConfigConfirmTitle">Write Cloudflare Config?</h3>
+            <p style="font-size:14px; color:var(--text-secondary); line-height:1.5; margin:0 0 20px;" data-i18n="writeConfigConfirmBody">This will write config.yml and back up the old file if it exists. Continue?</p>
+            <div style="display:flex; gap:12px; justify-content:flex-end;">
+                <button onclick="closeWriteModal()" class="secondary" style="min-height:38px;" data-i18n="cancel">Cancel</button>
+                <button onclick="confirmWriteConfig()" style="min-height:38px;" data-i18n="save">Confirm</button>
+            </div>
+        </div>
+    </div>
 </main>
 
-<script src="/js/i18n.js?v=2.4.12"></script>
-<script src="/js/app.js?v=2.4.12"></script>
+<script src="/js/i18n.js?v=2.4.13"></script>
+<script src="/js/app.js?v=2.4.13"></script>
 <script>
 let tunnelMode = 'quick';
- 
+
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('remoteAccess');
     loadTunnelConfig();
     pollTunnelStatus();
     setInterval(pollTunnelStatus, 5000);
 });
- 
+
 function dot(color) { return '<span class="status-dot dot-' + color + '"></span>'; }
- 
+
 async function loadTunnelConfig() {
     try {
         const status = await optionalApi('/api/remote/status') || await optionalApi('/api/cloudflare/status');
@@ -134,7 +156,7 @@ async function loadTunnelConfig() {
         updateTunnelModeUI();
     } catch (e) {}
 }
- 
+
 function updateTunnelModeUI() {
     tunnelMode = document.getElementById('tunnelModeSelect').value;
     document.getElementById('quickTunnelDesc').style.display = tunnelMode === 'quick' ? 'block' : 'none';
@@ -146,12 +168,11 @@ function updateTunnelModeUI() {
         refreshSetupWizard();
     }
 }
- 
+
 async function saveTunnelSettings() {
     const configName = document.getElementById('tunnelNameInput').value.trim();
     const hostname = document.getElementById('hostnameInput').value.trim();
     try {
-        // Try new API first using optionalApi to avoid double toasts
         const res = await optionalApi('/api/remote/settings', {
             method: 'POST',
             body: {
@@ -161,65 +182,62 @@ async function saveTunnelSettings() {
             }
         });
         if (res) {
-            toast('Settings saved successfully', 'success');
+            toast(t('saveSettings') + ' ✓', 'success');
             refreshSetupWizard();
             return;
         }
-        // Fallback to legacy
         const legacyRes = await api('/api/cloudflare/config', {
             method: 'POST',
             body: { configName, hostname }
         });
         if (legacyRes) {
-            toast('Settings saved successfully (legacy)', 'success');
+            toast(t('saveSettings') + ' ✓', 'success');
             refreshSetupWizard();
         }
     } catch(e){}
 }
- 
+
 async function refreshSetupWizard() {
     try {
         const data = await optionalApi('/api/remote/setup-status') || await optionalApi('/api/cloudflare/setup-status');
         if (!data) return;
- 
+
         const tunnelName = data.tunnelName || '';
         const hostname = data.hostname || '';
         const webServerPort = data.webServerPort || 8765;
- 
-        // Define steps dynamically
+
         const steps = [
             {
                 step: 1,
-                title: "Install cloudflared",
-                description: "Cloudflare Tunnel requires the 'cloudflared' command-line tool. Install it on your Mac using Homebrew:",
+                title: t('cloudflareStep1'),
+                description: "Install 'cloudflared' via Homebrew:",
                 command: "brew install cloudflared"
             },
             {
                 step: 2,
-                title: "Log in to Cloudflare",
-                description: "Authenticate the CLI tool with your Cloudflare account to manage domains and tunnels:",
+                title: t('cloudflareStep2'),
+                description: "Authenticate with your Cloudflare account:",
                 command: "cloudflared tunnel login"
             },
             {
                 step: 3,
-                title: "Create Tunnel",
-                description: "Create a persistent named tunnel. This creates a credentials JSON file in your ~/.cloudflared directory:",
+                title: t('cloudflareStep3'),
+                description: "Create a persistent named tunnel:",
                 command: `cloudflared tunnel create ${tunnelName || 'mac-monitor'}`
             },
             {
                 step: 4,
-                title: "Route Hostname",
-                description: "Associate your custom subdomain/domain with the tunnel inside Cloudflare DNS:",
+                title: t('cloudflareStep4'),
+                description: "Associate your domain with the tunnel:",
                 command: `cloudflared tunnel route dns ${tunnelName || 'mac-monitor'} ${hostname || 'monitor.yourdomain.com'}`
             },
             {
                 step: 5,
-                title: "Write configuration file (config.yml)",
-                description: `Generate and write the config.yml file configured to proxy traffic to your local web server port ${webServerPort}.`
+                title: t('cloudflareStep5'),
+                description: `Generate config.yml for local port ${webServerPort}.`
             }
         ];
- 
-        // Show configuration steps
+
         const stepsEl = document.getElementById('setupSteps');
         if (stepsEl) {
             stepsEl.innerHTML = steps.map(s => {
@@ -227,12 +245,12 @@ async function refreshSetupWizard() {
                 const title = s.title;
                 const desc = s.description;
                 const cmd = s.command;
-                
+
                 let cmdHTML = '';
                 if (cmd) {
                     cmdHTML = `<div class="cf-cmd" style="margin-top:8px;"><code style="font-family:monospace; color:var(--accent);">${cmd}</code><button class="copy-btn" onclick="copyText('${cmd.replace(/'/g, "\\'")}')" style="margin-left:auto;">${t('copyCommand')}</button></div>`;
                 }
-                
+
                 return `<div class="cf-step" style="padding:14px; border-radius:var(--radius-md); background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); display:flex; gap:14px;">
                     <div class="cf-step-num" style="background:rgba(0,122,255,0.1); color:var(--accent); width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0;">${stepNum}</div>
                     <div class="cf-step-detail" style="flex:1;">
@@ -243,39 +261,45 @@ async function refreshSetupWizard() {
                 </div>`;
             }).join('');
         }
- 
-        // Fetch config content from generate-config endpoint (POST)
+
+        // Fetch config content — support both content and config field
         let configContent = '';
+        let configPath = '';
         if (tunnelName && hostname) {
             const configData = await optionalApi('/api/remote/generate-config', { method: 'POST' })
                             || await optionalApi('/api/cloudflare/generate-config', { method: 'POST' });
-            if (configData && configData.config) {
-                configContent = configData.config;
+            if (configData) {
+                configContent = configData.content || configData.config || '';
+                configPath = configData.configPath || '';
             }
         }
- 
+
         const configPre = document.getElementById('configContent');
         if (configPre) {
             if (configContent) {
                 configPre.textContent = configContent;
                 document.getElementById('configPreviewCard').style.display = 'block';
+                const pathEl = document.getElementById('configPathInfo');
+                if (pathEl && configPath) {
+                    pathEl.textContent = 'Path: ' + configPath;
+                }
             } else {
                 document.getElementById('configPreviewCard').style.display = 'none';
             }
         }
-        
+
         // Setup banner status
         const banner = document.getElementById('setupBanner');
         if (banner) {
             const isSetupComplete = (data.status === 'ready' || data.status === 'running');
             if (isSetupComplete) {
-                banner.textContent = '✅ Cloudflare Named Tunnel Setup is complete. Ready to run!';
+                banner.textContent = '✅ ' + t('setupComplete') + '. Ready to run!';
                 banner.style.display = 'block';
                 banner.style.background = 'rgba(48,209,88,0.08)';
                 banner.style.color = 'var(--success)';
                 banner.style.border = '1px solid rgba(48,209,88,0.2)';
             } else {
-                banner.textContent = `⚠️ Tunnel setup is incomplete: ${data.statusDisplay || 'Setup needed'}. Follow the steps below.`;
+                banner.textContent = '⚠️ ' + t('setupIncomplete') + ': ' + (data.statusDisplay || t('notConfigured'));
                 banner.style.display = 'block';
                 banner.style.background = 'rgba(255,159,10,0.08)';
                 banner.style.color = 'var(--warning)';
@@ -284,40 +308,69 @@ async function refreshSetupWizard() {
         }
     } catch(e){}
 }
- 
+
 async function pollTunnelStatus() {
     try {
         const data = await optionalApi('/api/remote/status') || await optionalApi('/api/cloudflare/status');
         const statusEl = document.getElementById('tunnelStatus');
         const startBtn = document.getElementById('tunnelStartBtn');
         const stopBtn = document.getElementById('tunnelStopBtn');
-        
+        const restartBtn = document.getElementById('tunnelRestartBtn');
+        const forceStopBtn = document.getElementById('tunnelForceStopBtn');
+
         if (!data) {
-            if (statusEl) statusEl.innerHTML = dot('red') + '<span style="color:var(--text-secondary);">' + 'Status Unavailable' + '</span>';
+            if (statusEl) statusEl.innerHTML = dot('red') + '<span style="color:var(--text-secondary);">' + t('statusUnavailable') + '</span>';
             return;
         }
-        
+
+        // Determine status — use data.status for granular states, isRunning for boolean
+        const rawStatus = (data.status || '').toLowerCase();
+        const isRunning = data.isRunning || rawStatus === 'running';
+
         let statusStr = '';
-        if (data.isRunning) {
-            statusStr += dot('green') + '<span style="color:var(--success); font-weight:700;">' + t('tunnelRunning') + '</span>';
-            if (startBtn) startBtn.style.display = 'none';
-            if (stopBtn) stopBtn.style.display = 'inline-flex';
+        let statusColor = 'red';
+        let statusText = t('tunnelStopped');
+
+        if (rawStatus === 'starting') {
+            statusColor = 'orange';
+            statusText = t('tunnelStarting');
+        } else if (rawStatus === 'stopping') {
+            statusColor = 'orange';
+            statusText = t('tunnelStopping');
+        } else if (rawStatus === 'restarting') {
+            statusColor = 'orange';
+            statusText = t('tunnelRestarting');
+        } else if (rawStatus === 'error') {
+            statusColor = 'red';
+            statusText = t('tunnelError');
+        } else if (isRunning || rawStatus === 'running') {
+            statusColor = 'green';
+            statusText = t('tunnelRunning');
         } else {
-            statusStr += dot('red') + '<span style="color:var(--danger); font-weight:700;">' + t('tunnelStopped') + '</span>';
-            if (startBtn) startBtn.style.display = 'inline-flex';
-            if (stopBtn) stopBtn.style.display = 'none';
+            statusColor = 'red';
+            statusText = t('tunnelStopped');
         }
-        
+
+        statusStr = dot(statusColor) + '<span style="color:var(--' + (statusColor === 'green' ? 'success' : statusColor === 'orange' ? 'warning' : 'danger') + '); font-weight:700;">' + statusText + '</span>';
+
         // Mode badge
         const modeVal = data.tunnelMode || data.mode || 'quick';
         const modeBadge = modeVal === 'named' ? '<span class="badge badge-blue" style="margin-left:8px;">Named</span>' : '<span class="badge badge-neutral" style="margin-left:8px;">Quick</span>';
         if (statusEl) statusEl.innerHTML = statusStr + modeBadge;
- 
+
+        // Button visibility logic
+        const isActive = isRunning || rawStatus === 'starting' || rawStatus === 'stopping' || rawStatus === 'restarting';
+
+        if (startBtn) startBtn.style.display = isActive ? 'none' : 'inline-flex';
+        if (stopBtn) stopBtn.style.display = isActive ? 'inline-flex' : 'none';
+        if (restartBtn) restartBtn.style.display = 'inline-flex'; // Always visible
+        if (forceStopBtn) forceStopBtn.style.display = isActive ? 'inline-flex' : 'none';
+
         // Public URL Link
         const urlBox = document.getElementById('quickTunnelURLBox');
         const link = document.getElementById('quickTunnelLink');
         const currentURL = data.quickTunnelURL || data.publicURL || '';
-        if (data.isRunning && currentURL) {
+        if (isRunning && currentURL) {
             if (link) {
                 link.href = currentURL;
                 link.textContent = currentURL;
@@ -326,77 +379,130 @@ async function pollTunnelStatus() {
         } else {
             if (urlBox) urlBox.style.display = 'none';
         }
- 
+
         // Live logs output
         const logCard = document.getElementById('logCard');
         const logEl = document.getElementById('tunnelOutput');
         const outputVal = data.lastOutput || (data.lastLogs ? data.lastLogs.join('\n') : '');
-        if (data.isRunning && outputVal) {
+        if (outputVal) {
             if (logEl) logEl.textContent = outputVal;
             if (logCard) logCard.style.display = 'block';
             if (logEl) logEl.scrollTop = logEl.scrollHeight;
         } else {
             if (logCard) logCard.style.display = 'none';
         }
- 
+
+        // Show lastError if present
+        if (data.lastError && logCard) {
+            logCard.style.display = 'block';
+            if (logEl) logEl.textContent += '\n[ERROR] ' + data.lastError;
+        }
+
         // Diagnostics
         const diagEl = document.getElementById('tunnelDiag');
         if (diagEl) {
             const detected = data.cloudflaredDetected !== undefined ? data.cloudflaredDetected : data.isInstalled;
             const path = data.cloudflaredPath || data.configPath || '-';
-            const version = data.cloudflaredVersion || data.credentialsPath || '-';
-            diagEl.innerHTML = 
-                `<div class="metric-strip"><span class="diag-label">Installed Status</span><span class="badge ${detected ? 'badge-green' : 'badge-red'}">${detected ? t('cloudflaredInstalled') : t('cloudflaredMissing')}</span></div>` +
-                `<div class="metric-strip"><span class="diag-label">Config Path</span><span style="font-weight:600; color:var(--text-primary); max-width:280px; word-break:break-all; text-align:right;">${path}</span></div>` +
-                `<div class="metric-strip"><span class="diag-label">Version</span><span style="font-weight:600; color:var(--text-primary); max-width:280px; word-break:break-all; text-align:right;">${version}</span></div>` +
-                `<div class="metric-strip"><span class="diag-label">Process ID (PID)</span><span class="badge badge-neutral">${data.pid || 'None'}</span></div>`;
+            const version = data.cloudflaredVersion || '-';
+            diagEl.innerHTML =
+                `<div class="metric-strip"><span class="diag-label">${t('cloudflaredDetected')}</span><span class="badge ${detected ? 'badge-green' : 'badge-red'}">${detected ? t('cloudflaredInstalled') : t('cloudflaredMissing')}</span></div>` +
+                `<div class="metric-strip"><span class="diag-label">Path</span><span style="font-weight:600; color:var(--text-primary); max-width:280px; word-break:break-all; text-align:right;">${path}</span></div>` +
+                `<div class="metric-strip"><span class="diag-label">${t('cloudflaredVersion')}</span><span style="font-weight:600; color:var(--text-primary); max-width:280px; word-break:break-all; text-align:right;">${version}</span></div>` +
+                `<div class="metric-strip"><span class="diag-label">PID</span><span class="badge badge-neutral">${data.pid || 'None'}</span></div>`;
         }
-            
+
     } catch(e){}
 }
- 
+
 async function startTunnel() {
     try {
         await api('/api/remote/start', { method: 'POST', body: { mode: tunnelMode } });
-        toast('Starting Cloudflare tunnel...', 'success');
+        toast(t('cloudflareStarting'), 'success');
         pollTunnelStatus();
     } catch(e){
-        // Fallback to legacy
         try {
             await api('/api/cloudflare/start', { method: 'POST', body: { mode: tunnelMode } });
-            toast('Starting Cloudflare tunnel...', 'success');
+            toast(t('cloudflareStarting'), 'success');
             pollTunnelStatus();
         } catch (e2) {}
     }
 }
- 
+
 async function stopTunnel() {
     try {
         await api('/api/remote/stop', { method: 'POST' });
-        toast('Stopping tunnel...', 'success');
+        toast(t('tunnelStopping'), 'success');
         pollTunnelStatus();
     } catch(e){
-        // Fallback to legacy
         try {
             await api('/api/cloudflare/stop', { method: 'POST' });
-            toast('Stopping tunnel...', 'success');
+            toast(t('tunnelStopping'), 'success');
             pollTunnelStatus();
         } catch (e2) {}
     }
 }
- 
-async function writeConfig() {
+
+async function restartTunnel() {
+    try {
+        await api('/api/remote/restart', { method: 'POST', body: { mode: tunnelMode } });
+        toast(t('tunnelRestarting'), 'success');
+        pollTunnelStatus();
+    } catch(e) {
+        try {
+            await api('/api/cloudflare/restart', { method: 'POST', body: { mode: tunnelMode } });
+            toast(t('tunnelRestarting'), 'success');
+            pollTunnelStatus();
+        } catch (e2) {}
+    }
+}
+
+async function forceStopTunnel() {
+    try {
+        await api('/api/remote/force-stop', { method: 'POST' });
+        toast(t('forceStop') + ' ✓', 'success');
+        setTimeout(pollTunnelStatus, 500);
+    } catch(e) {}
+}
+
+async function resetTunnelStatus() {
+    try {
+        await api('/api/remote/reset-status', { method: 'POST' });
+        toast(t('resetStatus') + ' ✓', 'success');
+        pollTunnelStatus();
+    } catch(e) {}
+}
+
+function writeConfig() {
+    // Show confirmation modal
+    document.getElementById('writeConfigModal').style.display = 'flex';
+}
+
+function closeWriteModal() {
+    document.getElementById('writeConfigModal').style.display = 'none';
+}
+
+async function confirmWriteConfig() {
+    closeWriteModal();
     const el = document.getElementById('writeResult');
     if (el) {
-        el.textContent = 'Writing config file...';
+        el.textContent = t('testingConnection') || 'Writing...';
         el.style.color = 'var(--text-secondary)';
     }
     try {
         const data = await api('/api/remote/write-config', { method: 'POST' });
         if (data) {
-            if (el) {
-                el.textContent = data.ok ? '✅ Success: Config file written' : '❌ Failed to write config';
-                el.style.color = data.ok ? 'var(--success)' : 'var(--danger)';
+            if (data.ok) {
+                let msg = '✅ ' + t('configWritten');
+                if (data.backupPath) msg += ' (backup: ' + data.backupPath + ')';
+                if (el) {
+                    el.textContent = msg;
+                    el.style.color = 'var(--success)';
+                }
+            } else {
+                if (el) {
+                    el.textContent = '❌ ' + t('failedToWriteConfig');
+                    el.style.color = 'var(--danger)';
+                }
             }
             refreshSetupWizard();
         }
@@ -406,35 +512,35 @@ async function writeConfig() {
             const data = await api('/api/cloudflare/write-config', { method: 'POST' });
             if (data) {
                 if (el) {
-                    el.textContent = data.success ? '✅ Success: ' + data.message : '❌ Failed: ' + data.message;
+                    el.textContent = data.success ? '✅ ' + (data.message || t('configWritten')) : '❌ ' + (data.message || t('failedToWriteConfig'));
                     el.style.color = data.success ? 'var(--success)' : 'var(--danger)';
                 }
                 refreshSetupWizard();
             }
         } catch (e2) {
             if (el) {
-                el.textContent = 'Failed to write config file.';
+                el.textContent = '❌ ' + t('failedToWriteConfig');
                 el.style.color = 'var(--danger)';
             }
         }
     }
 }
- 
+
 function copyConfig() {
     const content = document.getElementById('configContent').textContent;
     copyText(content);
 }
- 
+
 function copyTunnelURL() {
     const link = document.getElementById('quickTunnelLink').textContent;
     copyText(link);
 }
- 
+
 function copyText(text) {
     navigator.clipboard.writeText(text).then(() => {
         toast(t('copiedToClipboard'), 'success');
     }).catch(() => {
-        toast('Failed to copy', 'error');
+        toast(t('failedToWriteConfig'), 'error');
     });
 }
 </script>

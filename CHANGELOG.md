@@ -1,5 +1,42 @@
 # Changelog
 
+## v2.4.13 (2026-05-25)
+
+Web API Alignment Final Hotfix — aligned Web Remote and Storage pages with backend API field names. Added missing tunnel controls to Web. Added write-config confirmation. Improved bilingual coverage for Remote and Storage pages.
+
+### Fixed
+
+- **Remote: Added Restart / Force Stop / Reset Status / Refresh Status buttons** — Web Remote Access page now has full tunnel control parity with the macOS app
+- **Remote: Fixed config preview** — generate-config field mapping (`content` vs `config`) now works correctly
+- **Remote: Added write-config confirmation modal** — sensitive config write operation now requires user confirmation
+- **Remote: Fixed status display** — now correctly shows starting/stopping/restarting/error states, not just running/stopped
+- **Remote: Fixed hardcoded English** — buttons and labels now use i18n keys
+- **Storage: Fixed provider field mapping** — correctly reads `isActive`/`isAvailable`/`isPlanned`/`detail` from backend
+- **Storage: Fixed test connection route** — uses `/api/storage/test` (with fallback to `/api/storage/test-connection`)
+- **Storage: Fixed test connection response parsing** — reads `connected`/`error`/`quotaUsedGB` instead of `success`/`message`
+- **Storage: Fixed retention dry-run display** — reads `wouldDelete`/`skipped`/`files`/`reason` instead of `deletedFilesCount`/`freedBytes`/`details`
+- **Storage: Fixed hardcoded English** — section headers and labels now use i18n keys
+
+### Added
+
+- **Backend: POST /api/remote/force-stop** — admin-only endpoint calling `CloudflareTunnelManager.shared.forceStop()`
+- **Backend: POST /api/remote/reset-status** — admin-only endpoint calling `CloudflareTunnelManager.shared.reconcileStatus()`
+- **Backend: POST /api/storage/test-connection** — compat alias for `/api/storage/test`
+- **Backend: Compat fields** — generate-config returns both `content` and `config`; providers return `isCurrent`/`isConnected`/`email`/`needsReconnect` alongside native fields; retention dry-run returns both old and new field names
+- **i18n: 20+ new keys** for Remote and Storage pages (en/zh)
+
+### Preserved
+
+- v2.4.12 dark glassmorphism UI, desktop sidebar, mobile tabbar, More Sheet
+- Telegram WebView rendering fixes and cache busting
+- Dashboard hero panel, status cards, Quick Actions
+- Media thumbnail fallback, detail modal
+- Tasks CRUD, uploadProvider, videoDurationSeconds
+- Google Drive OAuth PKCE, CloudflareTunnelManager state machine
+- Manual captures local-only, retention verified-only
+
+---
+
 ## v2.4.12 (2026-05-25)
 
 Web Optional API & Thumbnail Fallback Hotfix:

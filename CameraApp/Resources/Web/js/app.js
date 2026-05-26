@@ -1,11 +1,11 @@
 // Web UI Version Diagnostics & Safe Reload
-window.WEB_UI_VERSION = '2.4.12';
+window.WEB_UI_VERSION = '2.4.13';
 console.info('[Mac Monitor] Web UI version:', window.WEB_UI_VERSION);
 
 (function() {
     function initDiagnostics() {
         if (!document.body) return;
-        document.body.dataset.webUiVersion = '2.4.12';
+        document.body.dataset.webUiVersion = '2.4.13';
         
         if (window.Telegram?.WebApp) {
             document.body.classList.add('telegram-webview');

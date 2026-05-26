@@ -71,6 +71,34 @@ struct APIStorageHandler {
             return HTTPResponse.json(resp)
         }
 
+        // Test storage connection (compat alias for /api/storage/test)
+        router.addRoute(method: "POST", path: "/api/storage/test-connection", requiredRole: .operatorRole) { request in
+            let manager = StorageManager.shared
+            guard manager.activeProvider != nil else {
+                return HTTPResponse.error("No storage provider configured", status: 400)
+            }
+            let semaphore = DispatchSemaphore(value: 0)
+            var diag: StorageDiagnostics?
+            Task {
+                diag = await manager.testConnectionDetailed()
+                semaphore.signal()
+            }
+            semaphore.wait()
+            guard let d = diag else {
+                return HTTPResponse.json(["connected": false, "error": "Test unavailable"] as [String: Any])
+            }
+            var resp: [String: Any] = [
+                "connected": d.isConnected,
+                "lastTestSuccess": d.lastTestSuccess
+            ]
+            if let email = d.authenticatedEmail { resp["email"] = email }
+            if let error = d.lastTestError { resp["error"] = error }
+            if let errorClass = d.lastTestErrorClass { resp["errorClass"] = errorClass.rawValue }
+            if let used = d.quotaUsedGB { resp["quotaUsedGB"] = round(used * 10) / 10 }
+            if let total = d.quotaTotalGB { resp["quotaTotalGB"] = round(total * 10) / 10 }
+            return HTTPResponse.json(resp)
+        }
+
         // Storage diagnostics
         router.addRoute(method: "GET", path: "/api/storage/diagnostics") { _ in
             let manager = StorageManager.shared
@@ -109,7 +137,11 @@ struct APIStorageHandler {
                 "wouldDelete": result.wouldDelete,
                 "skipped": result.skipped,
                 "files": Array(result.files.prefix(50)),
-                "reason": result.reason ?? ""
+                "reason": result.reason ?? "",
+                // Compat fields for legacy frontends
+                "deletedFilesCount": result.wouldDelete,
+                "freedBytes": 0,
+                "details": Array(result.files.prefix(50))
             ] as [String: Any])
         }
 
@@ -155,13 +187,19 @@ struct APIStorageHandler {
                     break
                 }
 
+                let isActive = type == activeType
                 return [
                     "type": type.rawValue,
                     "displayName": type.displayName,
                     "isAvailable": isAvailable,
                     "isPlanned": isPlanned,
-                    "isActive": type == activeType,
-                    "detail": detail
+                    "isActive": isActive,
+                    "detail": detail,
+                    // Compat fields for legacy frontends
+                    "isCurrent": isActive,
+                    "isConnected": isAvailable && !isPlanned,
+                    "email": detail,
+                    "needsReconnect": false
                 ] as [String: Any]
             }
             return HTTPResponse.json(["providers": providers])
@@ -248,6 +286,26 @@ struct APIStorageHandler {
             return HTTPResponse.json(["ok": true, "status": tunnel.status.rawValue] as [String: Any])
         }
 
+        // Force stop tunnel (admin-only)
+        router.addRoute(method: "POST", path: "/api/remote/force-stop", requiredRole: .admin) { request in
+            let tunnel = CloudflareTunnelManager.shared
+            tunnel.forceStop()
+            let user = request.sessionUsername ?? "unknown"
+            ActivityLogManager.shared.info(.webServer, "Tunnel force-stop requested by \(user)")
+            AuditLogManager.shared.log(method: "POST", path: "/api/remote/force-stop", status: 200, remoteAddress: request.remoteAddress ?? "unknown", user: request.sessionUsername, detail: "force-stop")
+            return HTTPResponse.json(["ok": true, "status": tunnel.status.rawValue] as [String: Any])
+        }
+
+        // Reset status (reconcile status with real process state)
+        router.addRoute(method: "POST", path: "/api/remote/reset-status", requiredRole: .admin) { request in
+            let tunnel = CloudflareTunnelManager.shared
+            tunnel.reconcileStatus()
+            let user = request.sessionUsername ?? "unknown"
+            ActivityLogManager.shared.info(.webServer, "Tunnel reset-status requested by \(user)")
+            AuditLogManager.shared.log(method: "POST", path: "/api/remote/reset-status", status: 200, remoteAddress: request.remoteAddress ?? "unknown", user: request.sessionUsername, detail: "reset-status")
+            return HTTPResponse.json(["ok": true, "status": tunnel.status.rawValue] as [String: Any])
+        }
+
         // Tunnel diagnostics
         router.addRoute(method: "GET", path: "/api/remote/diagnostics") { _ in
             let diag = CloudflareTunnelManager.shared.diagnostics()
@@ -310,7 +368,7 @@ struct APIStorageHandler {
                 return HTTPResponse.error("Hostname not configured", status: 400)
             }
             let content = tunnel.generateConfigYML()
-            return HTTPResponse.json(["content": content, "configPath": tunnel.configFilePath().path] as [String: Any])
+            return HTTPResponse.json(["content": content, "config": content, "configPath": tunnel.configFilePath().path] as [String: Any])
         }
 
         // Write config.yml with backup

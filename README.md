@@ -1,6 +1,6 @@
 # MacMonitor · Mac监控系统
 
-v2.4.12 — Web Optional API & Thumbnail Fallback Hotfix
+v2.4.13 — Web API Alignment Final Hotfix
 
 > [!TIP]
 > 如果 Telegram 内置小程序仍显示旧样式，请关闭并重新打开 Telegram 小程序，或清理 Telegram 内置浏览器缓存。
@@ -24,8 +24,8 @@ v2.4.12 — Web Optional API & Thumbnail Fallback Hotfix
   <a href="PRIVACY.md">隐私说明</a>
 </p>
 
-> **v2.4.7 — Cloudflare State Machine Hotfix**  
-> 修复 Cloudflare Tunnel 启停状态卡在 `starting` / `stopping` 的问题；Restart 按钮不再永久禁用；新增 Force Stop 与 Reset Status 应急按钮。详见 [CHANGELOG.md](CHANGELOG.md)。
+> **v2.4.13 — Web API Alignment Final Hotfix**  
+> Web Remote 页面补齐 Restart / Force Stop / Reset Status 按钮；修复 Storage Provider 字段映射、Test Connection 路由、Retention Dry-Run 显示；写入 config.yml 前增加确认；Remote / Storage i18n 清理。详见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
 
