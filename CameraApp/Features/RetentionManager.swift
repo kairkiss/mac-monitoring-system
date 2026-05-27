@@ -5,6 +5,7 @@ struct RetentionDryRunResult {
     let skipped: Int
     var files: [String] = []
     let reason: String?
+    var skipReasons: [String: Int] = [:] // reason -> count
 }
 
 final class RetentionManager {
@@ -38,19 +39,40 @@ final class RetentionManager {
         var wouldDelete = 0
         var skipped = 0
         var files: [String] = []
+        var skipReasons: [String: Int] = [:]
 
-        for (fileName, entry) in index.entries {
-            guard entry.verified, entry.uploadStatus == .verified || entry.uploadStatus == .completed else { continue }
-            if settings.retentionProtectFavorites && entry.isFavorite { skipped += 1; continue }
-            if entry.protected { skipped += 1; continue }
-            if let uploadDate = entry.uploadDate, now.timeIntervalSince(uploadDate) < graceHours { skipped += 1; continue }
-            if entry.localOriginalExists {
-                wouldDelete += 1
-                files.append(fileName)
-            }
+        func skip(_ reason: String) {
+            skipped += 1
+            skipReasons[reason, default: 0] += 1
         }
 
-        return RetentionDryRunResult(wouldDelete: wouldDelete, skipped: skipped, files: files, reason: nil)
+        for (fileName, entry) in index.entries {
+            // Must be verified
+            guard entry.verified, entry.uploadStatus == .verified || entry.uploadStatus == .completed else {
+                if entry.uploadStatus != .notQueued && entry.uploadStatus != .localDeleted {
+                    skip("notVerified")
+                }
+                continue
+            }
+            // Must have remoteFileID
+            guard let remoteFileID = entry.remoteFileID, !remoteFileID.isEmpty else {
+                skip("missingRemoteFileID")
+                continue
+            }
+            // Must have remoteURL
+            guard let remoteURL = entry.remoteURL, !remoteURL.isEmpty else {
+                skip("missingRemoteURL")
+                continue
+            }
+            if settings.retentionProtectFavorites && entry.isFavorite { skip("favorite"); continue }
+            if entry.protected { skip("protected"); continue }
+            if let uploadDate = entry.uploadDate, now.timeIntervalSince(uploadDate) < graceHours { skip("gracePeriod"); continue }
+            if !entry.localOriginalExists { skip("localMissing"); continue }
+            wouldDelete += 1
+            files.append(fileName)
+        }
+
+        return RetentionDryRunResult(wouldDelete: wouldDelete, skipped: skipped, files: files, reason: nil, skipReasons: skipReasons)
     }
 
     @discardableResult
@@ -79,6 +101,12 @@ final class RetentionManager {
 
             // Never delete files currently in-flight
             guard entry.uploadStatus != .uploading, entry.uploadStatus != .queued else { continue }
+
+            // Must have remoteFileID — don't delete if cloud metadata incomplete
+            guard let remoteFileID = entry.remoteFileID, !remoteFileID.isEmpty else { continue }
+
+            // Must have remoteURL — don't delete if we can't confirm remote exists
+            guard let remoteURL = entry.remoteURL, !remoteURL.isEmpty else { continue }
 
             // Protect favorites if configured
             if settings.retentionProtectFavorites && entry.isFavorite { continue }

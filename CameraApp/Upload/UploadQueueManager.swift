@@ -88,16 +88,54 @@ final class UploadQueueManager: ObservableObject {
 
     func retryAllFailed() {
         let hasProvider = StorageManager.shared.activeProvider != nil
+        let gdriveProviders: Set<String> = ["googleDrive", "google_drive", "gdrive"]
+        let gdAuth = GoogleDriveAuthManager.shared
+
         for var job in store.jobs where job.status == .failed || job.status == .waitingForProvider {
-            if hasProvider {
+            if !hasProvider {
+                job.status = .waitingForProvider
+                job.lastError = Strings.uploadWaitingForProvider
+                store.updateJob(job)
+                continue
+            }
+
+            // Classify the error to decide retry behavior
+            let errClass = job.errorClass.flatMap { GoogleDriveAPIError(rawValue: $0) }
+
+            switch errClass {
+            case .authExpired, .notAuthenticated, .credentialsMissing:
+                if gdriveProviders.contains(job.providerType) {
+                    // Keep as waitingForProvider — don't blindly retry auth errors
+                    if gdAuth.isAuthenticated && !gdAuth.needsReconnect {
+                        // Google Drive is actually connected now, safe to retry
+                        job.status = .pending
+                        job.lastError = nil
+                        job.errorClass = nil
+                        job.nextRetryAt = nil
+                        job.retryDelaySeconds = nil
+                    } else {
+                        job.status = .waitingForProvider
+                        job.lastError = "Waiting for Google Drive reconnect"
+                    }
+                } else {
+                    // Non-Google Drive auth error: retry
+                    job.status = .pending
+                    job.lastError = nil
+                    job.errorClass = nil
+                    job.nextRetryAt = nil
+                    job.retryDelaySeconds = nil
+                }
+            case .quotaExceeded, .permissionDenied, .rootFolderMissing:
+                // Don't blindly retry — these need user action
+                // Keep as failed
+                break
+            default:
+                // rateLimited, networkUnavailable, unknown, verificationFailed, nil → retry
                 job.status = .pending
                 job.lastError = nil
                 job.errorClass = nil
                 job.nextRetryAt = nil
                 job.retryDelaySeconds = nil
-            } else {
-                job.status = .waitingForProvider
-                job.lastError = Strings.uploadWaitingForProvider
             }
             store.updateJob(job)
         }
@@ -207,14 +245,32 @@ final class UploadQueueManager: ObservableObject {
                 let errClass = classifyGoogleDriveError(error)
                 failed.errorClass = errClass.rawValue
 
+                // Check if this is a Google Drive job for auth-error recovery
+                let gdriveProviders: Set<String> = ["googleDrive", "google_drive", "gdrive"]
+                let isGdriveJob = gdriveProviders.contains(job.providerType)
+
                 switch errClass {
-                case .authExpired, .permissionDenied, .credentialsMissing, .notAuthenticated:
-                    // Don't retry — user needs to fix auth
+                case .authExpired, .notAuthenticated, .credentialsMissing:
+                    if isGdriveJob {
+                        // Move to waitingForProvider — user reconnects, then retry-waiting restores
+                        failed.status = .waitingForProvider
+                        failed.nextRetryAt = nil
+                        failed.retryDelaySeconds = nil
+                        ActivityLogManager.shared.warning(.upload, "Upload waiting for Google Drive reconnect: \(job.fileName)",
+                            detail: errClass.localizedDescription)
+                        MediaIndexStore.shared.setUploadStatus(.waitingForProvider, for: job.fileName)
+                    } else {
+                        failed.status = .failed
+                        ActivityLogManager.shared.error(.upload, "Upload failed (auth): \(job.fileName)",
+                            detail: errClass.localizedDescription)
+                    }
+                case .permissionDenied:
+                    // Don't retry — user needs to fix permissions
                     failed.status = .failed
-                    ActivityLogManager.shared.error(.upload, "Upload failed (auth): \(job.fileName)",
+                    ActivityLogManager.shared.error(.upload, "Upload failed (permission): \(job.fileName)",
                         detail: errClass.localizedDescription)
                 case .quotaExceeded, .rootFolderMissing:
-                    // Don't retry — quota full
+                    // Don't retry — quota full or root missing
                     failed.status = .failed
                     ActivityLogManager.shared.error(.upload, "Upload failed (quota): \(job.fileName)",
                         detail: errClass.localizedDescription)
@@ -260,7 +316,11 @@ final class UploadQueueManager: ObservableObject {
                 }
 
                 self.store.updateJob(failed)
-                MediaIndexStore.shared.setUploadStatus(.failed, for: job.fileName)
+                if failed.status == .waitingForProvider {
+                    // Already set in switch above
+                } else {
+                    MediaIndexStore.shared.setUploadStatus(.failed, for: job.fileName)
+                }
 
                 self.processLoopActive = false
                 await MainActor.run { self.processNext() }

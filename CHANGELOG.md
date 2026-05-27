@@ -1,5 +1,35 @@
 # Changelog
 
+## v2.5.3 (2026-05-27)
+
+Google Drive Recovery Alignment Hotfix — aligned /api/status with Dashboard Google Drive fields, hardened retry-waiting to restore only connected Google Drive jobs, moved auth/credential upload failures into waitingForProvider recovery path, enriched Media Detail cloud verification metadata, and improved sign-out and reconnect guidance.
+
+### Fixed
+
+- **`/api/status` now exposes Google Drive connection state** — `storage` section includes `googleDriveConnectionState`, `googleDriveEmail`, `googleDriveNeedsReconnect`, `googleDriveHasCredentials`, `googleDriveWaitingUploads`, `googleDriveFailedUploads` when Google Drive is active or credentials exist. Lightweight — no network calls, reads local auth/keychain/queue state only
+- **`retry-waiting` restores only Google Drive jobs** — `POST /api/storage/google-drive/retry-waiting` now: (1) verifies Google Drive is active + authenticated + not needing reconnect + has credentials; (2) only restores `providerType` in `[googleDrive, google_drive, gdrive]` waiting jobs; (3) returns `{ok, reactivated, skipped, provider}` or `{ok:false, reason, connectionState}`. Non-Google Drive waiting jobs are no longer touched
+- **Auth/credential upload failures → waitingForProvider** — `authExpired`, `notAuthenticated`, `credentialsMissing` errors on Google Drive jobs now set `status = .waitingForProvider` instead of `.failed`. Enables reconnect → retry-waiting recovery loop. Non-Google Drive jobs still go to `.failed`. `quotaExceeded`, `permissionDenied`, `rootFolderMissing` remain `.failed`
+- **`retryAllFailed` no longer blindly retries auth/quota errors** — auth-class errors on Google Drive jobs stay `waitingForProvider` unless Google Drive is actually connected. `quotaExceeded`/`permissionDenied`/`rootFolderMissing` jobs stay `.failed`. Only retryable errors (`rateLimited`, `networkUnavailable`, `unknown`, `verificationFailed`) are set to `.pending`
+- **Media Detail cloud verification enrichment** — `GET /api/media/:id` now returns `providerType`, `uploadRemotePath`, `uploadLastError` alongside existing fields. Detail modal shows: verified/verifiedAt, remoteFileID, remoteURL, uploadRemotePath, uploadLastError, localOriginalExists status with contextual color coding (verified=green, unverified=warning, missing metadata=danger)
+- **Retention safety hardening** — `runCleanup()` now checks `remoteFileID` and `remoteURL` are non-empty before deleting local originals. `dryRun()` returns `skipReasons` dictionary: `notVerified`, `missingRemoteFileID`, `missingRemoteURL`, `protected`, `favorite`, `gracePeriod`, `localMissing`
+- **Sign-out confirmation** — now uses `gdSignOutConfirm` i18n key instead of `confirmDelete`
+- **OAuth Mac prompt** — Reconnect button area now shows "OAuth must be completed on the Mac where CameraApp is running" hint when reconnect is needed
+- **Dashboard notAuthenticated alert** — Attention Needed now shows Google Drive not signed in alert for `notAuthenticated` state (previously only `credentialsMissing`, `needsReconnect`, `quotaExceeded` were handled)
+- **Status strip color alignment** — `notAuthenticated` and `credentialsMissing` now show orange (warning) instead of red (error). Only `quotaExceeded` shows red
+
+### Added
+
+- **i18n keys** — 16 new bilingual keys: `googleDriveOAuthMacRequired`, `googleDriveNotSignedIn`, `googleDriveCredentialsMissing`, `googleDriveQuotaExceeded`, `retryWaitingUploads`, `uploadWaitingForGoogleDriveReconnect`, `uploadedButNotVerified`, `localRetainedUntilVerified`, `remoteMetadataIncomplete`, `remoteFileID`, `remoteURL`, `verifiedAt`, `uploadLastError`, `localOriginal`, `localMissing`, `remotePath`
+
+### Preserved
+
+- v2.5.2 Google Drive state model and 6 dedicated API endpoints
+- Google OAuth PKCE/state, resumable upload, size verification
+- UploadQueue retry/pause/resume, Retention verified-only
+- Manual captures local-only, no Telegram bot commands or keyboards
+
+---
+
 ## v2.5.2 (2026-05-27)
 
 Google Drive Integration Reliability & Diagnostics — productized Google Drive connection state model, added 6 dedicated API endpoints, enhanced Storage Center with Drive detail card, improved Uploads page error descriptions with next-action hints, and added Google Drive state-aware dashboard alerts.

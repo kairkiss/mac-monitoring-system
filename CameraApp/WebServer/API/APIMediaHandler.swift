@@ -119,9 +119,12 @@ struct APIMediaHandler {
                 "remoteFileID": entry.remoteFileID ?? "",
                 "fileSize": entry.fileSize,
                 "uploadProvider": entry.uploadProvider ?? "",
+                "providerType": entry.providerType ?? entry.uploadProvider ?? "",
+                "uploadRemotePath": entry.uploadRemotePath ?? "",
                 "uploadDate": entry.uploadDate.map { ISO8601DateFormatter().string(from: $0) } ?? "",
                 "verifiedAt": entry.verifiedAt.map { ISO8601DateFormatter().string(from: $0) } ?? "",
-                "localDeletedAt": entry.localDeletedAt.map { ISO8601DateFormatter().string(from: $0) } ?? ""
+                "localDeletedAt": entry.localDeletedAt.map { ISO8601DateFormatter().string(from: $0) } ?? "",
+                "uploadLastError": entry.uploadLastError ?? ""
             ] as [String: Any])
         }
 

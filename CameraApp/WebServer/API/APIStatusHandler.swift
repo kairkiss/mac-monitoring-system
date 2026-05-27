@@ -7,6 +7,8 @@ struct APIStatusHandler {
             let automation = AutomationScheduler.shared
             let storage = StorageManager.shared
             let health = HealthMonitor.shared
+            let gdAuth = GoogleDriveAuthManager.shared
+            let settings = SettingsStore.shared
 
             let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.1.0"
             let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "11"
@@ -18,6 +20,38 @@ struct APIStatusHandler {
             let failed = uploadJobs.filter { $0.status == .failed }.count
             let completed = uploadJobs.filter { $0.status == .completed }.count
             let waiting = uploadJobs.filter { $0.status == .waitingForProvider }.count
+
+            // Build storage dict with Google Drive state (lightweight — no network calls)
+            var storageDict: [String: Any] = [
+                "provider": storage.activeProviderType.rawValue
+            ]
+
+            // Always include Google Drive state when provider is gdrive or credentials exist
+            let isGdriveActive = storage.activeProviderType == .googleDrive
+            let hasCreds = !settings.googleDriveClientID.isEmpty && !KeychainService.shared.googleDriveClientSecret.isEmpty
+            if isGdriveActive || hasCreds {
+                let connectionState: String
+                if !hasCreds {
+                    connectionState = "credentialsMissing"
+                } else if !gdAuth.isAuthenticated && gdAuth.needsReconnect {
+                    connectionState = "needsReconnect"
+                } else if !gdAuth.isAuthenticated {
+                    connectionState = "notAuthenticated"
+                } else {
+                    connectionState = "connected"
+                }
+                storageDict["googleDriveConnectionState"] = connectionState
+                storageDict["googleDriveEmail"] = gdAuth.userEmail
+                storageDict["googleDriveNeedsReconnect"] = gdAuth.needsReconnect
+                storageDict["googleDriveHasCredentials"] = hasCreds
+
+                // Lightweight queue stats (no network, just filter existing jobs)
+                let gdriveProviders = ["googleDrive", "google_drive", "gdrive"]
+                let gdriveWaiting = uploadJobs.filter { $0.status == .waitingForProvider && gdriveProviders.contains($0.providerType) }.count
+                let gdriveFailed = uploadJobs.filter { $0.status == .failed && gdriveProviders.contains($0.providerType) }.count
+                storageDict["googleDriveWaitingUploads"] = gdriveWaiting
+                storageDict["googleDriveFailedUploads"] = gdriveFailed
+            }
 
             return HTTPResponse.json([
                 "version": version,
@@ -31,9 +65,7 @@ struct APIStatusHandler {
                     "isEnabled": automation.isAutomationEnabled,
                     "taskCount": automation.tasks.count
                 ] as [String: Any],
-                "storage": [
-                    "provider": storage.activeProviderType.rawValue
-                ] as [String: Any],
+                "storage": storageDict,
                 "health": [
                     "isMonitoring": health.isMonitoring
                 ] as [String: Any],

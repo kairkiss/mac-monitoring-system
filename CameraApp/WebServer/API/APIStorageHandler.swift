@@ -149,6 +149,7 @@ struct APIStorageHandler {
                 "skipped": result.skipped,
                 "files": Array(result.files.prefix(50)),
                 "reason": result.reason ?? "",
+                "skipReasons": result.skipReasons,
                 // Compat fields for legacy frontends
                 "deletedFilesCount": result.wouldDelete,
                 "freedBytes": 0,
@@ -337,26 +338,62 @@ struct APIStorageHandler {
         }
 
         // Google Drive retry waiting uploads (operator+)
+        // Only restores Google Drive jobs, only when Google Drive is connected
         router.addRoute(method: "POST", path: "/api/storage/google-drive/retry-waiting", requiredRole: .operatorRole) { request in
             let queue = UploadQueueManager.shared
-            let hasProvider = StorageManager.shared.activeProvider != nil
+            let settings = SettingsStore.shared
+            let gdAuth = GoogleDriveAuthManager.shared
+            let kc = KeychainService.shared
+
+            // Verify Google Drive is actually available
+            let hasCreds = !settings.googleDriveClientID.isEmpty && !kc.googleDriveClientSecret.isEmpty
+            let isGdriveActive = StorageManager.shared.activeProviderType == .googleDrive
+
+            guard isGdriveActive, gdAuth.isAuthenticated, !gdAuth.needsReconnect, hasCreds else {
+                let connectionState: String
+                if !hasCreds { connectionState = "credentialsMissing" }
+                else if !isGdriveActive { connectionState = "notAuthenticated" }
+                else if gdAuth.needsReconnect { connectionState = "needsReconnect" }
+                else { connectionState = "notAuthenticated" }
+                return HTTPResponse.json([
+                    "ok": false,
+                    "reactivated": 0,
+                    "reason": "googleDriveNotConnected",
+                    "connectionState": connectionState
+                ] as [String: Any])
+            }
+
+            // Only restore Google Drive waiting jobs (compatible provider names)
+            let gdriveProviders: Set<String> = ["googleDrive", "google_drive", "gdrive"]
             var reactivated = 0
+            var skipped = 0
             for var job in queue.jobs where job.status == .waitingForProvider {
-                if hasProvider {
+                if gdriveProviders.contains(job.providerType) {
                     job.status = .pending
                     job.lastError = nil
                     job.errorClass = nil
+                    job.nextRetryAt = nil
+                    job.retryDelaySeconds = nil
                     UploadQueueStore.shared.updateJob(job)
                     reactivated += 1
+                } else {
+                    skipped += 1
                 }
             }
-            if hasProvider && reactivated > 0 {
+
+            if reactivated > 0 {
                 queue.startProcessing()
             }
+
             let user = request.sessionUsername ?? "unknown"
-            ActivityLogManager.shared.info(.upload, "Retry waiting uploads by \(user): \(reactivated) jobs reactivated")
-            AuditLogManager.shared.log(method: "POST", path: "/api/storage/google-drive/retry-waiting", status: 200, remoteAddress: request.remoteAddress ?? "unknown", user: request.sessionUsername, detail: "reactivated \(reactivated) jobs")
-            return HTTPResponse.json(["ok": true, "reactivated": reactivated] as [String: Any])
+            ActivityLogManager.shared.info(.upload, "Retry waiting uploads by \(user): \(reactivated) Google Drive jobs reactivated, \(skipped) skipped")
+            AuditLogManager.shared.log(method: "POST", path: "/api/storage/google-drive/retry-waiting", status: 200, remoteAddress: request.remoteAddress ?? "unknown", user: request.sessionUsername, detail: "reactivated \(reactivated), skipped \(skipped)")
+            return HTTPResponse.json([
+                "ok": true,
+                "reactivated": reactivated,
+                "skipped": skipped,
+                "provider": "googleDrive"
+            ] as [String: Any])
         }
 
         // Google Drive root folder info

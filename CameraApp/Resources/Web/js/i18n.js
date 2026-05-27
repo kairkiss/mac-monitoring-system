@@ -432,10 +432,26 @@ const I18N = {
     gdQuotaWarning: "Google Drive storage is running low.",
     uploadWaitingCount: "{n} uploads waiting for provider",
     uploadFailedCount: "{n} uploads failed",
+    googleDriveOAuthMacRequired: "OAuth must be completed on the Mac where CameraApp is running. If you opened this page remotely, check the Mac browser.",
+    googleDriveNotSignedIn: "Google Drive not signed in",
+    googleDriveCredentialsMissing: "Google Drive credentials missing",
+    googleDriveQuotaExceeded: "Google Drive storage quota exceeded",
+    retryWaitingUploads: "Retry Waiting",
+    uploadWaitingForGoogleDriveReconnect: "Upload waiting for Google Drive reconnect",
+    uploadedButNotVerified: "Uploaded but not verified. Local file will be retained.",
+    localRetainedUntilVerified: "Local file retained until verified.",
+    remoteMetadataIncomplete: "Remote metadata incomplete. Local original missing.",
+    remoteFileID: "Remote File ID",
+    remoteURL: "Remote URL",
+    verifiedAt: "Verified At",
+    uploadLastError: "Upload Error",
     errorCredentialsMissing: "Credentials not configured",
     errorNotAuthenticated: "Not authenticated",
     errorRootFolderMissing: "Root folder missing",
-    errorVerificationFailed: "Verification failed"
+    errorVerificationFailed: "Verification failed",
+    localOriginal: "Local Original",
+    localMissing: "Local file missing",
+    remotePath: "Remote Path"
   },
   zh: {
     appName: "Mac监控系统",
@@ -872,7 +888,23 @@ const I18N = {
     errorCredentialsMissing: "凭据未配置",
     errorNotAuthenticated: "未认证",
     errorRootFolderMissing: "根目录缺失",
-    errorVerificationFailed: "验证失败"
+    errorVerificationFailed: "验证失败",
+    googleDriveOAuthMacRequired: "OAuth 需要在运行 CameraApp 的这台 Mac 上完成。如果你是远程打开此页面，请查看 Mac 本机浏览器。",
+    googleDriveNotSignedIn: "Google Drive 未登录",
+    googleDriveCredentialsMissing: "Google Drive 凭据缺失",
+    googleDriveQuotaExceeded: "Google Drive 存储空间已满",
+    retryWaitingUploads: "重试等待中",
+    uploadWaitingForGoogleDriveReconnect: "上传等待 Google Drive 重连",
+    uploadedButNotVerified: "已上传但未验证。本地文件将保留。",
+    localRetainedUntilVerified: "验证前保留本地文件。",
+    remoteMetadataIncomplete: "远程元数据不完整。本地原文件缺失。",
+    remoteFileID: "远程文件 ID",
+    remoteURL: "远程 URL",
+    verifiedAt: "验证时间",
+    uploadLastError: "上传错误",
+    localOriginal: "本地原文件",
+    localMissing: "本地文件缺失",
+    remotePath: "远程路径"
   }
 };
 

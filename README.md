@@ -1,6 +1,6 @@
 # MacMonitor · Mac监控系统
 
-v2.5.2 — Google Drive Integration Reliability & Diagnostics
+v2.5.3 — Google Drive Recovery Alignment Hotfix
 
 > [!TIP]
 > 如果 Telegram 内置小程序仍显示旧样式，请关闭并重新打开 Telegram 小程序，或清理 Telegram 内置浏览器缓存。
@@ -24,7 +24,7 @@ v2.5.2 — Google Drive Integration Reliability & Diagnostics
   <a href="PRIVACY.md">隐私说明</a>
 </p>
 
-> **v2.5.2 — Google Drive Integration Reliability & Diagnostics**
+> **v2.5.3 — Google Drive Recovery Alignment Hotfix**
 > Google Drive 连接状态产品化（6 种状态 + 用户引导）、6 个专用 API 端点、Storage Center Drive 详情卡、Uploads 错误描述增强（含 nextAction）、Dashboard 状态感知告警。详见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
