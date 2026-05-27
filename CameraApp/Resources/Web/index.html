@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title data-i18n="macMonitorSystem">Mac Monitor - Dashboard</title>
-<link rel="stylesheet" href="/css/style.css?v=2.5.0">
+<link rel="stylesheet" href="/css/style.css?v=2.5.1">
 <style>
 /* Status Strip (compact indicator row) */
 .status-strip {
@@ -281,8 +281,8 @@
     </div>
 </main>
 
-<script src="/js/i18n.js?v=2.5.0"></script>
-<script src="/js/app.js?v=2.5.0"></script>
+<script src="/js/i18n.js?v=2.5.1"></script>
+<script src="/js/app.js?v=2.5.1"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('dashboard');
@@ -293,6 +293,16 @@ document.addEventListener('DOMContentLoaded', () => {
 let isRecordingGlobal = false;
 let isTunnelRunning = false;
 let lastStatusData = null;
+
+// Google Drive provider name compatibility (gdrive / googleDrive / google_drive)
+function isGdriveProvider(p) {
+    return p === 'gdrive' || p === 'googleDrive' || p === 'google_drive';
+}
+function providerDisplayName(p) {
+    if (!p || p === 'none') return t('none');
+    if (isGdriveProvider(p)) return 'Google Drive';
+    return p;
+}
 let lastCfData = null;
 let lastHealthData = null;
 
@@ -325,7 +335,7 @@ function updateStatusStrip() {
         const prov = lastStatusData.storage.provider;
         if (prov && prov !== 'none') {
             stripStor.className = 'status-dot dot-green';
-            stripStorLabel.textContent = prov;
+            stripStorLabel.textContent = providerDisplayName(prov);
         } else {
             stripStor.className = 'status-dot dot-gray';
             stripStorLabel.textContent = t('none');
@@ -370,7 +380,7 @@ function updateAttentionSection() {
     if (lastStatusData && (lastStatusData.uploadQueue.failed || 0) > 0) {
         alerts.push({ icon: '⬆️', color: 'var(--warning-light)', text: lastStatusData.uploadQueue.failed + ' ' + t('failed'), sub: t('uploadQueue'), href: '/uploads.html' });
     }
-    if (lastStatusData && lastStatusData.storage.provider === 'gdrive' && lastStatusData.storage.needsReauth) {
+    if (lastStatusData && isGdriveProvider(lastStatusData.storage.provider) && lastStatusData.storage.needsReauth) {
         alerts.push({ icon: '☁️', color: 'var(--warning-light)', text: 'Google Drive ' + t('stopped'), sub: t('storage'), href: '/storage.html' });
     }
     if (lastCfData && lastCfData.error) {
@@ -503,7 +513,7 @@ createPoller('dashboard-status', async () => {
         storEl.innerHTML = window.dot('idle', { idle: t('none') });
         storSub.textContent = t('notConfigured');
     } else {
-        storEl.innerHTML = window.dot('connected', { connected: data.storage.provider });
+        storEl.innerHTML = window.dot('connected', { connected: providerDisplayName(data.storage.provider) });
         storSub.textContent = '';
     }
 

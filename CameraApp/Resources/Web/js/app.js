@@ -1,11 +1,11 @@
 // Web UI Version Diagnostics & Safe Reload
-window.WEB_UI_VERSION = '2.5.0';
+window.WEB_UI_VERSION = '2.5.1';
 console.info('[Mac Monitor] Web UI version:', window.WEB_UI_VERSION);
 
 (function() {
     function initDiagnostics() {
         if (!document.body) return;
-        document.body.dataset.webUiVersion = '2.5.0';
+        document.body.dataset.webUiVersion = '2.5.1';
 
         // Enhanced Telegram.WebApp integration (container only — no bot commands)
         if (window.Telegram?.WebApp) {
@@ -77,7 +77,9 @@ async function api(url, options = {}) {
         if (res.status === 401) { logout(); return null; }
         if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || `HTTP ${res.status}`);
+            const err = new Error(data.error || `HTTP ${res.status}`);
+            err.status = res.status;
+            throw err;
         }
         const contentType = res.headers.get('Content-Type') || '';
         if (contentType.includes('json')) return res.json();

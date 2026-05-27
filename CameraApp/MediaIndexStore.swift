@@ -80,6 +80,15 @@ final class MediaIndexStore: ObservableObject {
         notifyAndPersist()
     }
 
+    func setFavorite(_ favorite: Bool, for fileName: String) {
+        queue.sync {
+            var e = entries[fileName] ?? MediaIndexEntry()
+            e.isFavorite = favorite
+            entries[fileName] = e
+        }
+        notifyAndPersist()
+    }
+
     func setSource(_ source: MediaSource, for fileName: String) {
         queue.sync {
             var e = entries[fileName] ?? MediaIndexEntry()

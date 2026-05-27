@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title data-i18n="macMonitorSystem">Mac Monitor - Media Library</title>
-<link rel="stylesheet" href="/css/style.css?v=2.5.0">
+<link rel="stylesheet" href="/css/style.css?v=2.5.1">
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -31,20 +31,20 @@
         <button class="chip" data-type="" data-status="notQueued" data-fav="false" data-i18n="local">Local</button>
         <button class="chip" data-type="" data-status="failed" data-fav="false" data-i18n="failed">Failed</button>
         <button class="chip" data-type="" data-status="" data-fav="true" data-i18n="favorites">Favorites</button>
-        <button class="chip" id="selectModeBtn" data-role-min="operator" onclick="toggleSelectionMode()" style="margin-left:auto;">Select</button>
+        <button class="chip" id="selectModeBtn" data-role-min="operator" onclick="toggleSelectionMode()" style="margin-left:auto;" data-i18n="selectMode">Select</button>
     </div>
 
     <!-- Selection Bar (hidden by default) -->
     <div class="selection-bar" id="selectionBar" style="display:none;">
-        <span id="selectionCount" style="font-weight:700; font-size:13px;">0 selected</span>
+        <span id="selectionCount" style="font-weight:700; font-size:13px;">0 <span data-i18n="selectedCount">selected</span></span>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button class="secondary" onclick="selectAll()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Select All</button>
-            <button class="secondary" onclick="deselectAll()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Deselect All</button>
-            <button class="secondary" data-role-min="operator" onclick="batchProtect(true)" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Protect</button>
-            <button class="secondary" data-role-min="operator" onclick="batchProtect(false)" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Unprotect</button>
-            <button class="secondary" data-role-min="operator" onclick="batchFavorite()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Favorite</button>
-            <button class="secondary" data-role-min="operator" onclick="batchUpload()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Upload</button>
-            <button class="danger" data-role-min="admin" onclick="batchDelete()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;">Delete</button>
+            <button class="secondary" onclick="selectAll()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;" data-i18n="selectAll">Select All</button>
+            <button class="secondary" onclick="deselectAll()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;" data-i18n="deselectAll">Deselect All</button>
+            <button class="secondary" data-role-min="operator" onclick="batchProtect(true)" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;" data-i18n="protectSelected">Protect</button>
+            <button class="secondary" data-role-min="operator" onclick="batchProtect(false)" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;" data-i18n="unprotectSelected">Unprotect</button>
+            <button class="secondary" data-role-min="operator" onclick="batchFavorite()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;" data-i18n="favoriteSelected">Favorite</button>
+            <button class="secondary" data-role-min="operator" onclick="batchUpload()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;" data-i18n="queueUploadSelected">Upload</button>
+            <button class="danger" data-role-min="admin" onclick="batchDelete()" style="height:32px; padding:0 10px; font-size:12px; font-weight:600;" data-i18n="deleteSelected">Delete</button>
         </div>
     </div>
 
@@ -57,8 +57,8 @@
 
 <div id="detailModal"></div>
 
-<script src="/js/i18n.js?v=2.5.0"></script>
-<script src="/js/app.js?v=2.5.0"></script>
+<script src="/js/i18n.js?v=2.5.1"></script>
+<script src="/js/app.js?v=2.5.1"></script>
 <script>
 let currentPage = 1;
 const perPage = 24;
@@ -212,10 +212,12 @@ function toggleSelectionMode() {
         grid.classList.add('selection-mode');
         bar.style.display = 'flex';
         btn.classList.add('active');
+        btn.textContent = t('exitSelect');
     } else {
         grid.classList.remove('selection-mode');
         bar.style.display = 'none';
         btn.classList.remove('active');
+        btn.textContent = t('selectMode');
         selectedIds.clear();
         updateSelectionUI();
     }
@@ -248,7 +250,7 @@ function toggleItemSelect(fileName, checkEl) {
 }
 
 function updateSelectionUI() {
-    document.getElementById('selectionCount').textContent = selectedIds.size + ' selected';
+    document.getElementById('selectionCount').textContent = selectedIds.size + ' ' + t('selectedCount');
 }
 
 function selectAll() {
@@ -279,19 +281,23 @@ function deselectAll() {
 async function batchProtect(protect) {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    let ok = 0, fail = 0;
+    let ok = 0, fail = 0, forbidden = 0;
     for (const fn of ids) {
         try {
-            await api('/api/media/' + encodeURIComponent(fn) + '/protect', { method: 'POST' });
+            await api('/api/media/' + encodeURIComponent(fn) + '/protect', {
+                method: 'POST',
+                body: JSON.stringify({ protected: protect })
+            });
             ok++;
-        } catch { fail++; }
+        } catch (e) {
+            if (e && e.status === 403) forbidden++;
+            else fail++;
+        }
     }
-    const action = protect ? 'Protected' : 'Unprotected';
-    if (fail === 0) {
-        toast(action + ' ' + ok + ' of ' + ids.length + ' files', 'success');
-    } else {
-        toast(action + ' ' + ok + ' of ' + ids.length + ', ' + fail + ' failed', 'warning');
-    }
+    const action = protect ? t('batchProtected') : t('batchUnprotected');
+    if (forbidden > 0) toast(t('insufficientPermissions'), 'error');
+    else if (fail === 0) toast(action.replace('{n}', ok).replace('{total}', ids.length), 'success');
+    else toast(action.replace('{n}', ok).replace('{total}', ids.length) + ', ' + fail + ' ' + t('batchFailed'), 'warning');
     deselectAll();
     loadMedia();
 }
@@ -299,18 +305,22 @@ async function batchProtect(protect) {
 async function batchFavorite() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    let ok = 0, fail = 0;
+    let ok = 0, fail = 0, forbidden = 0;
     for (const fn of ids) {
         try {
-            await api('/api/media/' + encodeURIComponent(fn) + '/favorite', { method: 'POST' });
+            await api('/api/media/' + encodeURIComponent(fn) + '/favorite', {
+                method: 'POST',
+                body: JSON.stringify({ isFavorite: true })
+            });
             ok++;
-        } catch { fail++; }
+        } catch (e) {
+            if (e && e.status === 403) forbidden++;
+            else fail++;
+        }
     }
-    if (fail === 0) {
-        toast('Favorited ' + ok + ' of ' + ids.length + ' files', 'success');
-    } else {
-        toast('Favorited ' + ok + ' of ' + ids.length + ', ' + fail + ' failed', 'warning');
-    }
+    if (forbidden > 0) toast(t('insufficientPermissions'), 'error');
+    else if (fail === 0) toast(t('batchFavorited').replace('{n}', ok).replace('{total}', ids.length), 'success');
+    else toast(t('batchFavorited').replace('{n}', ok).replace('{total}', ids.length) + ', ' + fail + ' ' + t('batchFailed'), 'warning');
     deselectAll();
     loadMedia();
 }
@@ -318,18 +328,19 @@ async function batchFavorite() {
 async function batchUpload() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    let ok = 0, fail = 0;
+    let ok = 0, fail = 0, forbidden = 0;
     for (const fn of ids) {
         try {
             await api('/api/media/' + encodeURIComponent(fn) + '/upload', { method: 'POST' });
             ok++;
-        } catch { fail++; }
+        } catch (e) {
+            if (e && e.status === 403) forbidden++;
+            else fail++;
+        }
     }
-    if (fail === 0) {
-        toast('Queued ' + ok + ' of ' + ids.length + ' files for upload', 'success');
-    } else {
-        toast('Queued ' + ok + ' of ' + ids.length + ', ' + fail + ' failed', 'warning');
-    }
+    if (forbidden > 0) toast(t('insufficientPermissions'), 'error');
+    else if (fail === 0) toast(t('batchQueued').replace('{n}', ok).replace('{total}', ids.length), 'success');
+    else toast(t('batchQueued').replace('{n}', ok).replace('{total}', ids.length) + ', ' + fail + ' ' + t('batchFailed'), 'warning');
     deselectAll();
     loadMedia();
 }
@@ -337,19 +348,20 @@ async function batchUpload() {
 async function batchDelete() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    if (!confirm('Delete ' + ids.length + ' file(s)? This cannot be undone.')) return;
-    let ok = 0, fail = 0;
+    if (!confirm(t('confirmDeleteN').replace('{n}', ids.length))) return;
+    let ok = 0, fail = 0, forbidden = 0;
     for (const fn of ids) {
         try {
             await api('/api/media/' + encodeURIComponent(fn), { method: 'DELETE' });
             ok++;
-        } catch { fail++; }
+        } catch (e) {
+            if (e && e.status === 403) forbidden++;
+            else fail++;
+        }
     }
-    if (fail === 0) {
-        toast('Deleted ' + ok + ' of ' + ids.length + ' files', 'success');
-    } else {
-        toast('Deleted ' + ok + ' of ' + ids.length + ', ' + fail + ' failed', 'warning');
-    }
+    if (forbidden > 0) toast(t('insufficientPermissions'), 'error');
+    else if (fail === 0) toast(t('batchDeleted').replace('{n}', ok).replace('{total}', ids.length), 'success');
+    else toast(t('batchDeleted').replace('{n}', ok).replace('{total}', ids.length) + ', ' + fail + ' ' + t('batchFailed'), 'warning');
     deselectAll();
     loadMedia();
 }
@@ -372,25 +384,25 @@ async function loadVisibleThumbnails(items) {
         if (ph) {
             ph.style.display = 'flex';
             let icon = '📷';
-            let text = 'No Preview';
+            let text = t('noPreview');
 
             if (item.type === 'video') {
                 icon = '🎥';
-                text = 'Video';
+                text = t('mediaVideo');
             } else if (item.localOriginalExists === false && item.verified) {
                 icon = '☁️';
-                text = 'Archived to cloud';
+                text = t('mediaArchived');
             } else if (item.localOriginalExists === false) {
                 icon = '❓';
-                text = 'Local file missing';
+                text = t('mediaLocalMissing');
             } else {
                 const size = Number(item.fileSize || 0);
                 if (size >= 20 * 1024 * 1024) {
                     icon = '💾';
-                    text = 'Large file (>20MB)';
+                    text = t('mediaLargeFile');
                 } else {
                     icon = '📷';
-                    text = 'Photo unavailable';
+                    text = t('mediaPhotoUnavailable');
                 }
             }
             ph.innerHTML = `<span style="font-size:24px; margin-bottom:4px;">${icon}</span><span style="font-size:11px; font-weight:600; color:var(--text-secondary); text-align:center; padding:0 8px;">${text}</span>`;
@@ -591,7 +603,10 @@ async function toggleFav(fileName) {
             showDetail(fileName);
             loadMedia();
         }
-    } catch(e){}
+    } catch(e) {
+        if (e && e.status === 403) toast(t('insufficientPermissions'), 'error');
+        else toast(t('failed'), 'error');
+    }
 }
 
 async function toggleProtect(fileName) {
@@ -602,7 +617,10 @@ async function toggleProtect(fileName) {
             showDetail(fileName);
             loadMedia();
         }
-    } catch(e){}
+    } catch(e) {
+        if (e && e.status === 403) toast(t('insufficientPermissions'), 'error');
+        else toast(t('failed'), 'error');
+    }
 }
 
 async function queueUpload(fileName) {
@@ -613,7 +631,10 @@ async function queueUpload(fileName) {
             showDetail(fileName);
             loadMedia();
         }
-    } catch(e){}
+    } catch(e) {
+        if (e && e.status === 403) toast(t('insufficientPermissions'), 'error');
+        else toast(t('failed'), 'error');
+    }
 }
 
 async function deleteMedia(fileName) {
@@ -623,7 +644,10 @@ async function deleteMedia(fileName) {
         toast(t('deletedSuccess'), 'success');
         document.getElementById('detailModal').innerHTML = '';
         loadMedia();
-    } catch(e){}
+    } catch(e) {
+        if (e && e.status === 403) toast(t('insufficientPermissions'), 'error');
+        else toast(t('failed'), 'error');
+    }
 }
 
 function formatSize(bytes) {

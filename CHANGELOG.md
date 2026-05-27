@@ -1,5 +1,35 @@
 # Changelog
 
+## v2.5.1 (2026-05-26)
+
+Media Permission & Batch Action Hotfix — fixed media delete backend permissions, batch protect/unprotect/favorite using explicit set instead of toggle, media API role alignment, dashboard Google Drive provider compatibility, and media page i18n cleanup.
+
+### Fixed
+
+- **Media delete now admin-only** — `DELETE /api/media/:id` backend `requiredRole` changed from `.operatorRole` to `.admin`. Operators can no longer delete media via direct API calls
+- **Batch Protect/Unprotect uses explicit set** — batch operations now send `{protected: true/false}` body to API instead of relying on toggle. Protect selected guarantees all become protected; Unprotect selected guarantees all become unprotected
+- **Batch Favorite uses explicit set** — batch favorite now sends `{isFavorite: true}` body. Already-favorited items are not accidentally unfavorite
+- **Protect/Favorite API role enforcement** — `POST /api/media/:id/protect` and `POST /api/media/:id/favorite` now require `operatorRole`. Viewer can no longer toggle protection or favorites
+- **Protect/Favorite API supports body parameter** — both endpoints accept optional JSON body `{protected: bool}` / `{isFavorite: bool}` for explicit set, with fallback to toggle for single-item detail page
+- **Dashboard Google Drive provider compatibility** — dashboard now recognizes `gdrive`, `googleDrive`, and `google_drive` as Google Drive provider values. Provider display name normalized to "Google Drive"
+- **Media page i18n cleanup** — batch operation buttons, selection count, confirmation dialog, placeholder text, and toast messages now use i18n keys instead of hardcoded English
+- **API error status propagation** — `api()` function in app.js now includes HTTP status code on thrown errors, enabling 403 permission detection in batch operations
+- **Batch operation error feedback** — 403 errors now show "Insufficient permissions" toast instead of silent failure. Success/failure counts displayed per batch operation
+
+### Added
+
+- **Audit logging** — `POST /api/media/:id/upload`, `POST /api/media/:id/favorite`, `POST /api/media/:id/protect` now write to audit log
+- **MediaIndexStore.setFavorite** — new explicit `setFavorite(_:for:)` method alongside existing `toggleFavorite`
+- **i18n keys** — 12 new keys: `batchProtected`, `batchUnprotected`, `batchFavorited`, `batchQueued`, `batchDeleted`, `batchFailed`, `mediaVideo`, `mediaArchived`, `mediaLocalMissing`, `mediaLargeFile`, `mediaPhotoUnavailable`
+
+### Preserved
+
+- v2.5.0 Web UI componentization, role-aware controls, polling, Telegram WebView
+- Google Drive OAuth, CloudflareTunnelManager, UploadQueue, Retention
+- Manual captures local-only, no Telegram bot commands
+
+---
+
 ## v2.5.0 (2026-05-26)
 
 Web Console Productization & Telegram Mini App Foundation — componentized Web UI with reusable CSS classes, role-aware frontend controls, unified polling/state management, Telegram WebView theme/safe-area adaptation, and productized Remote/Storage/Media/Uploads/Dashboard pages. Filled audit logging gaps across all API handlers.

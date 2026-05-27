@@ -227,8 +227,8 @@ struct APIMediaHandler {
             return HTTPResponse.error("Thumbnail not available", status: 404)
         }
 
-        // Delete media
-        router.addRoute(method: "DELETE", path: "/api/media/:id", requiredRole: .operatorRole) { request in
+        // Delete media (admin-only)
+        router.addRoute(method: "DELETE", path: "/api/media/:id", requiredRole: .admin) { request in
             let fileName = sanitizeFileName(router.extractParam("id", from: request, pattern: "/api/media/:id") ?? "")
             guard !fileName.isEmpty else { return HTTPResponse.error("Missing id") }
 
@@ -272,27 +272,61 @@ struct APIMediaHandler {
                 return HTTPResponse.error("No storage provider configured", status: 400)
             }
             UploadQueueManager.shared.enqueue(fileName: fileName)
+            AuditLogManager.shared.log(
+                method: "POST", path: "/api/media/:id/upload", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "upload now: \(fileName)"
+            )
             return HTTPResponse.json(["status": "queued", "fileName": fileName])
         }
 
-        // Toggle favorite
-        router.addRoute(method: "POST", path: "/api/media/:id/favorite") { request in
+        // Set or toggle favorite (operator+)
+        router.addRoute(method: "POST", path: "/api/media/:id/favorite", requiredRole: .operatorRole) { request in
             let fileName = sanitizeFileName(router.extractParam("id", from: request, pattern: "/api/media/:id/favorite") ?? "")
             guard !fileName.isEmpty else { return HTTPResponse.error("Missing id") }
 
-            MediaIndexStore.shared.toggleFavorite(fileName)
+            // Support explicit set via body {"isFavorite": true/false}, fallback to toggle
+            if let body = request.body,
+               let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+               let favorite = json["isFavorite"] as? Bool {
+                MediaIndexStore.shared.setFavorite(favorite, for: fileName)
+            } else {
+                MediaIndexStore.shared.toggleFavorite(fileName)
+            }
             let isFav = MediaIndexStore.shared.isFavorite(fileName)
+            AuditLogManager.shared.log(
+                method: "POST", path: "/api/media/:id/favorite", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "favorite \(fileName): \(isFav)"
+            )
             return HTTPResponse.json(["isFavorite": isFav])
         }
 
-        // Toggle protect
-        router.addRoute(method: "POST", path: "/api/media/:id/protect") { request in
+        // Set or toggle protect (operator+)
+        router.addRoute(method: "POST", path: "/api/media/:id/protect", requiredRole: .operatorRole) { request in
             let fileName = sanitizeFileName(router.extractParam("id", from: request, pattern: "/api/media/:id/protect") ?? "")
             guard !fileName.isEmpty else { return HTTPResponse.error("Missing id") }
 
-            let current = MediaIndexStore.shared.entry(for: fileName).protected
-            MediaIndexStore.shared.setProtected(!current, for: fileName)
-            return HTTPResponse.json(["protected": !current])
+            // Support explicit set via body {"protected": true/false}, fallback to toggle
+            let newValue: Bool
+            if let body = request.body,
+               let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+               let protected = json["protected"] as? Bool {
+                newValue = protected
+            } else {
+                let current = MediaIndexStore.shared.entry(for: fileName).protected
+                newValue = !current
+            }
+            MediaIndexStore.shared.setProtected(newValue, for: fileName)
+            AuditLogManager.shared.log(
+                method: "POST", path: "/api/media/:id/protect", status: 200,
+                remoteAddress: request.remoteAddress ?? "unknown",
+                user: request.sessionUsername,
+                detail: "protect \(fileName): \(newValue)"
+            )
+            return HTTPResponse.json(["protected": newValue])
         }
     }
 

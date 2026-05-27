@@ -1,6 +1,6 @@
 # MacMonitor · Mac监控系统
 
-v2.5.0 — Web Console Productization & Telegram Mini App Foundation
+v2.5.1 — Media Permission & Batch Action Hotfix
 
 > [!TIP]
 > 如果 Telegram 内置小程序仍显示旧样式，请关闭并重新打开 Telegram 小程序，或清理 Telegram 内置浏览器缓存。
@@ -24,8 +24,8 @@ v2.5.0 — Web Console Productization & Telegram Mini App Foundation
   <a href="PRIVACY.md">隐私说明</a>
 </p>
 
-> **v2.5.0 — Web Console Productization & Telegram Mini App Foundation**
-> Web UI 组件化（20+ CSS 工具类）、角色感知前端控件（viewer/operator/admin）、统一轮询与状态管理、Telegram WebView 主题/安全区适配、Remote/Storage/Media/Uploads/Dashboard 页面产品化、6 个 API Handler 补齐审计日志。详见 [CHANGELOG.md](CHANGELOG.md)。
+> **v2.5.1 — Media Permission & Batch Action Hotfix**
+> 修复媒体删除后端权限（admin-only）、批量保护/收藏改用显式 set 替代 toggle、Dashboard Google Drive Provider 字段兼容、Media 页面 i18n 清理、API 错误反馈增强。详见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
 
@@ -274,7 +274,7 @@ mac-monitoring-system/
 
 查看完整历史：[CHANGELOG.md](CHANGELOG.md)
 
-最新版本：**v2.5.0**
+最新版本：**v2.5.1**
 
 ## License
 
