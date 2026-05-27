@@ -1,5 +1,39 @@
 # Changelog
 
+## v2.5.2 (2026-05-27)
+
+Google Drive Integration Reliability & Diagnostics — productized Google Drive connection state model, added 6 dedicated API endpoints, enhanced Storage Center with Drive detail card, improved Uploads page error descriptions with next-action hints, and added Google Drive state-aware dashboard alerts.
+
+### Added
+
+- **GoogleDriveConnectionState enum** — `.connected`, `.needsReconnect`, `.notAuthenticated`, `.credentialsMissing`, `.quotaExceeded`, `.error` with `isUsable` computed property
+- **GoogleDriveAPIError enhancements** — 4 new cases: `credentialsMissing`, `notAuthenticated`, `rootFolderMissing`, `verificationFailed`. Added `isRetryable` and `nextAction` computed properties for user-facing guidance
+- **StorageDiagnostics.connectionState** — new optional `connectionState` field returned by all storage diagnostics paths
+- **6 new API endpoints**:
+  - `GET /api/storage/google-drive/status` — connection state, email, credentials status, root folder, upload queue stats, quota
+  - `POST /api/storage/google-drive/test` (operator+) — dedicated test with errorDescription, nextAction, isRetryable
+  - `POST /api/storage/google-drive/reconnect` (operator+) — triggers OAuth flow asynchronously
+  - `POST /api/storage/google-drive/sign-out` (admin-only) — clears tokens, reconfigures storage
+  - `POST /api/storage/google-drive/retry-waiting` (operator+) — reactivates waitingForProvider jobs
+  - `GET /api/storage/google-drive/root` — root folder name, folder ID, auth status
+- **Storage Center Google Drive Detail Card** — connection state badge, account email, storage quota with progress bar, root folder, upload queue stats, action buttons (Test/Reconnect/Retry Waiting/Sign Out), next-action hints for error states
+- **Uploads page error enrichment** — error descriptions now include `{desc, nextAction, retryable}` objects; new error classes: `credentialsMissing`, `notAuthenticated`, `rootFolderMissing`, `verificationFailed`; provider banner shows state-specific messages
+- **Dashboard Google Drive alerts** — `updateAttentionSection()` shows credentialsMissing/needsReconnect/quotaExceeded alerts; storage status card shows connection state colors; status strip shows state-specific dot colors
+- **i18n keys** — ~20 new bilingual keys (en/zh): `gdConnectionState`, `gdEmail`, `gdRootFolder`, `gdUploadStats`, `gdNextAction`, `gdSignOut`, `gdSignOutConfirm`, `gdReconnectPrompt`, `gdCredentialsMissing`, `gdQuotaWarning`, `uploadWaitingCount`, `uploadFailedCount`, `errorCredentialsMissing`, `errorNotAuthenticated`, `errorRootFolderMissing`, `errorVerificationFailed`
+
+### Fixed
+
+- **UploadQueueManager switch exhaustiveness** — updated error handling in `processNext()` to cover all `GoogleDriveAPIError` cases: auth/credential errors → `.failed` (no retry), quota/root → `.failed`, rate limited → retry with longer backoff, network/unknown/verification → standard retry
+
+### Preserved
+
+- v2.5.0/v2.5.1 Web UI componentization, role-aware controls, polling, Telegram WebView
+- Google Drive OAuth PKCE/state, CloudflareTunnelManager state machine
+- UploadQueue core logic, Retention verified-only, manual captures local-only
+- No Telegram bot commands, inline keyboards, or native buttons
+
+---
+
 ## v2.5.1 (2026-05-26)
 
 Media Permission & Batch Action Hotfix — fixed media delete backend permissions, batch protect/unprotect/favorite using explicit set instead of toggle, media API role alignment, dashboard Google Drive provider compatibility, and media page i18n cleanup.

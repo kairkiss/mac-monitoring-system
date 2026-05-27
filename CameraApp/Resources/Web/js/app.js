@@ -1,11 +1,11 @@
 // Web UI Version Diagnostics & Safe Reload
-window.WEB_UI_VERSION = '2.5.1';
+window.WEB_UI_VERSION = '2.5.2';
 console.info('[Mac Monitor] Web UI version:', window.WEB_UI_VERSION);
 
 (function() {
     function initDiagnostics() {
         if (!document.body) return;
-        document.body.dataset.webUiVersion = '2.5.1';
+        document.body.dataset.webUiVersion = '2.5.2';
 
         // Enhanced Telegram.WebApp integration (container only — no bot commands)
         if (window.Telegram?.WebApp) {

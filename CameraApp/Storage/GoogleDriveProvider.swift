@@ -37,14 +37,17 @@ final class GoogleDriveProvider: StorageProvider {
         guard !googleDriveClientID.isEmpty, !googleDriveClientSecret.isEmpty else {
             return StorageDiagnostics(providerType: type.rawValue, isConnected: false, authenticatedEmail: nil,
                 lastTestDate: Date(), lastTestSuccess: false, lastTestError: Strings.googleDriveCredentialsRequired,
-                lastTestErrorClass: .permissionDenied, rootFolderName: rootName, rootFolderExists: nil,
-                quotaUsedGB: nil, quotaTotalGB: nil, recentUploadCount: 0, recentFailureCount: 0)
+                lastTestErrorClass: .credentialsMissing, rootFolderName: rootName, rootFolderExists: nil,
+                quotaUsedGB: nil, quotaTotalGB: nil, recentUploadCount: 0, recentFailureCount: 0,
+                connectionState: .credentialsMissing)
         }
         guard authManager.isAuthenticated else {
+            let state: GoogleDriveConnectionState = authManager.needsReconnect ? .needsReconnect : .notAuthenticated
             return StorageDiagnostics(providerType: type.rawValue, isConnected: false, authenticatedEmail: nil,
                 lastTestDate: Date(), lastTestSuccess: false, lastTestError: Strings.googleDriveNotAuthenticated,
                 lastTestErrorClass: .authExpired, rootFolderName: rootName, rootFolderExists: nil,
-                quotaUsedGB: nil, quotaTotalGB: nil, recentUploadCount: 0, recentFailureCount: 0)
+                quotaUsedGB: nil, quotaTotalGB: nil, recentUploadCount: 0, recentFailureCount: 0,
+                connectionState: state)
         }
         do {
             let token = try await authManager.getValidAccessToken(
@@ -75,17 +78,28 @@ final class GoogleDriveProvider: StorageProvider {
                     if entry.uploadStatus == .failed { recentFailures += 1 }
                 }
             }
+            // Check if quota is exceeded
+            if let used = usedBytes, let limit = limitBytes, limit > 0, used >= limit {
+                return StorageDiagnostics(providerType: type.rawValue, isConnected: true, authenticatedEmail: email,
+                    lastTestDate: Date(), lastTestSuccess: true, lastTestError: nil, lastTestErrorClass: .quotaExceeded,
+                    rootFolderName: rootName, rootFolderExists: true, quotaUsedGB: usedGB, quotaTotalGB: totalGB,
+                    recentUploadCount: recentUploads, recentFailureCount: recentFailures,
+                    connectionState: .quotaExceeded)
+            }
             return StorageDiagnostics(providerType: type.rawValue, isConnected: true, authenticatedEmail: email,
                 lastTestDate: Date(), lastTestSuccess: true, lastTestError: nil, lastTestErrorClass: nil,
                 rootFolderName: rootName, rootFolderExists: true, quotaUsedGB: usedGB, quotaTotalGB: totalGB,
-                recentUploadCount: recentUploads, recentFailureCount: recentFailures)
+                recentUploadCount: recentUploads, recentFailureCount: recentFailures,
+                connectionState: .connected)
         } catch {
             let errClass = classifyGoogleDriveError(error)
+            let state: GoogleDriveConnectionState = (errClass == .authExpired) ? .needsReconnect : .error
             return StorageDiagnostics(providerType: type.rawValue, isConnected: false,
                 authenticatedEmail: kc.googleDriveUserEmail.isEmpty ? nil : kc.googleDriveUserEmail,
                 lastTestDate: Date(), lastTestSuccess: false, lastTestError: error.localizedDescription,
                 lastTestErrorClass: errClass, rootFolderName: rootName, rootFolderExists: nil,
-                quotaUsedGB: nil, quotaTotalGB: nil, recentUploadCount: 0, recentFailureCount: 0)
+                quotaUsedGB: nil, quotaTotalGB: nil, recentUploadCount: 0, recentFailureCount: 0,
+                connectionState: state)
         }
     }
 
@@ -608,6 +622,10 @@ enum GoogleDriveAPIError: String, Codable {
     case rateLimited
     case networkUnavailable
     case permissionDenied
+    case credentialsMissing
+    case notAuthenticated
+    case rootFolderMissing
+    case verificationFailed
     case unknown
 
     var localizedDescription: String {
@@ -617,17 +635,73 @@ enum GoogleDriveAPIError: String, Codable {
         case .rateLimited: return Strings.errorRateLimited
         case .networkUnavailable: return Strings.errorNetworkUnavailable
         case .permissionDenied: return Strings.errorPermissionDenied
+        case .credentialsMissing: return "Google Drive credentials not configured"
+        case .notAuthenticated: return "Not authenticated with Google Drive"
+        case .rootFolderMissing: return "Root folder not found or inaccessible"
+        case .verificationFailed: return "Upload verification failed"
         case .unknown: return "Unknown error"
         }
     }
+
+    /// Whether retrying automatically makes sense for this error class
+    var isRetryable: Bool {
+        switch self {
+        case .rateLimited, .networkUnavailable, .unknown: return true
+        default: return false
+        }
+    }
+
+    /// Human-readable next action hint
+    var nextAction: String {
+        switch self {
+        case .authExpired: return "Reconnect Google Drive in Storage Center"
+        case .notAuthenticated: return "Sign in to Google Drive in Settings"
+        case .credentialsMissing: return "Enter Client ID and Client Secret in Settings"
+        case .quotaExceeded: return "Free up storage or upgrade Google Drive plan"
+        case .rateLimited: return "Will retry automatically with backoff"
+        case .networkUnavailable: return "Check network connection — will retry automatically"
+        case .permissionDenied: return "Check Google Drive permissions for this app"
+        case .rootFolderMissing: return "Check root folder configuration in Settings"
+        case .verificationFailed: return "Re-upload the file from Upload Queue"
+        case .unknown: return "Check logs for details"
+        }
+    }
+}
+
+// MARK: - Google Drive Connection State
+
+enum GoogleDriveConnectionState: String, Codable {
+    case connected
+    case needsReconnect
+    case notAuthenticated
+    case credentialsMissing
+    case quotaExceeded
+    case error
+
+    var isUsable: Bool { self == .connected }
 }
 
 func classifyGoogleDriveError(_ error: Error) -> GoogleDriveAPIError {
     if let gdError = error as? GoogleDriveError {
         switch gdError {
         case .notAuthenticated: return .authExpired
-        case .notConfigured: return .permissionDenied
-        default: break
+        case .notConfigured: return .credentialsMissing
+        case .fileNotFound: return .unknown
+        case .invalidURL: return .unknown
+        case .apiError(let msg):
+            let lower = msg.lowercased()
+            if lower.contains("401") { return .authExpired }
+            if lower.contains("quota") { return .quotaExceeded }
+            if lower.contains("429") || lower.contains("rate limit") { return .rateLimited }
+            if lower.contains("403") || lower.contains("permission") { return .permissionDenied }
+            return .unknown
+        }
+    }
+    if let authError = error as? GoogleDriveAuthError {
+        switch authError {
+        case .notAuthenticated, .tokenRefreshFailed: return .authExpired
+        case .missingCredentials: return .credentialsMissing
+        default: return .authExpired
         }
     }
     if let urlError = error as? URLError {
@@ -662,4 +736,27 @@ struct StorageDiagnostics {
     let quotaTotalGB: Double?
     let recentUploadCount: Int
     let recentFailureCount: Int
+    let connectionState: GoogleDriveConnectionState?
+
+    init(providerType: String, isConnected: Bool, authenticatedEmail: String?,
+         lastTestDate: Date?, lastTestSuccess: Bool, lastTestError: String?,
+         lastTestErrorClass: GoogleDriveAPIError?, rootFolderName: String?,
+         rootFolderExists: Bool?, quotaUsedGB: Double?, quotaTotalGB: Double?,
+         recentUploadCount: Int, recentFailureCount: Int,
+         connectionState: GoogleDriveConnectionState? = nil) {
+        self.providerType = providerType
+        self.isConnected = isConnected
+        self.authenticatedEmail = authenticatedEmail
+        self.lastTestDate = lastTestDate
+        self.lastTestSuccess = lastTestSuccess
+        self.lastTestError = lastTestError
+        self.lastTestErrorClass = lastTestErrorClass
+        self.rootFolderName = rootFolderName
+        self.rootFolderExists = rootFolderExists
+        self.quotaUsedGB = quotaUsedGB
+        self.quotaTotalGB = quotaTotalGB
+        self.recentUploadCount = recentUploadCount
+        self.recentFailureCount = recentFailureCount
+        self.connectionState = connectionState
+    }
 }

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title data-i18n="macMonitorSystem">Mac Monitor - Storage Center</title>
-<link rel="stylesheet" href="/css/style.css?v=2.5.1">
+<link rel="stylesheet" href="/css/style.css?v=2.5.2">
 <style>
     .storage-overview-grid {
         display: grid;
@@ -177,6 +177,49 @@
         </div>
     </div>
 
+    <!-- 1b. Google Drive Detail Card -->
+    <div class="section-card" id="gdriveDetailCard" style="display:none;">
+        <h3>Google Drive</h3>
+        <div id="gdriveDetailContent">
+            <div class="status-panel">
+                <div class="status-row">
+                    <span class="status-row-label" data-i18n="status">Status</span>
+                    <span class="status-row-value" id="gdStatusBadge">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-row-label" data-i18n="account">Account</span>
+                    <span class="status-row-value" id="gdEmail">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-row-label" data-i18n="quotaInfo">Storage Quota</span>
+                    <span class="status-row-value" id="gdQuota">--</span>
+                </div>
+                <div class="status-row" id="gdQuotaBarRow" style="display:none;">
+                    <span class="status-row-label"></span>
+                    <span class="status-row-value" style="flex:1; max-width:200px;">
+                        <div class="progress-bar"><div class="progress-fill" id="gdQuotaBar" style="width:0%"></div></div>
+                    </span>
+                </div>
+                <div class="status-row">
+                    <span class="status-row-label">Root Folder</span>
+                    <span class="status-row-value" id="gdRootFolder">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-row-label" data-i18n="uploadQueue">Upload Queue</span>
+                    <span class="status-row-value" id="gdUploadStats">--</span>
+                </div>
+            </div>
+            <div id="gdNextAction" style="margin-top:12px; font-size:12px; color:var(--warning); display:none;"></div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+                <button onclick="testGoogleDrive()" id="gdTestBtn" class="secondary" data-role-min="operator" data-i18n="testConnection">Test Connection</button>
+                <button onclick="reconnectGoogleDrive()" id="gdReconnectBtn" class="secondary" data-role-min="operator" data-i18n="reconnectGoogleDrive">Reconnect</button>
+                <button onclick="retryWaitingUploads()" id="gdRetryWaitingBtn" class="secondary" data-role-min="operator">Retry Waiting</button>
+                <button onclick="signOutGoogleDrive()" id="gdSignOutBtn" class="danger" data-role-min="admin" data-i18n="logout">Sign Out</button>
+            </div>
+            <div id="gdTestResult" class="test-result-box" style="margin-top:10px;"></div>
+        </div>
+    </div>
+
     <!-- 2. Storage Providers (enhanced) -->
     <div class="section-card">
         <h3 data-i18n="storageProviders">Storage Providers</h3>
@@ -207,8 +250,8 @@
     </div>
 </main>
 
-<script src="/js/i18n.js?v=2.5.1"></script>
-<script src="/js/app.js?v=2.5.1"></script>
+<script src="/js/i18n.js?v=2.5.2"></script>
+<script src="/js/app.js?v=2.5.2"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('storageCenter');
@@ -216,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadProviders();
     loadDiagnostics();
     loadQueueSummary();
+    loadGoogleDriveStatus();
 });
 
 // ===== Storage Overview (v2.5.0) =====
@@ -444,6 +488,170 @@ async function runDryRun() {
         el.textContent = '❌ ' + t('failed');
     } finally {
         if (btn) btn.disabled = false;
+    }
+}
+
+// ===== Google Drive Status (v2.5.2) =====
+
+const CONNECTION_STATE_LABELS = {
+    connected: { badge: 'badge-green', i18n: 'connected' },
+    needsReconnect: { badge: 'badge-orange', i18n: 'needsReconnect' },
+    notAuthenticated: { badge: 'badge-red', i18n: 'notConfigured' },
+    credentialsMissing: { badge: 'badge-neutral', i18n: 'notConfigured' },
+    quotaExceeded: { badge: 'badge-red', i18n: 'errorQuotaExceeded' },
+    error: { badge: 'badge-red', i18n: 'connectionFailed' }
+};
+
+async function loadGoogleDriveStatus() {
+    const data = await optionalApi('/api/storage/google-drive/status');
+    if (!data) return;
+
+    const card = document.getElementById('gdriveDetailCard');
+    // Show the card if Google Drive is the current provider or has credentials
+    if (data.isCurrentProvider || data.hasCredentials) {
+        card.style.display = '';
+    } else {
+        card.style.display = 'none';
+        return;
+    }
+
+    // Status badge
+    const state = data.connectionState || 'unknown';
+    const stateInfo = CONNECTION_STATE_LABELS[state] || { badge: 'badge-neutral', i18n: state };
+    document.getElementById('gdStatusBadge').innerHTML =
+        '<span class="badge ' + stateInfo.badge + '">' + t(stateInfo.i18n) + '</span>';
+
+    // Email
+    document.getElementById('gdEmail').textContent = data.email || t('notConfigured');
+
+    // Quota
+    const quotaEl = document.getElementById('gdQuota');
+    const quotaBarRow = document.getElementById('gdQuotaBarRow');
+    if (data.quotaUsedGB !== undefined && data.quotaTotalGB !== undefined) {
+        quotaEl.textContent = data.quotaUsedGB + ' / ' + data.quotaTotalGB + ' GB';
+        if (data.quotaTotalGB > 0) {
+            const pct = Math.min(100, Math.round((data.quotaUsedGB / data.quotaTotalGB) * 100));
+            quotaBarRow.style.display = '';
+            document.getElementById('gdQuotaBar').style.width = pct + '%';
+            if (pct > 90) {
+                document.getElementById('gdQuotaBar').style.background = 'var(--danger)';
+            } else if (pct > 75) {
+                document.getElementById('gdQuotaBar').style.background = 'var(--warning)';
+            }
+        }
+    } else {
+        quotaEl.textContent = '--';
+        quotaBarRow.style.display = 'none';
+    }
+
+    // Root folder
+    document.getElementById('gdRootFolder').textContent = data.rootFolderName || 'MacMonitor';
+
+    // Upload stats
+    const parts = [];
+    if (data.pendingUploads > 0) parts.push(t('pending') + ': ' + data.pendingUploads);
+    if (data.waitingUploads > 0) parts.push(t('waitingForProvider') + ': ' + data.waitingUploads);
+    if (data.failedUploads > 0) parts.push(t('failed') + ': ' + data.failedUploads);
+    document.getElementById('gdUploadStats').textContent = parts.length > 0 ? parts.join(' | ') : t('noUploadJobs');
+
+    // Next action hint
+    const nextActionEl = document.getElementById('gdNextAction');
+    if (state === 'needsReconnect') {
+        nextActionEl.textContent = t('reconnectGoogleDrive');
+        nextActionEl.style.display = '';
+    } else if (state === 'credentialsMissing') {
+        nextActionEl.textContent = t('googleDriveNotConnected');
+        nextActionEl.style.display = '';
+    } else if (state === 'quotaExceeded') {
+        nextActionEl.textContent = t('errorQuotaExceeded');
+        nextActionEl.style.display = '';
+    } else {
+        nextActionEl.style.display = 'none';
+    }
+
+    // Button visibility
+    const reconnectBtn = document.getElementById('gdReconnectBtn');
+    const signOutBtn = document.getElementById('gdSignOutBtn');
+    const retryWaitingBtn = document.getElementById('gdRetryWaitingBtn');
+    if (reconnectBtn) reconnectBtn.style.display = (state === 'needsReconnect' || state === 'notAuthenticated') ? '' : 'none';
+    if (retryWaitingBtn) retryWaitingBtn.style.display = (data.waitingUploads > 0) ? '' : 'none';
+
+    applyRoleVisibility();
+}
+
+async function testGoogleDrive() {
+    const el = document.getElementById('gdTestResult');
+    const btn = document.getElementById('gdTestBtn');
+    el.innerHTML = '<span style="color:var(--text-secondary);">' + t('testingConnection') + '</span>';
+    if (btn) btn.disabled = true;
+    try {
+        const data = await api('/api/storage/google-drive/test', { method: 'POST' });
+        if (data) {
+            if (data.connected) {
+                let html = '<span class="result-badge badge-green">' + t('connected') + '</span>';
+                html += '<span>' + t('connectionSuccess') + '</span>';
+                html += '<div class="result-detail">';
+                if (data.email) html += data.email;
+                if (data.quotaUsedGB !== undefined && data.quotaTotalGB !== undefined) {
+                    if (data.email) html += ' &middot; ';
+                    html += t('quotaInfo') + ': ' + data.quotaUsedGB + ' / ' + data.quotaTotalGB + ' GB';
+                }
+                html += '</div>';
+                el.innerHTML = html;
+            } else {
+                let html = '<span class="result-badge badge-red">' + t('connectionFailed') + '</span>';
+                html += '<div class="result-detail">';
+                if (data.errorClass) html += '<strong>' + t('errorClass') + ':</strong> ' + data.errorClass;
+                if (data.errorDescription) html += '<br>' + data.errorDescription;
+                if (data.nextAction) html += '<br><span style="color:var(--warning);">' + data.nextAction + '</span>';
+                html += '</div>';
+                el.innerHTML = html;
+            }
+            // Refresh status after test
+            loadGoogleDriveStatus();
+        }
+    } catch (e) {
+        el.innerHTML = '<span class="result-badge badge-red">' + t('connectionFailed') + '</span>';
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function reconnectGoogleDrive() {
+    try {
+        const data = await api('/api/storage/google-drive/reconnect', { method: 'POST' });
+        if (data && data.ok) {
+            toast(t('reconnectGoogleDrive'), 'success');
+        }
+    } catch (e) {
+        toast(t('failed'), 'error');
+    }
+}
+
+async function retryWaitingUploads() {
+    try {
+        const data = await api('/api/storage/google-drive/retry-waiting', { method: 'POST' });
+        if (data && data.ok) {
+            toast(t('retryAllFailed') + ': ' + (data.reactivated || 0), 'success');
+            loadGoogleDriveStatus();
+        }
+    } catch (e) {
+        toast(t('failed'), 'error');
+    }
+}
+
+async function signOutGoogleDrive() {
+    if (!confirm(t('confirmDelete'))) return;
+    try {
+        const data = await api('/api/storage/google-drive/sign-out', { method: 'POST' });
+        if (data && data.ok) {
+            toast(t('logout'), 'success');
+            loadGoogleDriveStatus();
+            loadStorage();
+            loadProviders();
+        }
+    } catch (e) {
+        toast(t('failed'), 'error');
     }
 }
 </script>

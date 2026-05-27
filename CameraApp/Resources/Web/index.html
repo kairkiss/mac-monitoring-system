@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title data-i18n="macMonitorSystem">Mac Monitor - Dashboard</title>
-<link rel="stylesheet" href="/css/style.css?v=2.5.1">
+<link rel="stylesheet" href="/css/style.css?v=2.5.2">
 <style>
 /* Status Strip (compact indicator row) */
 .status-strip {
@@ -281,8 +281,8 @@
     </div>
 </main>
 
-<script src="/js/i18n.js?v=2.5.1"></script>
-<script src="/js/app.js?v=2.5.1"></script>
+<script src="/js/i18n.js?v=2.5.2"></script>
+<script src="/js/app.js?v=2.5.2"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('dashboard');
@@ -328,13 +328,24 @@ function updateStatusStrip() {
         stripRem.className = 'status-dot dot-red';
     }
 
-    // Storage
+    // Storage (v2.5.2: show Google Drive state)
     const stripStor = document.querySelector('#stripStorage .status-dot');
     const stripStorLabel = document.getElementById('stripStorageLabel');
     if (lastStatusData) {
         const prov = lastStatusData.storage.provider;
         if (prov && prov !== 'none') {
-            stripStor.className = 'status-dot dot-green';
+            if (isGdriveProvider(prov)) {
+                const gcs = lastStatusData.storage.googleDriveConnectionState;
+                if (gcs === 'connected') {
+                    stripStor.className = 'status-dot dot-green';
+                } else if (gcs === 'needsReconnect' || gcs === 'quotaExceeded') {
+                    stripStor.className = 'status-dot dot-orange';
+                } else {
+                    stripStor.className = 'status-dot dot-red';
+                }
+            } else {
+                stripStor.className = 'status-dot dot-green';
+            }
             stripStorLabel.textContent = providerDisplayName(prov);
         } else {
             stripStor.className = 'status-dot dot-gray';
@@ -380,8 +391,20 @@ function updateAttentionSection() {
     if (lastStatusData && (lastStatusData.uploadQueue.failed || 0) > 0) {
         alerts.push({ icon: '⬆️', color: 'var(--warning-light)', text: lastStatusData.uploadQueue.failed + ' ' + t('failed'), sub: t('uploadQueue'), href: '/uploads.html' });
     }
-    if (lastStatusData && isGdriveProvider(lastStatusData.storage.provider) && lastStatusData.storage.needsReauth) {
-        alerts.push({ icon: '☁️', color: 'var(--warning-light)', text: 'Google Drive ' + t('stopped'), sub: t('storage'), href: '/storage.html' });
+    // Google Drive alerts (enhanced v2.5.2)
+    if (lastStatusData && isGdriveProvider(lastStatusData.storage.provider)) {
+        const gcs = lastStatusData.storage.googleDriveConnectionState;
+        if (gcs === 'credentialsMissing') {
+            alerts.push({ icon: '☁️', color: 'var(--warning-light)', text: 'Google Drive ' + t('notConfigured'), sub: t('storage'), href: '/storage.html' });
+        } else if (gcs === 'needsReconnect' || lastStatusData.storage.needsReauth) {
+            alerts.push({ icon: '☁️', color: 'var(--warning-light)', text: 'Google Drive ' + t('needsReconnect'), sub: t('storage'), href: '/storage.html' });
+        } else if (gcs === 'quotaExceeded') {
+            alerts.push({ icon: '☁️', color: 'var(--danger-light)', text: 'Google Drive ' + t('errorQuotaExceeded'), sub: t('storage'), href: '/storage.html' });
+        }
+    }
+    // Waiting uploads
+    if (lastStatusData && (lastStatusData.uploadQueue.waiting || 0) > 0) {
+        alerts.push({ icon: '⏳', color: 'var(--warning-light)', text: lastStatusData.uploadQueue.waiting + ' ' + t('waitingForProvider'), sub: t('uploadQueue'), href: '/uploads.html' });
     }
     if (lastCfData && lastCfData.error) {
         alerts.push({ icon: '🌐', color: 'var(--danger-light)', text: 'Tunnel ' + t('stopped'), sub: t('remoteAccess'), href: '/remote.html' });
@@ -506,12 +529,27 @@ createPoller('dashboard-status', async () => {
         upSub.textContent = waiting > 0 ? waiting + ' ' + t('waitingForProvider') : '';
     }
 
-    // Storage Status
+    // Storage Status (v2.5.2: show connection state for Google Drive)
     const storEl = document.getElementById('storageStatus');
     const storSub = document.getElementById('storageSub');
     if (data.storage.provider === 'none' || !data.storage.provider) {
         storEl.innerHTML = window.dot('idle', { idle: t('none') });
         storSub.textContent = t('notConfigured');
+    } else if (isGdriveProvider(data.storage.provider)) {
+        const gcs = data.storage.googleDriveConnectionState;
+        if (gcs === 'connected') {
+            storEl.innerHTML = window.dot('connected', { connected: providerDisplayName(data.storage.provider) });
+            storSub.textContent = data.storage.googleDriveEmail || '';
+        } else if (gcs === 'needsReconnect') {
+            storEl.innerHTML = window.dot('warning', { warning: t('needsReconnect') });
+            storSub.textContent = 'Google Drive';
+        } else if (gcs === 'quotaExceeded') {
+            storEl.innerHTML = window.dot('failed', { failed: t('errorQuotaExceeded') });
+            storSub.textContent = 'Google Drive';
+        } else {
+            storEl.innerHTML = window.dot('disconnected', { disconnected: providerDisplayName(data.storage.provider) });
+            storSub.textContent = t('notConfigured');
+        }
     } else {
         storEl.innerHTML = window.dot('connected', { connected: providerDisplayName(data.storage.provider) });
         storSub.textContent = '';

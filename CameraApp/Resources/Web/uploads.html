@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title data-i18n="macMonitorSystem">Mac Monitor - Upload Queue</title>
-<link rel="stylesheet" href="/css/style.css?v=2.5.1">
+<link rel="stylesheet" href="/css/style.css?v=2.5.2">
 <style>
     /* Uploads page-specific styles */
     .provider-banner {
@@ -220,8 +220,8 @@
     <p id="emptyMsg" class="empty-msg" data-i18n="noUploadJobs">No upload jobs in queue.</p>
 </main>
 
-<script src="/js/i18n.js?v=2.5.1"></script>
-<script src="/js/app.js?v=2.5.1"></script>
+<script src="/js/i18n.js?v=2.5.2"></script>
+<script src="/js/app.js?v=2.5.2"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     document.title = t('macMonitorSystem') + ' - ' + t('uploadQueue');
@@ -233,12 +233,16 @@ let currentFilter = 'all';
 let allJobs = [];
 
 const ERROR_DESCRIPTIONS = {
-    authExpired: 'Authentication expired — reconnect Google Drive',
-    quotaExceeded: 'Storage quota exceeded',
-    networkUnavailable: 'Network unavailable — will retry',
-    permissionDenied: 'Permission denied',
-    rateLimited: 'Rate limited — retrying with backoff',
-    unknown: 'Unknown error'
+    authExpired: { desc: 'errorAuthExpired', nextAction: 'reconnectGoogleDrive', retryable: false },
+    quotaExceeded: { desc: 'errorQuotaExceeded', nextAction: 'errorQuotaExceeded', retryable: false },
+    networkUnavailable: { desc: 'errorNetworkUnavailable', nextAction: 'errorNetworkUnavailable', retryable: true },
+    permissionDenied: { desc: 'errorPermissionDenied', nextAction: 'errorPermissionDenied', retryable: false },
+    rateLimited: { desc: 'errorRateLimited', nextAction: 'errorRateLimited', retryable: true },
+    credentialsMissing: { desc: 'errorAuthExpired', nextAction: 'googleDriveNotConnected', retryable: false },
+    notAuthenticated: { desc: 'errorAuthExpired', nextAction: 'reconnectGoogleDrive', retryable: false },
+    rootFolderMissing: { desc: 'errorPermissionDenied', nextAction: 'errorPermissionDenied', retryable: false },
+    verificationFailed: { desc: 'errorAuthExpired', nextAction: 'retryAllFailed', retryable: true },
+    unknown: { desc: 'error', nextAction: 'error', retryable: true }
 };
 
 function formatTime(isoStr) {
@@ -296,9 +300,29 @@ function updateCounts(jobs) {
     document.getElementById('countCompleted').textContent = counts.completed;
 }
 
-function checkProviderBanner(jobs) {
+async function checkProviderBanner(jobs) {
     const hasWaiting = jobs.some(j => j.status === 'waitingForProvider');
-    document.getElementById('providerBanner').style.display = hasWaiting ? 'flex' : 'none';
+    const banner = document.getElementById('providerBanner');
+    if (!hasWaiting) {
+        banner.style.display = 'none';
+        return;
+    }
+    // Check Google Drive status to show more specific message
+    const gdStatus = await optionalApi('/api/storage/google-drive/status');
+    if (gdStatus) {
+        const state = gdStatus.connectionState;
+        if (state === 'needsReconnect') {
+            banner.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+                '<span>' + t('googleDriveNeedsReconnect') + ' &mdash; <a href="/storage.html">' + t('storageCenter') + '</a></span>';
+        } else if (state === 'credentialsMissing') {
+            banner.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+                '<span>' + t('googleDriveNotConnected') + ' &mdash; <a href="/storage.html">' + t('storageCenter') + '</a></span>';
+        } else {
+            banner.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+                '<span><span data-i18n="connectGoogleDrive">' + t('connectGoogleDrive') + '</span> &mdash; <a href="/storage.html" data-i18n="storageCenter">' + t('storageCenter') + '</a></span>';
+        }
+    }
+    banner.style.display = 'flex';
 }
 
 function renderErrorGroups(failedJobs) {
@@ -318,13 +342,19 @@ function renderErrorGroups(failedJobs) {
 
     let html = '';
     Object.keys(groups).sort().forEach(key => {
-        const desc = ERROR_DESCRIPTIONS[key] || key;
+        const info = ERROR_DESCRIPTIONS[key] || ERROR_DESCRIPTIONS.unknown;
         const count = groups[key].length;
+        const desc = t(info.desc);
+        const nextAction = t(info.nextAction);
+        const retryableIcon = info.retryable ? '' : ' <span style="color:var(--danger); font-size:11px;">(' + t('retry') + ' &times;)</span>';
         html += '<div class="error-group-header">' +
             '<span class="error-group-count">' + count + '</span>' +
-            '<span>' + key + '</span>' +
+            '<span>' + key + retryableIcon + '</span>' +
             '<span class="error-group-desc">— ' + desc + '</span>' +
             '</div>';
+        if (nextAction && nextAction !== info.nextAction) {
+            html += '<div style="font-size:11px; color:var(--warning); padding:4px 16px 8px;">' + nextAction + '</div>';
+        }
     });
     container.innerHTML = html;
 }

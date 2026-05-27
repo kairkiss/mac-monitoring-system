@@ -208,12 +208,12 @@ final class UploadQueueManager: ObservableObject {
                 failed.errorClass = errClass.rawValue
 
                 switch errClass {
-                case .authExpired, .permissionDenied:
+                case .authExpired, .permissionDenied, .credentialsMissing, .notAuthenticated:
                     // Don't retry — user needs to fix auth
                     failed.status = .failed
                     ActivityLogManager.shared.error(.upload, "Upload failed (auth): \(job.fileName)",
                         detail: errClass.localizedDescription)
-                case .quotaExceeded:
+                case .quotaExceeded, .rootFolderMissing:
                     // Don't retry — quota full
                     failed.status = .failed
                     ActivityLogManager.shared.error(.upload, "Upload failed (quota): \(job.fileName)",
@@ -244,7 +244,7 @@ final class UploadQueueManager: ObservableObject {
                         failed.status = .failed
                         ActivityLogManager.shared.error(.upload, "Upload failed (network): \(job.fileName)")
                     }
-                case .unknown:
+                case .unknown, .verificationFailed:
                     // Standard retry logic
                     if failed.attempts < failed.maxRetries {
                         failed.status = .retrying

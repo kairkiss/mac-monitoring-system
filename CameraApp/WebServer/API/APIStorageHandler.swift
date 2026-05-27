@@ -29,6 +29,17 @@ struct APIStorageHandler {
                 result["googleDriveEmail"] = gdAuth.userEmail
                 result["googleDriveNeedsReconnect"] = gdAuth.needsReconnect
                 result["rootFolderName"] = settings.googleDriveRootFolderName.isEmpty ? "MacMonitor" : settings.googleDriveRootFolderName
+                // Connection state
+                let hasCreds = !settings.googleDriveClientID.isEmpty && !KeychainService.shared.googleDriveClientSecret.isEmpty
+                if !hasCreds {
+                    result["googleDriveConnectionState"] = "credentialsMissing"
+                } else if !gdAuth.isAuthenticated && gdAuth.needsReconnect {
+                    result["googleDriveConnectionState"] = "needsReconnect"
+                } else if !gdAuth.isAuthenticated {
+                    result["googleDriveConnectionState"] = "notAuthenticated"
+                } else {
+                    result["googleDriveConnectionState"] = "connected"
+                }
             }
 
             // Upload queue summary
@@ -203,6 +214,164 @@ struct APIStorageHandler {
                 ] as [String: Any]
             }
             return HTTPResponse.json(["providers": providers])
+        }
+
+        // MARK: - Google Drive Specific Endpoints
+
+        // Google Drive status (detailed connection state)
+        router.addRoute(method: "GET", path: "/api/storage/google-drive/status") { _ in
+            let gdAuth = GoogleDriveAuthManager.shared
+            let settings = SettingsStore.shared
+            let queue = UploadQueueManager.shared
+
+            // Determine connection state
+            let hasCredentials = !settings.googleDriveClientID.isEmpty && !KeychainService.shared.googleDriveClientSecret.isEmpty
+            let connectionState: String
+            if !hasCredentials {
+                connectionState = "credentialsMissing"
+            } else if !gdAuth.isAuthenticated && gdAuth.needsReconnect {
+                connectionState = "needsReconnect"
+            } else if !gdAuth.isAuthenticated {
+                connectionState = "notAuthenticated"
+            } else {
+                connectionState = "connected"
+            }
+
+            // Upload queue stats for Google Drive
+            let waitingJobs = queue.jobs.filter { $0.status == .waitingForProvider && $0.providerType == StorageProviderType.googleDrive.rawValue }
+            let failedJobs = queue.jobs.filter { $0.status == .failed && $0.providerType == StorageProviderType.googleDrive.rawValue }
+            let pendingJobs = queue.jobs.filter { ($0.status == .pending || $0.status == .retrying) && $0.providerType == StorageProviderType.googleDrive.rawValue }
+
+            var result: [String: Any] = [
+                "connectionState": connectionState,
+                "isAuthenticated": gdAuth.isAuthenticated,
+                "needsReconnect": gdAuth.needsReconnect,
+                "email": gdAuth.userEmail,
+                "hasCredentials": hasCredentials,
+                "rootFolderName": settings.googleDriveRootFolderName.isEmpty ? "MacMonitor" : settings.googleDriveRootFolderName,
+                "waitingUploads": waitingJobs.count,
+                "failedUploads": failedJobs.count,
+                "pendingUploads": pendingJobs.count,
+                "isCurrentProvider": StorageManager.shared.activeProviderType == .googleDrive
+            ]
+
+            // Add quota info if authenticated
+            if gdAuth.isAuthenticated {
+                let semaphore = DispatchSemaphore(value: 0)
+                var diag: StorageDiagnostics?
+                Task {
+                    diag = await GoogleDriveProvider().testConnectionDetailed()
+                    semaphore.signal()
+                }
+                semaphore.wait()
+                if let d = diag {
+                    if let used = d.quotaUsedGB { result["quotaUsedGB"] = round(used * 10) / 10 }
+                    if let total = d.quotaTotalGB { result["quotaTotalGB"] = round(total * 10) / 10 }
+                    if let errClass = d.lastTestErrorClass { result["errorClass"] = errClass.rawValue }
+                    if let err = d.lastTestError { result["lastTestError"] = err }
+                }
+            }
+
+            return HTTPResponse.json(result)
+        }
+
+        // Google Drive test connection (dedicated endpoint)
+        router.addRoute(method: "POST", path: "/api/storage/google-drive/test", requiredRole: .operatorRole) { _ in
+            let provider = GoogleDriveProvider()
+            let semaphore = DispatchSemaphore(value: 0)
+            var diag: StorageDiagnostics?
+            Task {
+                diag = await provider.testConnectionDetailed()
+                semaphore.signal()
+            }
+            semaphore.wait()
+            guard let d = diag else {
+                return HTTPResponse.json(["connected": false, "error": "Test unavailable"] as [String: Any])
+            }
+            var resp: [String: Any] = [
+                "connected": d.isConnected,
+                "connectionState": d.connectionState?.rawValue ?? "unknown",
+                "lastTestSuccess": d.lastTestSuccess
+            ]
+            if let email = d.authenticatedEmail { resp["email"] = email }
+            if let error = d.lastTestError { resp["error"] = error }
+            if let errorClass = d.lastTestErrorClass {
+                resp["errorClass"] = errorClass.rawValue
+                resp["errorDescription"] = errorClass.localizedDescription
+                resp["nextAction"] = errorClass.nextAction
+                resp["isRetryable"] = errorClass.isRetryable
+            }
+            if let used = d.quotaUsedGB { resp["quotaUsedGB"] = round(used * 10) / 10 }
+            if let total = d.quotaTotalGB { resp["quotaTotalGB"] = round(total * 10) / 10 }
+            if let folderName = d.rootFolderName { resp["rootFolderName"] = folderName }
+            return HTTPResponse.json(resp)
+        }
+
+        // Google Drive reconnect (re-trigger OAuth)
+        router.addRoute(method: "POST", path: "/api/storage/google-drive/reconnect", requiredRole: .operatorRole) { request in
+            let settings = SettingsStore.shared
+            let clientID = settings.googleDriveClientID
+            let clientSecret = KeychainService.shared.googleDriveClientSecret
+            guard !clientID.isEmpty, !clientSecret.isEmpty else {
+                return HTTPResponse.error("Google Drive credentials not configured", status: 400)
+            }
+            let user = request.sessionUsername ?? "unknown"
+            ActivityLogManager.shared.info(.upload, "Google Drive reconnect requested by \(user)")
+            AuditLogManager.shared.log(method: "POST", path: "/api/storage/google-drive/reconnect", status: 200, remoteAddress: request.remoteAddress ?? "unknown", user: request.sessionUsername, detail: "reconnect")
+            // Trigger OAuth flow asynchronously
+            Task {
+                try? await GoogleDriveAuthManager.shared.authenticate(clientID: clientID, clientSecret: clientSecret)
+                StorageManager.shared.configure()
+            }
+            return HTTPResponse.json(["ok": true, "message": "OAuth flow initiated — check your browser"] as [String: Any])
+        }
+
+        // Google Drive sign-out (admin-only, clears tokens)
+        router.addRoute(method: "POST", path: "/api/storage/google-drive/sign-out", requiredRole: .admin) { request in
+            let user = request.sessionUsername ?? "unknown"
+            GoogleDriveAuthManager.shared.signOut()
+            StorageManager.shared.configure()
+            ActivityLogManager.shared.info(.upload, "Google Drive sign-out by \(user)")
+            AuditLogManager.shared.log(method: "POST", path: "/api/storage/google-drive/sign-out", status: 200, remoteAddress: request.remoteAddress ?? "unknown", user: request.sessionUsername, detail: "sign-out")
+            return HTTPResponse.json(["ok": true] as [String: Any])
+        }
+
+        // Google Drive retry waiting uploads (operator+)
+        router.addRoute(method: "POST", path: "/api/storage/google-drive/retry-waiting", requiredRole: .operatorRole) { request in
+            let queue = UploadQueueManager.shared
+            let hasProvider = StorageManager.shared.activeProvider != nil
+            var reactivated = 0
+            for var job in queue.jobs where job.status == .waitingForProvider {
+                if hasProvider {
+                    job.status = .pending
+                    job.lastError = nil
+                    job.errorClass = nil
+                    UploadQueueStore.shared.updateJob(job)
+                    reactivated += 1
+                }
+            }
+            if hasProvider && reactivated > 0 {
+                queue.startProcessing()
+            }
+            let user = request.sessionUsername ?? "unknown"
+            ActivityLogManager.shared.info(.upload, "Retry waiting uploads by \(user): \(reactivated) jobs reactivated")
+            AuditLogManager.shared.log(method: "POST", path: "/api/storage/google-drive/retry-waiting", status: 200, remoteAddress: request.remoteAddress ?? "unknown", user: request.sessionUsername, detail: "reactivated \(reactivated) jobs")
+            return HTTPResponse.json(["ok": true, "reactivated": reactivated] as [String: Any])
+        }
+
+        // Google Drive root folder info
+        router.addRoute(method: "GET", path: "/api/storage/google-drive/root") { _ in
+            let settings = SettingsStore.shared
+            let kc = KeychainService.shared
+            let rootName = settings.googleDriveRootFolderName.isEmpty ? "MacMonitor" : settings.googleDriveRootFolderName
+            let rootFolderID = kc.googleDriveRootFolderID
+            let folderID = settings.googleDriveFolderID
+            return HTTPResponse.json([
+                "rootFolderName": rootName,
+                "rootFolderID": rootFolderID.isEmpty ? "(not cached)" : rootFolderID,
+                "folderID": folderID.isEmpty ? "(not set)" : folderID,
+                "isAuthenticated": GoogleDriveAuthManager.shared.isAuthenticated
+            ] as [String: Any])
         }
 
         // MARK: - Cloudflare Tunnel

@@ -418,7 +418,24 @@ const I18N = {
     connected: "Connected",
     queueJobsTotal: "Queue Jobs Total",
     activeUploaders: "Active Cloud Uploaders",
-    networkReachable: "Network Reachable"
+    networkReachable: "Network Reachable",
+    // v2.5.2 Google Drive
+    gdConnectionState: "Connection State",
+    gdEmail: "Account",
+    gdRootFolder: "Root Folder",
+    gdUploadStats: "Upload Stats",
+    gdNextAction: "Next Action",
+    gdSignOut: "Sign Out",
+    gdSignOutConfirm: "Sign out of Google Drive? Upload queue waiting jobs will be preserved.",
+    gdReconnectPrompt: "Google Drive needs reconnect. Click Reconnect to sign in again.",
+    gdCredentialsMissing: "Google Drive credentials not configured. Enter Client ID and Client Secret in Settings.",
+    gdQuotaWarning: "Google Drive storage is running low.",
+    uploadWaitingCount: "{n} uploads waiting for provider",
+    uploadFailedCount: "{n} uploads failed",
+    errorCredentialsMissing: "Credentials not configured",
+    errorNotAuthenticated: "Not authenticated",
+    errorRootFolderMissing: "Root folder missing",
+    errorVerificationFailed: "Verification failed"
   },
   zh: {
     appName: "Mac监控系统",
@@ -838,7 +855,24 @@ const I18N = {
     connected: "已连接",
     queueJobsTotal: "队列任务总数",
     activeUploaders: "活跃上传器",
-    networkReachable: "网络可达"
+    networkReachable: "网络可达",
+    // v2.5.2 Google Drive
+    gdConnectionState: "连接状态",
+    gdEmail: "账号",
+    gdRootFolder: "根目录",
+    gdUploadStats: "上传统计",
+    gdNextAction: "下一步操作",
+    gdSignOut: "退出登录",
+    gdSignOutConfirm: "退出 Google Drive？等待中的上传任务将保留。",
+    gdReconnectPrompt: "Google Drive 需要重新认证。请点击重新连接。",
+    gdCredentialsMissing: "Google Drive 凭据未配置。请在设置中输入 Client ID 和 Client Secret。",
+    gdQuotaWarning: "Google Drive 存储空间即将用尽。",
+    uploadWaitingCount: "{n} 个上传等待存储连接",
+    uploadFailedCount: "{n} 个上传失败",
+    errorCredentialsMissing: "凭据未配置",
+    errorNotAuthenticated: "未认证",
+    errorRootFolderMissing: "根目录缺失",
+    errorVerificationFailed: "验证失败"
   }
 };
 
